@@ -1,0 +1,235 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Core identity ----------
+
+model Employee {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  avatarSeed   String   @default("adventurer")
+  createdAt    DateTime @default(now())
+
+  // Personal progression
+  xp         Int    @default(0)
+  level      Int    @default(1)
+  coins      Int    @default(0)
+  reputation Int    @default(0)
+  title      String @default("Novice")
+
+  guildId String?
+  guild   Guild?  @relation(fields: [guildId], references: [id])
+
+  companion         Companion?
+  adventureProgress AdventureProgress[]
+  purchases         Purchase[]
+  reflections       Reflection[]
+
+  createdAdventures Adventure[] @relation("AdventureCreator")
+}
+
+model Companion {
+  id         String   @id @default(cuid())
+  employeeId String   @unique
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  species        String // dragon, robot, fox, owl, panda
+  name           String
+  bondLevel      Int       @default(1)
+  bondXp         Int       @default(0)
+  lastDialogueAt DateTime?
+  createdAt      DateTime  @default(now())
+
+  memories CompanionMemory[]
+}
+
+// Rolling short-term memory the AI companion draws on so dialogue
+// references real recent events instead of being stateless each call.
+model CompanionMemory {
+  id          String    @id @default(cuid())
+  companionId String
+  companion   Companion @relation(fields: [companionId], references: [id])
+
+  // e.g. "completed_adventure", "leveled_up", "guild_milestone"
+  eventType String
+  summary   String   @db.Text
+  createdAt DateTime @default(now())
+}
+
+// ---------- Guilds (teams) ----------
+
+model Guild {
+  id         String @id @default(cuid())
+  name       String @unique // e.g. "Iron Forge Guild"
+  department String // e.g. "Engineering"
+  emblem     String @default("shield")
+
+  level      Int @default(1)
+  reputation Int @default(0)
+
+  guardianSpecies String @default("dragon")
+  guardianName    String @default("Guardian")
+  guardianLevel   Int    @default(1)
+
+  knowledge Int @default(0)
+  gold      Int @default(0)
+  influence Int @default(0)
+  materials Int @default(0)
+
+  members       Employee[]
+  adventures    Adventure[]            @relation("AdventureGuild")
+  contributions KingdomContribution[]
+  createdAt     DateTime               @default(now())
+}
+
+// ---------- Kingdom ----------
+
+model Kingdom {
+  id        String   @id @default(cuid())
+  name      String   @default("The Kingdom")
+  createdAt DateTime @default(now())
+
+  projects KingdomProject[]
+  stories  WeeklyStory[]
+}
+
+model KingdomProject {
+  id        String  @id @default(cuid())
+  kingdomId String
+  kingdom   Kingdom @relation(fields: [kingdomId], references: [id])
+
+  name        String // e.g. "Crystal University"
+  description String
+  unlocked    Boolean @default(false)
+
+  knowledgeNeeded Int @default(0)
+  goldNeeded      Int @default(0)
+  influenceNeeded Int @default(0)
+  materialsNeeded Int @default(0)
+
+  knowledgeContributed Int @default(0)
+  goldContributed      Int @default(0)
+  influenceContributed Int @default(0)
+  materialsContributed Int @default(0)
+
+  contributions KingdomContribution[]
+  createdAt     DateTime               @default(now())
+}
+
+model KingdomContribution {
+  id        String         @id @default(cuid())
+  projectId String
+  project   KingdomProject @relation(fields: [projectId], references: [id])
+  guildId   String
+  guild     Guild          @relation(fields: [guildId], references: [id])
+
+  resourceType String // knowledge | gold | influence | materials
+  amount       Int
+  createdAt    DateTime @default(now())
+}
+
+model WeeklyStory {
+  id        String  @id @default(cuid())
+  kingdomId String
+  kingdom   Kingdom @relation(fields: [kingdomId], references: [id])
+
+  weekOf    DateTime
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+}
+
+// ---------- Adventures ----------
+
+enum AdventureType {
+  SOLO
+  GUILD
+  CROSS_GUILD
+}
+
+enum AdventureStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+}
+
+model Adventure {
+  id          String          @id @default(cuid())
+  type        AdventureType
+  title       String
+  description String          @db.Text
+  status      AdventureStatus @default(ACTIVE)
+
+  xpReward        Int @default(0)
+  coinReward      Int @default(0)
+  knowledgeReward Int @default(0)
+  goldReward      Int @default(0)
+  influenceReward Int @default(0)
+  materialsReward Int @default(0)
+
+  // SOLO: assigned to one employee. GUILD: scoped to one guild.
+  // CROSS_GUILD: open to multiple guilds, tracked via participants.
+  guildId String?
+  guild   Guild?  @relation("AdventureGuild", fields: [guildId], references: [id])
+
+  createdById String?
+  createdBy   Employee? @relation("AdventureCreator", fields: [createdById], references: [id])
+
+  aiGenerated Boolean   @default(true)
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  progress AdventureProgress[]
+}
+
+model AdventureProgress {
+  id          String    @id @default(cuid())
+  adventureId String
+  adventure   Adventure @relation(fields: [adventureId], references: [id])
+  employeeId  String
+  employee    Employee  @relation(fields: [employeeId], references: [id])
+
+  completed   Boolean   @default(false)
+  submission  String?   @db.Text
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@unique([adventureId, employeeId])
+}
+
+model Reflection {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  content    String   @db.Text
+  createdAt  DateTime @default(now())
+}
+
+// ---------- Marketplace ----------
+
+model MarketplaceItem {
+  id          String  @id @default(cuid())
+  name        String
+  description String
+  cost        Int
+  icon        String  @default("gift")
+  active      Boolean @default(true)
+
+  purchases Purchase[]
+}
+
+model Purchase {
+  id         String          @id @default(cuid())
+  employeeId String
+  employee   Employee        @relation(fields: [employeeId], references: [id])
+  itemId     String
+  item       MarketplaceItem @relation(fields: [itemId], references: [id])
+
+  createdAt DateTime @default(now())
+}
