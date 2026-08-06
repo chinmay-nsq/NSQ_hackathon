@@ -116,6 +116,64 @@ class AmbientEngine {
       osc.stop(now + 0.7 + i * 0.05);
     });
   }
+
+  /** A soft, quiet tick for hover feedback on smaller interactive elements. */
+  playTick() {
+    if (!this.ctx || !this.master) return;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.value = 1040;
+
+    const gain = ctx.createGain();
+    gain.gain.value = 0;
+    gain.gain.linearRampToValueAtTime(0.03, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+
+    osc.connect(gain);
+    gain.connect(this.master);
+    osc.start(now);
+    osc.stop(now + 0.14);
+  }
+
+  /** A soft filtered-noise whoosh — used on section-enter transitions during scroll. */
+  playWhoosh(direction: "in" | "out" = "in") {
+    if (!this.ctx || !this.master) return;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+    const duration = 0.7;
+
+    const bufferSize = ctx.sampleRate * duration;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.Q.value = 0.9;
+    const startFreq = direction === "in" ? 200 : 1800;
+    const endFreq = direction === "in" ? 1800 : 200;
+    filter.frequency.setValueAtTime(startFreq, now);
+    filter.frequency.linearRampToValueAtTime(endFreq, now + duration);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.035, now + duration * 0.3);
+    gain.gain.linearRampToValueAtTime(0, now + duration);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.master);
+    noise.start(now);
+    noise.stop(now + duration);
+  }
 }
 
 export const ambientEngine = new AmbientEngine();

@@ -33,9 +33,37 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = "https://weatherliner.vercel.app";
+const TITLE = "Weatherline — Team Engagement, Reinvented";
+const DESCRIPTION =
+  "Every task becomes a quest. Every team, a party. Every company, a world worth showing up for — powered by an AI that actually pays attention.";
+
 export const metadata: Metadata = {
-  title: "Weatherline",
-  description: "Team engagement dashboard for Weatherline",
+  metadataBase: new URL(SITE_URL),
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    url: SITE_URL,
+    siteName: "Weatherline",
+    images: [
+      {
+        url: "/image.png",
+        width: 1788,
+        height: 880,
+        alt: "Weatherline — work feels like a game you want to play.",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+    images: ["/image.png"],
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
