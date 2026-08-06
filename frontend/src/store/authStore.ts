@@ -33,7 +33,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   async fetchMe() {
-    set({ status: "loading" });
+    set((state) => ({ status: state.status === "idle" ? "loading" : state.status }));
     try {
       const data = await api.get<{ employee: Employee }>("/auth/me");
       set({ employee: data.employee, status: "authenticated" });

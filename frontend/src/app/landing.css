@@ -1,0 +1,47 @@
+/*
+  Weatherline landing page — dark cinematic world, always-dark regardless
+  of the app's light/dark toggle. Scoped under .landing-page so it never
+  leaks into the dashboard's token system.
+*/
+
+.landing-page {
+  --ink: #0a0908;
+  --paper: #f3efe9;
+  --coral: #ff5a36;
+  --ember: #b23a1f;
+  --smoke: #8a8580;
+  --line: #232120;
+
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  cursor: default;
+}
+
+.landing-page .font-display {
+  font-family: var(--font-anton), sans-serif;
+}
+
+.landing-page .font-mono {
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+}
+
+.landing-page .text-coral {
+  color: var(--coral);
+}
+
+.landing-page .bg-coral {
+  background-color: var(--coral);
+}
+
+html.has-custom-cursor,
+html.has-custom-cursor .landing-page * {
+  cursor: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-page * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

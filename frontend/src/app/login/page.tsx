@@ -1,10 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { Sparkles } from "lucide-react";
+import { useGSAP } from "@gsap/react";
+import { gsap } from "@/lib/gsap/registerPlugins";
 import { useAuthStore } from "@/store/authStore";
 import { ApiRequestError } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export default function LoginPage() {
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -16,6 +29,35 @@ export default function LoginPage() {
 
   const { login, register } = useAuthStore();
   const router = useRouter();
+  const scope = useRef<HTMLDivElement>(null);
+  const logoRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      const tl = gsap.timeline();
+      tl.fromTo(
+        logoRef.current,
+        { opacity: 0, y: -16, scale: 0.7, rotate: -12 },
+        { opacity: 1, y: 0, scale: 1, rotate: 0, duration: 0.6, ease: "back.out(2.2)" }
+      ).fromTo(
+        cardRef.current,
+        { opacity: 0, y: 28, scale: 0.97 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.55, ease: "power3.out" },
+        "-=0.3"
+      );
+    },
+    { scope }
+  );
+
+  function shakeCard() {
+    if (!cardRef.current) return;
+    gsap.fromTo(
+      cardRef.current,
+      { x: -8 },
+      { x: 0, duration: 0.5, ease: "elastic.out(1.2, 0.3)" }
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,100 +69,93 @@ export default function LoginPage() {
       } else {
         await register(email, password, name);
       }
-      router.replace("/");
+      router.replace("/app");
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : "Something went wrong");
+      shakeCard();
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6">
-      <motion.div
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: "easeOut" }}
-        className="w-full max-w-95"
-      >
-        <div className="mb-10 text-center">
-          <p className="label-caps text-[11px] text-accent mb-3">Kingdom Command Center</p>
-          <h1 className="font-display text-4xl">Weatherline</h1>
+    <div ref={scope} className="flex min-h-screen items-center justify-center bg-muted/30 px-6">
+      <div className="w-full max-w-sm">
+        <div ref={logoRef} className="mb-6 flex items-center justify-center gap-2">
+          <div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <Sparkles className="size-4" />
+          </div>
+          <span className="text-lg font-semibold tracking-tight">Weatherline</span>
         </div>
 
-        <div className="border border-line bg-card">
-          <div className="flex border-b border-line">
-            <button
-              type="button"
-              onClick={() => setMode("login")}
-              className={`flex-1 py-3 text-sm transition-colors relative ${
-                mode === "login" ? "text-accent" : "text-fg-muted hover:text-fg"
-              }`}
-            >
-              Sign In
-              {mode === "login" && <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-accent" />}
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("register")}
-              className={`flex-1 py-3 text-sm transition-colors relative ${
-                mode === "register" ? "text-accent" : "text-fg-muted hover:text-fg"
-              }`}
-            >
-              Register
-              {mode === "register" && <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-accent" />}
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            {mode === "register" && (
-              <div>
-                <label className="label-caps text-[10px] text-fg-muted block mb-1.5">Name</label>
-                <input
+        <Card ref={cardRef}>
+          <CardHeader>
+            <Tabs value={mode} onValueChange={(v) => setMode(v as "login" | "register")}>
+              <TabsList className="w-full">
+                <TabsTrigger value="login" className="flex-1">
+                  Sign in
+                </TabsTrigger>
+                <TabsTrigger value="register" className="flex-1">
+                  Register
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <CardTitle className="sr-only">
+              {mode === "login" ? "Sign in" : "Create your account"}
+            </CardTitle>
+            <CardDescription className="pt-2">
+              {mode === "login"
+                ? "Sign in to continue your progress."
+                : "Set up your account to start earning XP with your team."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {mode === "register" && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Your name"
+                  />
+                </div>
+              )}
+              <div className="space-y-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
                   required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-bg-deep border border-line px-3 py-2 text-sm focus:outline-none focus:border-accent transition-colors"
-                  placeholder="Your name"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@company.com"
                 />
               </div>
-            )}
-            <div>
-              <label className="label-caps text-[10px] text-fg-muted block mb-1.5">Email</label>
-              <input
-                required
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-bg-deep border border-line px-3 py-2 text-sm focus:outline-none focus:border-accent transition-colors"
-                placeholder="you@company.com"
-              />
-            </div>
-            <div>
-              <label className="label-caps text-[10px] text-fg-muted block mb-1.5">Password</label>
-              <input
-                required
-                type="password"
-                minLength={8}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-bg-deep border border-line px-3 py-2 text-sm focus:outline-none focus:border-accent transition-colors"
-                placeholder="At least 8 characters"
-              />
-            </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  required
+                  type="password"
+                  minLength={8}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="At least 8 characters"
+                />
+              </div>
 
-            {error && <p className="text-sm text-accent">{error}</p>}
+              {error && <p className="text-sm text-destructive">{error}</p>}
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full py-2.5 bg-accent text-bg font-medium text-sm hover:bg-accent-bright transition-colors disabled:opacity-50"
-            >
-              {submitting ? "Please wait…" : mode === "login" ? "Enter the Kingdom" : "Take the Oath"}
-            </button>
-          </form>
-        </div>
-      </motion.div>
+              <Button type="submit" disabled={submitting} className="w-full">
+                {submitting ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -1,16 +1,26 @@
 import type { Metadata } from "next";
-import { Spectral, Inter, JetBrains_Mono, Geist } from "next/font/google";
+import { Geist, Geist_Mono, Anton, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
-import { cn } from "@/lib/utils";
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
-
-const spectral = Spectral({
-  variable: "--font-spectral",
+const geistSans = Geist({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  style: ["normal", "italic"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+// Landing page ("/") only — a distinct, always-dark visual world.
+const anton = Anton({
+  variable: "--font-anton",
+  subsets: ["latin"],
+  weight: "400",
 });
 
 const inter = Inter({
@@ -24,18 +34,24 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Weatherline — Kingdom Dashboard",
-  description: "Guild and kingdom command center for Weatherline",
+  title: "Weatherline",
+  description: "Team engagement dashboard for Weatherline",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={cn("h-full", "antialiased", spectral.variable, inter.variable, jetbrainsMono.variable, "font-sans", geist.variable)}
+      className={`${geistSans.variable} ${geistMono.variable} ${anton.variable} ${inter.variable} ${jetbrainsMono.variable} antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">
-        <AppShell>{children}</AppShell>
+      <body className="min-h-screen">
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <TooltipProvider>
+            <AppShell>{children}</AppShell>
+            <Toaster />
+          </TooltipProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

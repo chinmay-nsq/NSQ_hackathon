@@ -24,6 +24,33 @@ export interface Companion {
   bondXp: number;
 }
 
+export type AdventureType = "SOLO" | "GUILD" | "CROSS_GUILD";
+export type AdventureStatus = "ACTIVE" | "COMPLETED" | "EXPIRED";
+
+export interface AdventureProgress {
+  id?: string;
+  employeeId?: string;
+  completed?: boolean;
+  submission?: string | null;
+}
+
+export interface Adventure {
+  id: string;
+  type: AdventureType;
+  title: string;
+  description: string;
+  status: AdventureStatus;
+  xpReward: number;
+  coinReward: number;
+  knowledgeReward: number;
+  goldReward: number;
+  influenceReward: number;
+  materialsReward: number;
+  guildId?: string | null;
+  createdAt: string;
+  progress: AdventureProgress[];
+}
+
 export interface GuildMember {
   id: string;
   name: string;

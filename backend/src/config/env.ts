@@ -15,6 +15,4 @@ export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   groqApiKey: process.env.GROQ_API_KEY ?? "",
   clientOriginWeb: process.env.CLIENT_ORIGIN_WEB ?? "http://localhost:3000",
-  clientOriginMobile: process.env.CLIENT_ORIGIN_MOBILE ?? "*",
-  expoWebOrigin: process.env.EXPO_WEB_ORIGIN ?? "http://localhost:8081",
 };

@@ -3,12 +3,17 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
-import { NavBar } from "@/components/NavBar";
+import { AppSidebar } from "@/components/AppSidebar";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
+import { Sparkles } from "lucide-react";
 
-const PUBLIC_ROUTES = ["/login"];
+const PUBLIC_ROUTES = ["/", "/login"];
+const ONBOARDING_ROUTE = "/onboarding";
+const APP_HOME_ROUTE = "/app";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { status, fetchMe } = useAuthStore();
+  const { status, employee, fetchMe } = useAuthStore();
   const pathname = usePathname();
   const router = useRouter();
   const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
@@ -22,32 +27,50 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (status === "unauthenticated" && !isPublicRoute) {
       router.replace("/login");
+      return;
     }
-    if (status === "authenticated" && isPublicRoute) {
-      router.replace("/");
+    if (status === "authenticated" && pathname === "/login") {
+      router.replace(APP_HOME_ROUTE);
+      return;
     }
-  }, [status, isPublicRoute, router]);
+    if (status === "authenticated" && employee && !employee.companion && pathname !== ONBOARDING_ROUTE) {
+      router.replace(ONBOARDING_ROUTE);
+      return;
+    }
+    if (status === "authenticated" && employee?.companion && pathname === ONBOARDING_ROUTE) {
+      router.replace(APP_HOME_ROUTE);
+    }
+  }, [status, employee, isPublicRoute, pathname, router]);
 
-  if (isPublicRoute) {
-    return <main className="flex-1">{children}</main>;
+  if (isPublicRoute || pathname === ONBOARDING_ROUTE) {
+    return <main className="min-h-screen">{children}</main>;
   }
 
   if (status === "idle" || status === "loading") {
     return (
-      <main className="flex-1 flex items-center justify-center">
-        <span className="font-display italic text-fg-muted">Unrolling the map…</span>
+      <main className="flex min-h-screen items-center justify-center gap-2 text-muted-foreground">
+        <Sparkles className="size-4 animate-pulse" />
+        <span className="text-sm">Loading Weatherline…</span>
       </main>
     );
   }
 
-  if (status === "unauthenticated") {
+  if (status === "unauthenticated" || !employee) {
     return null;
   }
 
   return (
-    <div className="flex-1 flex flex-col">
-      <NavBar />
-      <main className="flex-1 mx-auto w-full max-w-6xl px-6 py-8">{children}</main>
-    </div>
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="mr-2 h-4" />
+        </header>
+        <main className="flex-1 p-6">
+          <div className="mx-auto w-full max-w-6xl">{children}</div>
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
