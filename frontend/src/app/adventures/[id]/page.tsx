@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Coins, Star } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, Coins, Star, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiRequestError } from "@/lib/api";
 import { Adventure, Employee } from "@/lib/types";
@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { PageIn } from "@/components/motion/PageIn";
 import { gsap } from "@/lib/gsap/registerPlugins";
 import { celebrationBurst } from "@/lib/gsap/burst";
+import { flyCoinsToBalance } from "@/lib/gsap/coinFly";
 
 const TYPE_LABEL: Record<string, string> = {
   SOLO: "Solo",
@@ -51,22 +52,36 @@ export default function AdventureDetailPage() {
     setCompleting(true);
     setError(null);
     try {
-      await api.post<{ employee: Employee }>(`/adventures/${adventure.id}/complete`, {
-        submission: submission.trim() || undefined,
-      });
+      const result = await api.post<{ pendingApproval: boolean; employee?: Employee }>(
+        `/adventures/${adventure.id}/complete`,
+        { submission: submission.trim() || undefined }
+      );
 
       const btn = completeButtonRef.current;
       if (btn) {
         const rect = btn.getBoundingClientRect();
-        celebrationBurst({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+        const origin = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        celebrationBurst(origin);
         gsap.fromTo(btn, { scale: 1 }, { scale: 1.08, duration: 0.15, yoyo: true, repeat: 1, ease: "power1.inOut" });
+        // Plays on every completion, pending or not — pending ones haven't
+        // actually been credited yet (a manager still has to approve), but
+        // the animation itself is what the user asked to always see here.
+        flyCoinsToBalance(origin, 8);
       }
 
-      toast.success(`+${adventure.xpReward} XP, +${adventure.coinReward} coins`, {
-        description: "Adventure complete.",
-      });
+      if (result.pendingApproval) {
+        toast.success("Submitted for review", {
+          description: "Your manager will approve this before it's credited.",
+        });
+      } else {
+        toast.success(`+${adventure.xpReward} XP, +${adventure.coinReward} coins`, {
+          description: "Adventure complete.",
+        });
+      }
       await fetchMe();
-      setTimeout(() => router.push("/adventures"), 550);
+      // Give the coin-fly animation time to actually land before navigating
+      // away — cutting away mid-flight (it takes ~1.1s for 8 coins) looked broken.
+      setTimeout(() => router.push("/adventures"), 1200);
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : "Could not complete this adventure.");
       setCompleting(false);
@@ -89,34 +104,55 @@ export default function AdventureDetailPage() {
     );
   }
 
-  const completed = Boolean(adventure.progress?.[0]?.completed);
+  const progress = adventure.progress?.[0];
+  const completed = Boolean(progress?.completed);
+  const approval = progress?.approval ?? "NONE";
 
   return (
     <PageIn className="max-w-2xl">
       <Link
         href="/adventures"
-        className="mb-4 inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
+        className="mb-4 inline-flex items-center font-mono text-xs tracking-wide text-muted-foreground uppercase transition-colors hover:text-primary"
       >
         <ArrowLeft className="mr-1 size-3.5" />
         Back to adventures
       </Link>
 
-      <Card>
-        <CardContent className="px-6 py-6">
+      <Card className="glow-primary bg-grid relative overflow-hidden border-0">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_100%_0%,var(--glow-primary),transparent)]" />
+        <CardContent className="relative px-6 py-6">
           <div className="mb-3 flex items-center gap-2">
-            <Badge variant="outline" className="uppercase">
+            <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
               {TYPE_LABEL[adventure.type] ?? adventure.type}
             </Badge>
-            {completed && (
-              <Badge className="bg-success text-success-foreground">
+            {approval === "PENDING" && (
+              <Badge variant="secondary" className="font-mono text-[10px] tracking-wide uppercase">
+                <Clock />
+                Pending approval
+              </Badge>
+            )}
+            {approval === "REJECTED" && (
+              <Badge className="bg-destructive/10 font-mono text-[10px] tracking-wide text-destructive uppercase">
+                <XCircle />
+                Rejected
+              </Badge>
+            )}
+            {completed && approval === "APPROVED" && (
+              <Badge className="bg-success font-mono text-[10px] tracking-wide text-success-foreground uppercase">
                 <CheckCircle2 />
                 Completed
               </Badge>
             )}
           </div>
 
-          <h1 className="text-xl font-semibold tracking-tight">{adventure.title}</h1>
+          <h1 className="font-display text-2xl tracking-wide uppercase">{adventure.title}</h1>
           <p className="mt-2 leading-relaxed text-muted-foreground">{adventure.description}</p>
+
+          {progress?.rejectionNote && (
+            <p className="mt-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              {progress.rejectionNote}
+            </p>
+          )}
 
           <div className="mt-5 flex gap-4 text-sm">
             <span className="flex items-center gap-1.5">
@@ -134,7 +170,9 @@ export default function AdventureDetailPage() {
           {!completed && (
             <>
               <div className="mt-6 space-y-1.5">
-                <Label htmlFor="submission">Notes (optional)</Label>
+                <Label htmlFor="submission" className="font-mono text-xs tracking-wide uppercase">
+                  Notes (optional)
+                </Label>
                 <Textarea
                   id="submission"
                   value={submission}
@@ -147,7 +185,12 @@ export default function AdventureDetailPage() {
 
               {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
 
-              <Button ref={completeButtonRef} onClick={handleComplete} disabled={completing} className="mt-4">
+              <Button
+                ref={completeButtonRef}
+                onClick={handleComplete}
+                disabled={completing}
+                className="glow-primary mt-4 font-mono text-xs tracking-wide uppercase"
+              >
                 {completing ? "Completing…" : "Mark complete"}
               </Button>
             </>

@@ -1,12 +1,8 @@
 "use client";
 
-import { Suspense } from "react";
-import { Canvas } from "@react-three/fiber";
-import { Environment, OrbitControls } from "@react-three/drei";
-import { COMPANION_MODEL_PATH, COMPANION_FALLBACK_COLOR } from "./companionAssets";
-import { PlaceholderCreature } from "./PlaceholderCreature";
-import { GltfCreature } from "./GltfCreature";
-import { ModelErrorBoundary } from "./ModelErrorBoundary";
+import Image from "next/image";
+import { COMPANION_IMAGE_PATH, COMPANION_FALLBACK_COLOR } from "./companionAssets";
+import { cn } from "@/lib/utils";
 
 export function CompanionViewer({
   species,
@@ -17,31 +13,32 @@ export function CompanionViewer({
   className?: string;
   interactive?: boolean;
 }) {
-  const path = COMPANION_MODEL_PATH[species];
+  const src = COMPANION_IMAGE_PATH[species];
   const color = COMPANION_FALLBACK_COLOR[species] ?? "var(--primary)";
 
   return (
-    <div className={className}>
-      <Canvas camera={{ position: [0, 0.6, 3.2], fov: 40 }} dpr={[1, 2]}>
-        <ambientLight intensity={0.7} />
-        <directionalLight position={[3, 4, 2]} intensity={1.2} />
-        <Suspense fallback={<PlaceholderCreature color={color} />}>
-          <ModelErrorBoundary fallback={<PlaceholderCreature color={color} />}>
-            {path ? <GltfCreature path={path} /> : <PlaceholderCreature color={color} />}
-          </ModelErrorBoundary>
-          <Environment preset="city" />
-        </Suspense>
-        {interactive && (
-          <OrbitControls
-            enableZoom={false}
-            enablePan={false}
-            autoRotate
-            autoRotateSpeed={1.2}
-            minPolarAngle={Math.PI / 2.6}
-            maxPolarAngle={Math.PI / 1.8}
-          />
-        )}
-      </Canvas>
+    <div className={cn("relative flex items-center justify-center overflow-hidden", className)}>
+      <div
+        className="pointer-events-none absolute inset-0 rounded-[inherit] opacity-60 blur-2xl"
+        style={{ background: `radial-gradient(circle, ${color}66, transparent 70%)` }}
+      />
+      {src ? (
+        <Image
+          src={src}
+          alt={species}
+          fill
+          sizes="200px"
+          className={cn(
+            "relative object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.35)]",
+            interactive && "transition-transform duration-500 hover:scale-105"
+          )}
+        />
+      ) : (
+        <div
+          className="relative size-2/3 rounded-full"
+          style={{ background: color, boxShadow: `0 0 30px 6px ${color}66` }}
+        />
+      )}
     </div>
   );
 }

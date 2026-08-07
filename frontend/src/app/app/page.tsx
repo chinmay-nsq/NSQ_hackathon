@@ -33,24 +33,20 @@ function StatTile({
   accent?: string;
 }) {
   return (
-    <HoverLift>
-      <Card>
-        <CardContent className="flex items-center gap-3 px-4">
-          <div
-            className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted"
-            style={accent ? { color: accent } : undefined}
-          >
-            <Icon className="size-4.5" />
-          </div>
-          <div className="min-w-0">
-            <p className="tabular text-lg font-semibold leading-tight">
-              <CountUp value={value} />
-            </p>
-            <p className="text-xs text-muted-foreground">{label}</p>
-          </div>
-        </CardContent>
-      </Card>
-    </HoverLift>
+    <div className="flex items-center gap-3.5 px-2 py-1">
+      <div
+        className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted"
+        style={accent ? { color: accent, boxShadow: `0 0 16px 0 ${accent}33` } : undefined}
+      >
+        <Icon className="size-5" />
+      </div>
+      <div className="min-w-0">
+        <p className="tabular font-display text-xl leading-tight">
+          <CountUp value={value} />
+        </p>
+        <p className="font-mono text-[11px] tracking-wide text-muted-foreground uppercase">{label}</p>
+      </div>
+    </div>
   );
 }
 
@@ -85,14 +81,15 @@ export default function DashboardPage() {
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Sparkles className="size-4" />
+        <Card className="glow-primary bg-grid relative overflow-hidden border-0 lg:col-span-2">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_0%_0%,var(--glow-primary),transparent)]" />
+          <CardHeader className="relative">
+            <CardTitle className="flex items-center gap-2 font-mono text-xs tracking-widest text-muted-foreground uppercase">
+              <Sparkles className="size-3.5 text-primary" />
               Your companion
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex items-center gap-4 px-4">
+          <CardContent className="relative flex items-center gap-4 px-4">
             {employee?.companion && (
               <CompanionViewer
                 species={employee.companion.species}
@@ -107,40 +104,41 @@ export default function DashboardPage() {
                   <Skeleton className="h-4 w-3/4" />
                 </div>
               ) : (
-                <p className="text-sm leading-relaxed">{dialogue}</p>
+                <p className="text-base leading-relaxed">{dialogue}</p>
               )}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="flex flex-col gap-3 px-4">
+        <Card className="border-0">
+          <CardContent className="flex flex-col gap-3.5 px-5">
             <div className="flex items-center justify-between text-sm">
-              <span className="font-medium">Level {employee?.level ?? 1}</span>
-              <span className="tabular text-xs text-muted-foreground">
+              <span className="font-display text-lg tracking-wide">Level {employee?.level ?? 1}</span>
+              <span className="tabular font-mono text-xs text-muted-foreground">
                 {xpIntoLevel} / {XP_PER_LEVEL} XP
               </span>
             </div>
-            <AnimatedBar pct={xpIntoLevel} fillClassName="bg-xp" />
-            <Badge variant="secondary" className="w-fit">
+            <AnimatedBar pct={xpIntoLevel} fillClassName="bg-xp shadow-[0_0_10px_0_var(--xp)]" />
+            <Badge variant="secondary" className="w-fit font-mono text-[10px] tracking-wide uppercase">
               {employee?.title ?? "Member"}
             </Badge>
           </CardContent>
         </Card>
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <div className="mt-6 grid divide-y divide-border/60 border border-border/60 rounded-xl sm:grid-cols-3 sm:divide-x sm:divide-y-0">
         <StatTile icon={Star} label="Total XP" value={employee?.xp ?? 0} />
         <StatTile icon={Coins} label="Coins" value={employee?.coins ?? 0} accent="var(--currency)" />
         <StatTile icon={Flame} label="Pending Adventures" value={pendingAdventures.length} />
       </div>
 
-      <div className="mt-8">
+      <div className="mt-10">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold tracking-tight">Today&apos;s Adventures</h2>
+          <h2 className="font-display text-xl tracking-wide uppercase">Today&apos;s Adventures</h2>
           <Button
             variant="ghost"
             size="sm"
+            className="font-mono text-xs tracking-wide uppercase"
             render={
               <Link href="/adventures">
                 View all
@@ -156,7 +154,7 @@ export default function DashboardPage() {
             <Skeleton className="h-24" />
           </div>
         ) : pendingAdventures.length === 0 ? (
-          <Card>
+          <Card className="border-0">
             <CardContent className="px-4 py-6 text-center text-sm text-muted-foreground">
               No adventures yet today.{" "}
               <Link href="/adventures" className="text-primary underline-offset-2 hover:underline">
@@ -170,13 +168,13 @@ export default function DashboardPage() {
             {pendingAdventures.slice(0, 4).map((a) => (
               <Link key={a.id} href={`/adventures/${a.id}`}>
                 <HoverLift>
-                  <Card>
-                    <CardContent className="px-4">
-                      <div className="mb-1 flex items-center justify-between">
-                        <Badge variant="outline" className="text-[10px] uppercase">
+                  <Card className="border-0">
+                    <CardContent className="px-5">
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
                           {a.type.replace("_", " ")}
                         </Badge>
-                        <span className="tabular text-xs text-muted-foreground">+{a.xpReward} XP</span>
+                        <span className="tabular font-mono text-xs text-primary">+{a.xpReward} XP</span>
                       </div>
                       <p className="font-medium">{a.title}</p>
                       <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{a.description}</p>

@@ -4,100 +4,110 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
-  Weatherline — modern SaaS dashboard with game-UI accents.
-  Light base, coral/warm-red-orange primary accent.
+  Weatherline — cinematic game-UI dashboard, matching the landing page's
+  dark ink + coral identity. Light and dark both lean bolder/higher-contrast
+  than a typical SaaS admin theme; --glow-* tokens back real box-shadow glow
+  on cards/buttons in both modes (kept subtle in light, dramatic in dark).
   Amber reserved for currency, emerald reserved for success/unlock states.
 */
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.75rem;
 
-  --background: oklch(0.99 0.002 40);
-  --foreground: oklch(0.18 0.01 40);
+  --background: oklch(0.985 0.004 40);
+  --foreground: oklch(0.14 0.012 40);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.01 40);
+  --card-foreground: oklch(0.14 0.012 40);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.01 40);
+  --popover-foreground: oklch(0.14 0.012 40);
 
-  --primary: oklch(0.65 0.19 25);
+  --primary: oklch(0.62 0.21 27);
   --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.96 0.01 40);
-  --secondary-foreground: oklch(0.22 0.01 40);
-  --muted: oklch(0.96 0.01 40);
-  --muted-foreground: oklch(0.5 0.02 40);
-  --accent: oklch(0.95 0.04 25);
-  --accent-foreground: oklch(0.4 0.15 25);
+  --secondary: oklch(0.95 0.012 40);
+  --secondary-foreground: oklch(0.2 0.012 40);
+  --muted: oklch(0.95 0.012 40);
+  --muted-foreground: oklch(0.48 0.02 40);
+  --accent: oklch(0.94 0.05 27);
+  --accent-foreground: oklch(0.38 0.17 27);
   --destructive: oklch(0.577 0.245 27.325);
 
-  --border: oklch(0.9 0.01 40);
-  --input: oklch(0.9 0.01 40);
-  --ring: oklch(0.65 0.19 25);
+  --border: oklch(0.89 0.012 40);
+  --input: oklch(0.89 0.012 40);
+  --ring: oklch(0.62 0.21 27);
 
   /* Game-UI semantic tokens */
-  --xp: oklch(0.65 0.19 25);
+  --xp: oklch(0.62 0.21 27);
   --currency: oklch(0.72 0.16 75);
   --currency-foreground: oklch(0.32 0.1 75);
   --success: oklch(0.58 0.15 155);
   --success-foreground: oklch(0.98 0 0);
 
-  --chart-1: oklch(0.65 0.19 25);
+  --chart-1: oklch(0.62 0.21 27);
   --chart-2: oklch(0.72 0.16 75);
   --chart-3: oklch(0.58 0.15 155);
   --chart-4: oklch(0.62 0.15 220);
   --chart-5: oklch(0.62 0.18 320);
 
-  --sidebar: oklch(0.98 0.005 40);
-  --sidebar-foreground: oklch(0.18 0.01 40);
-  --sidebar-primary: oklch(0.65 0.19 25);
+  --sidebar: oklch(0.98 0.008 40);
+  --sidebar-foreground: oklch(0.14 0.012 40);
+  --sidebar-primary: oklch(0.62 0.21 27);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.95 0.04 25);
-  --sidebar-accent-foreground: oklch(0.4 0.15 25);
-  --sidebar-border: oklch(0.9 0.01 40);
-  --sidebar-ring: oklch(0.65 0.19 25);
+  --sidebar-accent: oklch(0.94 0.05 27);
+  --sidebar-accent-foreground: oklch(0.38 0.17 27);
+  --sidebar-border: oklch(0.89 0.012 40);
+  --sidebar-ring: oklch(0.62 0.21 27);
+
+  --glow-primary: oklch(0.62 0.21 27 / 22%);
+  --glow-strong: oklch(0.62 0.21 27 / 35%);
+  --grid-line: oklch(0.14 0.012 40 / 4%);
 }
 
 .dark {
-  --background: oklch(0.16 0.01 40);
-  --foreground: oklch(0.96 0.005 40);
-  --card: oklch(0.21 0.012 40);
-  --card-foreground: oklch(0.96 0.005 40);
-  --popover: oklch(0.21 0.012 40);
-  --popover-foreground: oklch(0.96 0.005 40);
+  --background: oklch(0.11 0.012 40);
+  --foreground: oklch(0.97 0.006 40);
+  --card: oklch(0.155 0.014 40);
+  --card-foreground: oklch(0.97 0.006 40);
+  --popover: oklch(0.155 0.014 40);
+  --popover-foreground: oklch(0.97 0.006 40);
 
-  --primary: oklch(0.7 0.19 25);
-  --primary-foreground: oklch(0.16 0.01 40);
-  --secondary: oklch(0.27 0.012 40);
-  --secondary-foreground: oklch(0.96 0.005 40);
-  --muted: oklch(0.27 0.012 40);
-  --muted-foreground: oklch(0.68 0.015 40);
-  --accent: oklch(0.32 0.06 25);
-  --accent-foreground: oklch(0.87 0.09 25);
+  --primary: oklch(0.71 0.2 27);
+  --primary-foreground: oklch(0.11 0.012 40);
+  --secondary: oklch(0.22 0.014 40);
+  --secondary-foreground: oklch(0.97 0.006 40);
+  --muted: oklch(0.22 0.014 40);
+  --muted-foreground: oklch(0.65 0.018 40);
+  --accent: oklch(0.28 0.08 27);
+  --accent-foreground: oklch(0.88 0.1 27);
   --destructive: oklch(0.7 0.19 22);
 
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.7 0.19 25);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.71 0.2 27);
 
-  --xp: oklch(0.72 0.18 25);
+  --xp: oklch(0.73 0.19 27);
   --currency: oklch(0.76 0.15 75);
   --currency-foreground: oklch(0.22 0.06 75);
   --success: oklch(0.66 0.15 155);
-  --success-foreground: oklch(0.16 0.01 40);
+  --success-foreground: oklch(0.11 0.012 40);
 
-  --chart-1: oklch(0.72 0.18 25);
+  --chart-1: oklch(0.73 0.19 27);
   --chart-2: oklch(0.76 0.15 75);
   --chart-3: oklch(0.66 0.15 155);
   --chart-4: oklch(0.68 0.15 220);
   --chart-5: oklch(0.68 0.18 320);
 
-  --sidebar: oklch(0.19 0.012 40);
-  --sidebar-foreground: oklch(0.96 0.005 40);
-  --sidebar-primary: oklch(0.7 0.19 25);
-  --sidebar-primary-foreground: oklch(0.16 0.01 40);
-  --sidebar-accent: oklch(0.32 0.06 25);
-  --sidebar-accent-foreground: oklch(0.87 0.09 25);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.7 0.19 25);
+  --sidebar: oklch(0.13 0.013 40);
+  --sidebar-foreground: oklch(0.97 0.006 40);
+  --sidebar-primary: oklch(0.71 0.2 27);
+  --sidebar-primary-foreground: oklch(0.11 0.012 40);
+  --sidebar-accent: oklch(0.28 0.08 27);
+  --sidebar-accent-foreground: oklch(0.88 0.1 27);
+  --sidebar-border: oklch(1 0 0 / 9%);
+  --sidebar-ring: oklch(0.71 0.2 27);
+
+  --glow-primary: oklch(0.71 0.2 27 / 30%);
+  --glow-strong: oklch(0.71 0.2 27 / 50%);
+  --grid-line: oklch(1 0 0 / 3.5%);
 }
 
 @theme inline {
@@ -143,6 +153,7 @@
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-anton);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -164,6 +175,25 @@
 
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* Faint background grid, matching the landing page's ambient texture — used
+   behind dashboard shell/hero-style cards for the same cinematic identity. */
+.bg-grid {
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Soft coral glow ring, dial-able via box-shadow spread — used on hero cards
+   and the sidebar's active nav state so key surfaces feel "powered on". */
+.glow-primary {
+  box-shadow: 0 0 0 1px var(--glow-primary), 0 8px 30px -8px var(--glow-primary);
+}
+
+.glow-primary-strong {
+  box-shadow: 0 0 0 1px var(--glow-strong), 0 12px 40px -6px var(--glow-strong);
 }
 
 @media (prefers-reduced-motion: reduce) {

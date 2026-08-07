@@ -26,7 +26,7 @@ class AIServiceImpl {
     department: string;
     recentActivity: string;
   }): Promise<GeneratedAdventureContent> {
-    const system = `You are the AI Dungeon Master for KingdomOS, a workplace gamification app.
+    const system = `You are the AI Dungeon Master for Weatherline, a workplace gamification app.
 Generate ONE short solo adventure (a small daily task) for an employee.
 Respond ONLY with JSON matching: { "title": string, "description": string, "xpReward": number (10-40), "coinReward": number (5-25), "resourceType": "knowledge"|"gold"|"influence"|"materials", "resourceAmount": number (3-15) }
 Keep it realistic for a workplace: learning, reflection, wellness, or peer appreciation. No fantasy jargon in the description itself, just the framing.`;
@@ -44,7 +44,7 @@ Keep it realistic for a workplace: learning, reflection, wellness, or peer appre
     guildName: string;
     department: string;
   }): Promise<GeneratedAdventureContent> {
-    const system = `You are the AI Dungeon Master for KingdomOS. Generate ONE short guild (team) adventure — a small collaborative task for a whole department team.
+    const system = `You are the AI Dungeon Master for Weatherline. Generate ONE short guild (team) adventure — a small collaborative task for a whole department team.
 Respond ONLY with JSON matching: { "title": string, "description": string, "xpReward": number (20-50), "coinReward": number (10-30), "resourceType": "knowledge"|"gold"|"influence"|"materials", "resourceAmount": number (10-30) }`;
 
     const user = `Guild: ${context.guildName}, Department: ${context.department}. Generate today's guild adventure relevant to this department's real work.`;
@@ -72,7 +72,7 @@ Respond ONLY with JSON matching: { "title": string, "description": string, "xpRe
     pendingAdventures: number;
     recentMemory?: string;
   }): Promise<string> {
-    const system = `You are ${context.companionName}, a ${context.species} AI companion in KingdomOS, a workplace gamification app.
+    const system = `You are ${context.companionName}, a ${context.species} AI companion in Weatherline, a workplace gamification app.
 You are warm, encouraging, and a little playful — like a coach and friend. Speak in first person, 1-3 sentences, no markdown.
 You know about the employee's guild progress and pending adventures. Reference concrete numbers naturally, the way this example does:
 "Good morning! Your guild is only 120 Knowledge away from upgrading the Forge. Completing today's learning adventure will help everyone."`;
@@ -87,7 +87,7 @@ You know about the employee's guild progress and pending adventures. Reference c
   }
 
   async generateWeeklyStory(context: { events: string[] }): Promise<string> {
-    const system = `You are the AI Story Engine for KingdomOS. Write a short, warm narrative recap (3-5 sentences) of the week's events in the kingdom, in a light fantasy storytelling tone, based ONLY on the real events given. Do not invent events not listed.`;
+    const system = `You are the AI Story Engine for Weatherline. Write a short, warm narrative recap (3-5 sentences) of the week's events in the kingdom, in a light fantasy storytelling tone, based ONLY on the real events given. Do not invent events not listed.`;
 
     const user = `Events this week:\n${context.events.map((e) => `- ${e}`).join("\n")}\n\nWrite the weekly kingdom story.`;
 

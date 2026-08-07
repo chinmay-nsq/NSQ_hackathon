@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { AppSidebar } from "@/components/AppSidebar";
+import { CoinDisplay } from "@/components/CoinDisplay";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Sparkles } from "lucide-react";
@@ -48,9 +49,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (status === "idle" || status === "loading") {
     return (
-      <main className="flex min-h-screen items-center justify-center gap-2 text-muted-foreground">
-        <Sparkles className="size-4 animate-pulse" />
-        <span className="text-sm">Loading Weatherline…</span>
+      <main className="bg-grid flex min-h-screen items-center justify-center gap-2.5 bg-background text-muted-foreground">
+        <Sparkles className="size-4 animate-pulse text-primary" />
+        <span className="font-display text-sm tracking-wide uppercase">Loading Weatherline…</span>
       </main>
     );
   }
@@ -62,10 +63,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+      <SidebarInset className="bg-grid">
+        <header className="bg-background/80 flex h-14 shrink-0 items-center gap-2 border-b px-4 backdrop-blur-sm">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
+          <CoinDisplay />
         </header>
         <main className="flex-1 p-6">
           <div className="mx-auto w-full max-w-6xl">{children}</div>

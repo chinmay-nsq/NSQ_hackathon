@@ -7,14 +7,14 @@ import { api, ApiRequestError } from "@/lib/api";
 import { MarketplaceItem, Employee } from "@/lib/types";
 import { useAuthStore } from "@/store/authStore";
 import { PageHeader } from "@/components/PageHeader";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { PageIn } from "@/components/motion/PageIn";
 import { StaggerGrid } from "@/components/motion/StaggerGrid";
-import { HoverLift } from "@/components/motion/HoverLift";
 import { CountUp } from "@/components/motion/CountUp";
 import { celebrationBurst } from "@/lib/gsap/burst";
+import { flyCoinsFromBalance } from "@/lib/gsap/coinFly";
 
 export default function RewardsPage() {
   const { employee, fetchMe } = useAuthStore();
@@ -35,13 +35,23 @@ export default function RewardsPage() {
     setPurchasingId(item.id);
     try {
       await api.post<{ employee: Employee }>(`/marketplace/${item.id}/purchase`);
-      await fetchMe();
+
       const btn = buttonRefs.current[item.id];
       if (btn) {
         const rect = btn.getBoundingClientRect();
-        celebrationBurst({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }, 12);
+        const origin = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        celebrationBurst(origin, 12);
+        // Coins visibly leave the top-bar balance and land on the button being clicked.
+        flyCoinsFromBalance(origin, 8);
       }
       toast.success(`Redeemed ${item.name}`);
+
+      // Delay the balance refresh so the number doesn't jump down before the
+      // coins finish visually leaving — otherwise it reads as "already spent"
+      // while coins are still mid-flight toward the button.
+      setTimeout(() => {
+        void fetchMe();
+      }, 500);
     } catch (err) {
       toast.error(err instanceof ApiRequestError ? err.message : "That purchase didn't go through.");
     } finally {
@@ -56,9 +66,9 @@ export default function RewardsPage() {
         description="Spend coins earned from adventures on real rewards."
         action={
           employee && (
-            <div className="flex items-center gap-2 rounded-md border px-3 py-1.5">
+            <div className="glow-primary flex items-center gap-2 rounded-full border border-currency/30 bg-currency/10 px-4 py-1.5">
               <Coins className="size-4 text-currency" />
-              <span className="tabular font-medium">
+              <span className="tabular font-mono font-medium">
                 <CountUp value={employee.coins} />
               </span>
             </div>
@@ -67,42 +77,44 @@ export default function RewardsPage() {
       />
 
       {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-40" />
+        <div className="space-y-px">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-20" />
           ))}
         </div>
       ) : (
-        <StaggerGrid className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" deps={[items.length]}>
+        <StaggerGrid className="divide-y divide-border/60 border-t border-border/60" deps={[items.length]}>
           {items.map((item) => {
             const canAfford = (employee?.coins ?? 0) >= item.cost;
             return (
-              <HoverLift key={item.id} className="h-full">
-                <Card className="flex h-full flex-col">
-                  <CardContent className="flex flex-1 flex-col px-4">
-                    <Gift className="size-5 text-muted-foreground" />
-                    <p className="mt-3 font-medium">{item.name}</p>
-                    <p className="mt-1 flex-1 text-sm text-muted-foreground">{item.description}</p>
-                    <div className="mt-4 flex items-center justify-between">
-                      <span className="tabular flex items-center gap-1 text-sm font-medium text-currency-foreground">
-                        <Coins className="size-3.5" />
-                        {item.cost}
-                      </span>
-                      <Button
-                        ref={(el) => {
-                          buttonRefs.current[item.id] = el;
-                        }}
-                        size="sm"
-                        variant={canAfford ? "default" : "secondary"}
-                        disabled={!canAfford || purchasingId === item.id}
-                        onClick={() => handlePurchase(item)}
-                      >
-                        {purchasingId === item.id ? "Redeeming…" : canAfford ? "Redeem" : "Not enough"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </HoverLift>
+              <div key={item.id} className="flex items-center gap-4 py-4">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                  <Gift className="size-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">{item.name}</p>
+                  <p className="text-sm text-muted-foreground">{item.description}</p>
+                </div>
+                <span className="tabular flex shrink-0 items-center gap-1 font-mono text-sm font-medium text-currency-foreground">
+                  <Coins className="size-3.5" />
+                  {item.cost}
+                </span>
+                <Button
+                  ref={(el) => {
+                    buttonRefs.current[item.id] = el;
+                  }}
+                  size="sm"
+                  variant={canAfford ? "default" : "secondary"}
+                  disabled={!canAfford || purchasingId === item.id}
+                  onClick={() => handlePurchase(item)}
+                  className={cn(
+                    "shrink-0 font-mono text-xs tracking-wide uppercase",
+                    canAfford && "glow-primary"
+                  )}
+                >
+                  {purchasingId === item.id ? "Redeeming…" : canAfford ? "Redeem" : "Not enough"}
+                </Button>
+              </div>
             );
           })}
         </StaggerGrid>

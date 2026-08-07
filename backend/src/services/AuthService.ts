@@ -1,9 +1,14 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { Role } from "@prisma/client";
 import { env } from "@/config/env";
 import { EmployeeRepository } from "@/repositories/EmployeeRepository";
 import { ApiError } from "@/utils/apiError";
 import { HttpStatus } from "@/utils/httpStatus";
+
+// Self-registration may only pick these — ADMIN is never selectable at
+// signup, it can only be granted by an existing admin via /employees/:id/role.
+const SELF_REGISTERABLE_ROLES: Role[] = [Role.EMPLOYEE, Role.MANAGER];
 
 export interface JwtPayload {
   employeeId: string;
@@ -26,14 +31,17 @@ class AuthServiceImpl {
     return jwt.verify(token, env.jwtSecret) as JwtPayload;
   }
 
-  async register(email: string, password: string, name: string) {
+  async register(email: string, password: string, name: string, role: Role = Role.EMPLOYEE) {
     const existing = await EmployeeRepository.findByEmail(email);
     if (existing) {
       throw new ApiError(HttpStatus.CONFLICT, "An account with this email already exists", "Conflict");
     }
+    if (!SELF_REGISTERABLE_ROLES.includes(role)) {
+      throw new ApiError(HttpStatus.BAD_REQUEST, "Invalid role", "Bad Request");
+    }
 
     const passwordHash = await this.hashPassword(password);
-    const employee = await EmployeeRepository.create({ email, passwordHash, name });
+    const employee = await EmployeeRepository.create({ email, passwordHash, name, role });
     const token = this.signToken({ employeeId: employee.id });
 
     return { token, employee, hasCompanion: false };

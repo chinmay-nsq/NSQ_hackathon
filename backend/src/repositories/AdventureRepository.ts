@@ -1,5 +1,5 @@
 import { prisma } from "@/config/db";
-import { Prisma, AdventureType, AdventureStatus } from "@prisma/client";
+import { Prisma, AdventureType, AdventureStatus, ApprovalStatus } from "@prisma/client";
 
 export const AdventureRepository = {
   findActiveForEmployee(employeeId: string, guildId: string | null) {
@@ -19,7 +19,7 @@ export const AdventureRepository = {
 
   findTodaysSoloAdventure(employeeId: string, startOfDay: Date) {
     return prisma.adventure.findFirst({
-      where: { type: "SOLO", createdById: employeeId, createdAt: { gte: startOfDay } },
+      where: { type: "SOLO", createdById: employeeId, createdAt: { gte: startOfDay }, aiGenerated: true },
     });
   },
 
@@ -47,11 +47,66 @@ export const AdventureRepository = {
     });
   },
 
-  upsertProgress(adventureId: string, employeeId: string, submission?: string) {
+  /** Submits/records completion — the caller decides APPROVED (immediate credit) vs PENDING (needs review). */
+  upsertProgress(
+    adventureId: string,
+    employeeId: string,
+    submission: string | undefined,
+    approval: ApprovalStatus,
+    approvedById?: string
+  ) {
+    const shared = {
+      completed: true,
+      submission,
+      completedAt: new Date(),
+      approval,
+      ...(approvedById ? { approvedById, approvedAt: new Date() } : {}),
+    };
     return prisma.adventureProgress.upsert({
       where: { adventureId_employeeId: { adventureId, employeeId } },
-      create: { adventureId, employeeId, completed: true, submission, completedAt: new Date() },
-      update: { completed: true, submission, completedAt: new Date() },
+      create: { adventureId, employeeId, ...shared },
+      update: shared,
+    });
+  },
+
+  setApproval(
+    adventureId: string,
+    employeeId: string,
+    approval: ApprovalStatus,
+    approvedById: string,
+    rejectionNote?: string
+  ) {
+    return prisma.adventureProgress.update({
+      where: { adventureId_employeeId: { adventureId, employeeId } },
+      data: { approval, approvedById, approvedAt: new Date(), rejectionNote },
+    });
+  },
+
+  /** Pending-approval queue for a manager: adventures completed by members of the given guilds. */
+  findPendingForGuilds(guildIds: string[]) {
+    return prisma.adventureProgress.findMany({
+      where: {
+        approval: "PENDING",
+        employee: { guildId: { in: guildIds } },
+      },
+      include: { adventure: true, employee: { select: { id: true, name: true, title: true, avatarSeed: true } } },
+      orderBy: { completedAt: "asc" },
+    });
+  },
+
+  /** Company-wide pending-approval queue, for admins. */
+  findAllPending() {
+    return prisma.adventureProgress.findMany({
+      where: { approval: "PENDING" },
+      include: { adventure: true, employee: { select: { id: true, name: true, title: true, avatarSeed: true } } },
+      orderBy: { completedAt: "asc" },
+    });
+  },
+
+  findProgressWithAdventure(adventureId: string, employeeId: string) {
+    return prisma.adventureProgress.findUnique({
+      where: { adventureId_employeeId: { adventureId, employeeId } },
+      include: { adventure: true },
     });
   },
 };

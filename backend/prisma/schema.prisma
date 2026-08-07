@@ -9,6 +9,12 @@ datasource db {
 
 // ---------- Core identity ----------
 
+enum Role {
+  EMPLOYEE
+  MANAGER
+  ADMIN
+}
+
 model Employee {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -16,6 +22,7 @@ model Employee {
   name         String
   avatarSeed   String   @default("adventurer")
   createdAt    DateTime @default(now())
+  role         Role     @default(EMPLOYEE)
 
   // Personal progression
   xp         Int    @default(0)
@@ -25,14 +32,18 @@ model Employee {
   title      String @default("Novice")
 
   guildId String?
-  guild   Guild?  @relation(fields: [guildId], references: [id])
+  guild   Guild?  @relation("GuildMember", fields: [guildId], references: [id])
+
+  // Guild(s) this employee manages, if role is MANAGER or ADMIN.
+  managedGuilds Guild[] @relation("GuildManager")
 
   companion         Companion?
   adventureProgress AdventureProgress[]
   purchases         Purchase[]
   reflections       Reflection[]
 
-  createdAdventures Adventure[] @relation("AdventureCreator")
+  createdAdventures Adventure[]         @relation("AdventureCreator")
+  approvedProgress  AdventureProgress[] @relation("ProgressApprover")
 }
 
 model Companion {
@@ -40,7 +51,7 @@ model Companion {
   employeeId String   @unique
   employee   Employee @relation(fields: [employeeId], references: [id])
 
-  species        String // dragon, robot, fox, owl, panda
+  species        String // barbarian, wizard, witch
   name           String
   bondLevel      Int       @default(1)
   bondXp         Int       @default(0)
@@ -83,10 +94,14 @@ model Guild {
   influence Int @default(0)
   materials Int @default(0)
 
-  members       Employee[]
-  adventures    Adventure[]            @relation("AdventureGuild")
+  // The manager (or admin) who leads this guild and approves its members' tasks.
+  managerId String?
+  manager   Employee? @relation("GuildManager", fields: [managerId], references: [id])
+
+  members       Employee[]            @relation("GuildMember")
+  adventures    Adventure[]           @relation("AdventureGuild")
   contributions KingdomContribution[]
-  createdAt     DateTime               @default(now())
+  createdAt     DateTime              @default(now())
 }
 
 // ---------- Kingdom ----------
@@ -120,7 +135,7 @@ model KingdomProject {
   materialsContributed Int @default(0)
 
   contributions KingdomContribution[]
-  createdAt     DateTime               @default(now())
+  createdAt     DateTime              @default(now())
 }
 
 model KingdomContribution {
@@ -188,6 +203,13 @@ model Adventure {
   progress AdventureProgress[]
 }
 
+enum ApprovalStatus {
+  NONE // not yet submitted for completion
+  PENDING // submitted, awaiting manager/admin approval
+  APPROVED // approved — rewards have been credited
+  REJECTED // manager/admin sent it back; not credited
+}
+
 model AdventureProgress {
   id          String    @id @default(cuid())
   adventureId String
@@ -199,6 +221,15 @@ model AdventureProgress {
   submission  String?   @db.Text
   completedAt DateTime?
   createdAt   DateTime  @default(now())
+
+  // Approval workflow — AI-generated adventures skip straight to APPROVED
+  // (crediting on completion, same as before); manually-created adventures
+  // go PENDING until a manager/admin approves or rejects them.
+  approval      ApprovalStatus @default(NONE)
+  approvedById  String?
+  approvedBy    Employee?      @relation("ProgressApprover", fields: [approvedById], references: [id])
+  approvedAt    DateTime?
+  rejectionNote String?        @db.Text
 
   @@unique([adventureId, employeeId])
 }

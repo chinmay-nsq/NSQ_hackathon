@@ -24,6 +24,22 @@ export const GuildRepository = {
     return prisma.guild.findUnique({ where: { id } });
   },
 
+  findIdsManagedBy(managerId: string): Promise<{ id: string }[]> {
+    return prisma.guild.findMany({ where: { managerId }, select: { id: true } });
+  },
+
+  findManagedByWithMembers(managerId: string) {
+    return prisma.guild.findMany({
+      where: { managerId },
+      include: { members: { select: { id: true, name: true, title: true, level: true } } },
+      orderBy: { name: "asc" },
+    });
+  },
+
+  create(data: Prisma.GuildCreateInput) {
+    return prisma.guild.create({ data });
+  },
+
   update(id: string, data: Prisma.GuildUpdateInput) {
     return prisma.guild.update({ where: { id }, data });
   },

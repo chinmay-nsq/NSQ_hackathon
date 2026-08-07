@@ -66,7 +66,7 @@ export default function TeamDetailPage() {
     <PageIn>
       <Link
         href="/teams"
-        className="mb-4 inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
+        className="mb-4 inline-flex items-center font-mono text-xs tracking-wide text-muted-foreground uppercase transition-colors hover:text-primary"
       >
         <ArrowLeft className="mr-1 size-3.5" />
         Back to teams
@@ -74,48 +74,56 @@ export default function TeamDetailPage() {
 
       <div className="mb-6 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Avatar className="size-12">
-            <AvatarFallback className="text-lg">{guild.name.charAt(0)}</AvatarFallback>
+          <Avatar className="glow-primary size-13 ring-1 ring-primary/20">
+            <AvatarFallback className="font-display bg-accent text-lg text-accent-foreground">
+              {guild.name.charAt(0)}
+            </AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="font-mono text-xs font-medium tracking-wide text-muted-foreground uppercase">
               {guild.department}
             </p>
-            <h1 className="text-xl font-semibold tracking-tight">{guild.name}</h1>
+            <h1 className="font-display text-2xl tracking-wide uppercase">{guild.name}</h1>
           </div>
         </div>
         {!isMember && (
-          <Button onClick={handleJoin} disabled={joining}>
+          <Button onClick={handleJoin} disabled={joining} className="glow-primary font-mono text-xs tracking-wide uppercase">
             {joining ? "Joining…" : "Join team"}
           </Button>
         )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="md:col-span-1">
+        <Card className="border-0 md:col-span-1">
           <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">Team Level</CardTitle>
+            <CardTitle className="font-mono text-xs tracking-widest text-muted-foreground uppercase">
+              Team Level
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 px-4">
-            <p className="tabular text-2xl font-semibold">{guild.level}</p>
+            <p className="tabular font-display text-3xl">{guild.level}</p>
             <Separator />
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Reputation</span>
-              <span className="tabular">{guild.reputation}</span>
+              <span className="tabular text-primary">{guild.reputation}</span>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-2">
+        <Card className="border-0 md:col-span-2">
           <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">Resources</CardTitle>
+            <CardTitle className="font-mono text-xs tracking-widest text-muted-foreground uppercase">
+              Resources
+            </CardTitle>
           </CardHeader>
           <CardContent className="px-4">
             <div className="grid grid-cols-2 gap-3">
               {RESOURCES.map((r) => (
-                <div key={r} className="rounded-md border px-3 py-2">
-                  <p className="text-xs text-muted-foreground">{RESOURCE_LABEL[r]}</p>
-                  <p className="tabular text-lg font-semibold">
+                <div key={r} className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5">
+                  <p className="font-mono text-[11px] tracking-wide text-muted-foreground uppercase">
+                    {RESOURCE_LABEL[r]}
+                  </p>
+                  <p className="tabular font-display text-xl">
                     <CountUp value={guild[r]} />
                   </p>
                 </div>
@@ -125,15 +133,17 @@ export default function TeamDetailPage() {
         </Card>
       </div>
 
-      <Card className="mt-4">
+      <Card className="mt-4 border-0">
         <CardHeader>
-          <CardTitle className="text-sm text-muted-foreground">Members ({guild.members.length})</CardTitle>
+          <CardTitle className="font-mono text-xs tracking-widest text-muted-foreground uppercase">
+            Members ({guild.members.length})
+          </CardTitle>
         </CardHeader>
         <CardContent className="px-4">
           {guild.members.length === 0 ? (
             <p className="text-sm text-muted-foreground">No members yet.</p>
           ) : (
-            <div className="divide-y">
+            <div className="divide-y divide-border/60">
               {guild.members.map((m) => (
                 <div key={m.id} className="flex items-center justify-between py-2.5 text-sm">
                   <span>{m.name}</span>

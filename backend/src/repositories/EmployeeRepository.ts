@@ -1,5 +1,5 @@
 import { prisma } from "@/config/db";
-import { Prisma } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 
 export const EmployeeRepository = {
   findByEmail(email: string) {
@@ -21,7 +21,7 @@ export const EmployeeRepository = {
     });
   },
 
-  create(data: { email: string; passwordHash: string; name: string }) {
+  create(data: { email: string; passwordHash: string; name: string; role?: Role }) {
     return prisma.employee.create({ data });
   },
 

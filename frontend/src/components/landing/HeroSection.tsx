@@ -5,7 +5,7 @@ import { useGSAP } from "@gsap/react";
 import { gsap } from "@/lib/gsap/registerPlugins";
 import { ambientEngine } from "@/lib/audio/ambientEngine";
 import { MagneticButton } from "./MagneticButton";
-import { CompanionViewer } from "@/components/companion3d/CompanionViewer";
+import { HeroCrystal } from "./HeroCrystal";
 
 export function HeroSection({ onEnter }: { onEnter: () => void }) {
   const scope = useRef<HTMLDivElement>(null);
@@ -16,23 +16,47 @@ export function HeroSection({ onEnter }: { onEnter: () => void }) {
       if (!lines) return;
 
       gsap.set(lines, { yPercent: 110 });
-      gsap.set(".hero-kicker, .hero-sub, .hero-cta, .hero-scroll, .hero-companion", {
-        opacity: 0,
-        y: 16,
-      });
+      gsap.set(
+        ".hero-kicker, .hero-sub, .hero-cta, .hero-scroll, .hero-companion",
+        {
+          opacity: 0,
+          y: 16,
+        },
+      );
       gsap.set(".hero-companion", { opacity: 0, scale: 0.8, y: 30 });
 
       const tl = gsap.timeline({ delay: 0.15 });
-      tl.to(".hero-kicker", { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" })
-        .to(lines, { yPercent: 0, duration: 0.85, stagger: 0.07, ease: "power4.out" }, "-=0.25")
+      tl.to(".hero-kicker", {
+        opacity: 1,
+        y: 0,
+        duration: 0.5,
+        ease: "power2.out",
+      })
+        .to(
+          lines,
+          { yPercent: 0, duration: 0.85, stagger: 0.07, ease: "power4.out" },
+          "-=0.25",
+        )
         .to(
           ".hero-companion",
           { opacity: 1, scale: 1, y: 0, duration: 1, ease: "back.out(1.4)" },
-          "-=0.7"
+          "-=0.7",
         )
-        .to(".hero-sub", { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, "-=0.5")
-        .to(".hero-cta", { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, "-=0.35")
-        .to(".hero-scroll", { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, "-=0.2");
+        .to(
+          ".hero-sub",
+          { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" },
+          "-=0.5",
+        )
+        .to(
+          ".hero-cta",
+          { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" },
+          "-=0.35",
+        )
+        .to(
+          ".hero-scroll",
+          { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
+          "-=0.2",
+        );
 
       // Ambient float loop for the companion, independent of scroll.
       gsap.to(".hero-companion", {
@@ -44,7 +68,7 @@ export function HeroSection({ onEnter }: { onEnter: () => void }) {
         delay: 1.2,
       });
     },
-    { scope }
+    { scope },
   );
 
   return (
@@ -64,7 +88,7 @@ export function HeroSection({ onEnter }: { onEnter: () => void }) {
         }}
       />
 
-      <div className="relative grid gap-12 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center lg:gap-8">
+      <div className="relative grid gap-12 lg:grid-cols-[minmax(0,1fr)_440px] lg:items-center lg:gap-8 lg:pr-6">
         <div className="min-w-0">
           <p className="hero-kicker font-mono text-xs uppercase tracking-[0.25em] text-white/50">
             Weatherline — Team Engagement, Reinvented
@@ -83,8 +107,9 @@ export function HeroSection({ onEnter }: { onEnter: () => void }) {
           </h1>
 
           <p className="hero-sub mt-8 max-w-md text-lg leading-relaxed text-white/60">
-            Every task becomes a quest. Every team, a party. Every company, a world worth
-            showing up for — powered by an AI that actually pays attention.
+            Every task becomes a quest. Every team, a party. Every company, a
+            world worth showing up for — powered by an AI that actually pays
+            attention.
           </p>
 
           <div className="hero-cta mt-10 flex flex-wrap items-center gap-4">
@@ -105,15 +130,14 @@ export function HeroSection({ onEnter }: { onEnter: () => void }) {
           </div>
         </div>
 
-        <div className="hero-companion relative mx-auto h-56 w-56 shrink-0 lg:mx-0 lg:h-72 lg:w-72">
-          <div className="pointer-events-none absolute inset-0 rounded-full bg-coral/10 blur-3xl" />
-          <CompanionViewer species="dragon" className="h-full w-full" />
-        </div>
+        <HeroCrystal sectionRef={scope} />
       </div>
 
       <div className="hero-scroll absolute bottom-10 left-6 flex items-center gap-3 text-white/40 sm:left-12">
         <span className="h-10 w-px bg-gradient-to-b from-white/50 to-transparent" />
-        <span className="font-mono text-[11px] uppercase tracking-[0.2em]">Scroll</span>
+        <span className="font-mono text-[11px] uppercase tracking-[0.2em]">
+          Scroll
+        </span>
       </div>
     </section>
   );

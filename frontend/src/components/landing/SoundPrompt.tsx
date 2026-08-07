@@ -1,20 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Volume2 } from "lucide-react";
 import { useAmbientAudio } from "@/lib/audio/useAmbientAudio";
 
 const SEEN_KEY = "weatherline_sound_prompt_seen";
 
-function wasAlreadySeen(): boolean {
-  if (typeof window === "undefined") return false;
-  return window.sessionStorage.getItem(SEEN_KEY) === "true";
-}
-
 /** A one-time, dismissible prompt inviting the visitor to turn on ambient sound. */
 export function SoundPrompt() {
   const { enabled, hasInteracted, enable } = useAmbientAudio();
-  const [dismissed, setDismissed] = useState(wasAlreadySeen);
+  // Always false on first render (must match SSR, which has no sessionStorage)
+  // — the real "already seen" state is applied after mount.
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    if (window.sessionStorage.getItem(SEEN_KEY) === "true") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDismissed(true);
+    }
+  }, []);
 
   if (enabled || hasInteracted || dismissed) return null;
 

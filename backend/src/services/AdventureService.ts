@@ -44,6 +44,40 @@ class AdventureServiceImpl {
     return AdventureRepository.create(data);
   }
 
+  /** Employee-authored solo adventure — no AI, fixed reward, requires manager/admin approval before crediting. */
+  async createManualSolo(employeeId: string, title: string, description: string) {
+    const employee = await EmployeeRepository.findById(employeeId);
+    if (!employee) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
+
+    const data = AdventureFactory.buildManualSolo(title, description, employeeId, employee.guildId);
+    return AdventureRepository.create(data);
+  }
+
+  /** A manager/admin assigns a task directly to one member of their team. Still needs approval on completion. */
+  async assignSolo(
+    assignerId: string,
+    assigneeId: string,
+    title: string,
+    description: string,
+    xpReward: number,
+    coinReward: number
+  ) {
+    await this.assertCanManage(assignerId, assigneeId);
+
+    const assignee = await EmployeeRepository.findById(assigneeId);
+    if (!assignee) throw new ApiError(HttpStatus.NOT_FOUND, "Team member not found", "Not Found");
+
+    const data = AdventureFactory.buildAssignedSolo(
+      title,
+      description,
+      xpReward,
+      coinReward,
+      assigneeId,
+      assignee.guildId
+    );
+    return AdventureRepository.create(data);
+  }
+
   async generateGuild(employeeId: string) {
     const employee = await EmployeeRepository.findById(employeeId);
     if (!employee?.guildId) {
@@ -65,6 +99,12 @@ class AdventureServiceImpl {
     return AdventureRepository.create(data);
   }
 
+  /**
+   * Marks an adventure as done by the employee. AI-generated adventures keep
+   * today's behavior — reward is credited immediately. Employee-authored
+   * ("manual") adventures go PENDING instead: no crediting until a
+   * manager/admin approves them via `approve()`.
+   */
   async complete(employeeId: string, adventureId: string, submission?: string) {
     const adventure = await AdventureRepository.findById(adventureId);
     if (!adventure) throw new ApiError(HttpStatus.NOT_FOUND, "Adventure not found", "Not Found");
@@ -77,19 +117,114 @@ class AdventureServiceImpl {
       throw new ApiError(HttpStatus.CONFLICT, "Already completed", "Conflict");
     }
 
+    if (!adventure.aiGenerated) {
+      // Manual adventure: record the submission as PENDING and stop — no reward yet.
+      await AdventureRepository.upsertProgress(adventureId, employeeId, submission, "PENDING");
+      return { pendingApproval: true as const };
+    }
+
     const employee = await EmployeeRepository.findById(employeeId);
     if (!employee) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
 
+    const updatedEmployee = await this.creditReward(employee, adventure, submission, "APPROVED", null);
+    return { pendingApproval: false as const, employee: updatedEmployee };
+  }
+
+  /** Approves a pending manual adventure completion and credits the reward — manager/admin only. */
+  async approve(approverId: string, adventureId: string, employeeId: string) {
+    await this.assertCanManage(approverId, employeeId);
+
+    const progress = await AdventureRepository.findProgressWithAdventure(adventureId, employeeId);
+    if (!progress) throw new ApiError(HttpStatus.NOT_FOUND, "Submission not found", "Not Found");
+    if (progress.approval !== "PENDING") {
+      throw new ApiError(HttpStatus.CONFLICT, "This submission is not pending approval", "Conflict");
+    }
+
+    const employee = await EmployeeRepository.findById(employeeId);
+    if (!employee) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
+
+    return this.creditReward(employee, progress.adventure, progress.submission ?? undefined, "APPROVED", approverId);
+  }
+
+  /** Rejects a pending manual adventure completion — no reward is credited. */
+  async reject(approverId: string, adventureId: string, employeeId: string, note?: string) {
+    await this.assertCanManage(approverId, employeeId);
+
+    const progress = await AdventureRepository.findProgress(adventureId, employeeId);
+    if (!progress) throw new ApiError(HttpStatus.NOT_FOUND, "Submission not found", "Not Found");
+    if (progress.approval !== "PENDING") {
+      throw new ApiError(HttpStatus.CONFLICT, "This submission is not pending approval", "Conflict");
+    }
+
+    return AdventureRepository.setApproval(adventureId, employeeId, "REJECTED", approverId, note);
+  }
+
+  /** Pending-approval queue: guild-scoped for managers, company-wide for admins. */
+  async listPendingFor(approverId: string) {
+    const approver = await EmployeeRepository.findById(approverId);
+    if (!approver) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
+
+    if (approver.role === "ADMIN") {
+      return AdventureRepository.findAllPending();
+    }
+
+    const guilds = await GuildRepository.findIdsManagedBy(approverId);
+    if (guilds.length === 0) return [];
+    return AdventureRepository.findPendingForGuilds(guilds.map((g) => g.id));
+  }
+
+  /** Confirms `managerId` (manager/admin) is allowed to act on `employeeId` — approve, reject, or assign a task. */
+  private async assertCanManage(managerId: string, employeeId: string) {
+    if (managerId === employeeId) {
+      throw new ApiError(HttpStatus.FORBIDDEN, "You can't do that for yourself", "Forbidden");
+    }
+
+    const manager = await EmployeeRepository.findById(managerId);
+    if (!manager) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
+    if (manager.role === "ADMIN") return;
+    if (manager.role !== "MANAGER") {
+      throw new ApiError(HttpStatus.FORBIDDEN, "You don't have permission to do that", "Forbidden");
+    }
+
+    const employee = await EmployeeRepository.findById(employeeId);
+    if (!employee?.guildId) {
+      throw new ApiError(HttpStatus.FORBIDDEN, "You don't have permission to do that", "Forbidden");
+    }
+    const managedGuilds = await GuildRepository.findIdsManagedBy(managerId);
+    if (!managedGuilds.some((g) => g.id === employee.guildId)) {
+      throw new ApiError(HttpStatus.FORBIDDEN, "You don't have permission to do that", "Forbidden");
+    }
+  }
+
+  /** Shared crediting logic: XP/level/coins, guild resources, companion memory, and status flip. */
+  private async creditReward(
+    employee: { id: string; xp: number; guildId: string | null; name: string },
+    adventure: {
+      id: string;
+      title: string;
+      type: string;
+      xpReward: number;
+      coinReward: number;
+      knowledgeReward: number;
+      goldReward: number;
+      influenceReward: number;
+      materialsReward: number;
+    },
+    submission: string | undefined,
+    approval: "APPROVED",
+    approvedById: string | null
+  ) {
     const newXp = employee.xp + adventure.xpReward;
 
-    const [, updatedEmployee] = await prisma.$transaction([
-      AdventureRepository.upsertProgress(adventureId, employeeId, submission),
-      EmployeeRepository.update(employeeId, {
+    const ops = [
+      AdventureRepository.upsertProgress(adventure.id, employee.id, submission, approval, approvedById ?? undefined),
+      EmployeeRepository.update(employee.id, {
         xp: newXp,
         level: xpToLevel(newXp),
         coins: { increment: adventure.coinReward },
       }),
-    ]);
+    ];
+    const [, updatedEmployee] = await prisma.$transaction(ops);
 
     if (employee.guildId) {
       await GuildRepository.incrementResources(
@@ -104,7 +239,7 @@ class AdventureServiceImpl {
       );
     }
 
-    const companion = await CompanionRepository.findByEmployeeId(employeeId);
+    const companion = await CompanionRepository.findByEmployeeId(employee.id);
     if (companion) {
       await CompanionService.recordAdventureCompletion(
         companion.id,

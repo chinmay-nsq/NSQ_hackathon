@@ -16,3 +16,6 @@ export const env = {
   groqApiKey: process.env.GROQ_API_KEY ?? "",
   clientOriginWeb: process.env.CLIENT_ORIGIN_WEB ?? "http://localhost:3000",
 };
+
+/** CLIENT_ORIGIN_WEB may be a single origin or a comma-separated list (e.g. prod + a preview deploy). */
+export const allowedOrigins = env.clientOriginWeb.split(",").map((o) => o.trim()).filter(Boolean);

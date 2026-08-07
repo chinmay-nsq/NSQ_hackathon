@@ -2,11 +2,9 @@ import { Prisma } from "@prisma/client";
 import { CompanionSpecies } from "@/config/constants";
 
 const SPECIES_STARTING_FLAVOR: Record<CompanionSpecies, string> = {
-  dragon: "fiercely loyal and protective",
-  robot: "precise, witty, and endlessly curious",
-  fox: "clever, quick, and a little mischievous",
-  owl: "wise, calm, and observant",
-  panda: "gentle, patient, and reassuring",
+  barbarian: "fiercely protective, a little dramatic, never backs down from hyping up your wins",
+  wizard: "witty, endlessly curious, keeps receipts on every streak you've ever had",
+  witch: "calm, observant, speaks rarely but always says the thing you needed to hear",
 };
 
 export const CompanionFactory = {

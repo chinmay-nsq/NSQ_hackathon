@@ -1,10 +1,13 @@
 export type ResourceType = "knowledge" | "gold" | "influence" | "materials";
 
+export type Role = "EMPLOYEE" | "MANAGER" | "ADMIN";
+
 export interface Employee {
   id: string;
   email: string;
   name: string;
   avatarSeed: string;
+  role: Role;
   xp: number;
   level: number;
   coins: number;
@@ -26,12 +29,15 @@ export interface Companion {
 
 export type AdventureType = "SOLO" | "GUILD" | "CROSS_GUILD";
 export type AdventureStatus = "ACTIVE" | "COMPLETED" | "EXPIRED";
+export type ApprovalStatus = "NONE" | "PENDING" | "APPROVED" | "REJECTED";
 
 export interface AdventureProgress {
   id?: string;
   employeeId?: string;
   completed?: boolean;
   submission?: string | null;
+  approval?: ApprovalStatus;
+  rejectionNote?: string | null;
 }
 
 export interface Adventure {
@@ -47,8 +53,26 @@ export interface Adventure {
   influenceReward: number;
   materialsReward: number;
   guildId?: string | null;
+  aiGenerated?: boolean;
   createdAt: string;
   progress: AdventureProgress[];
+}
+
+export interface PendingApproval {
+  id: string;
+  adventureId: string;
+  employeeId: string;
+  submission: string | null;
+  completedAt: string | null;
+  adventure: Adventure;
+  employee: { id: string; name: string; title: string; avatarSeed: string };
+}
+
+export interface CompanyOverview {
+  employeeCount: number;
+  guildCount: number;
+  pendingApprovals: number;
+  totalXp: number;
 }
 
 export interface GuildMember {

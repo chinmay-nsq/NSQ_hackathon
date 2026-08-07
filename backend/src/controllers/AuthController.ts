@@ -11,6 +11,8 @@ const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   name: z.string().min(1),
+  // ADMIN is intentionally excluded — never selectable at signup.
+  role: z.enum(["EMPLOYEE", "MANAGER"]).optional(),
 });
 
 const loginSchema = z.object({
@@ -34,7 +36,8 @@ export const AuthController = {
     const { token, employee, hasCompanion } = await AuthService.register(
       parsed.email,
       parsed.password,
-      parsed.name
+      parsed.name,
+      parsed.role
     );
     setSessionCookie(res, token);
 

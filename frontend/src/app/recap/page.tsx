@@ -44,7 +44,13 @@ export default function RecapPage() {
         title="Weekly Recap"
         description="An AI-written summary of what your teams accomplished this week."
         action={
-          <Button variant="outline" size="sm" onClick={handleGenerate} disabled={generating}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGenerate}
+            disabled={generating}
+            className="font-mono text-xs tracking-wide uppercase"
+          >
             <RefreshCw className={generating ? "animate-spin" : ""} />
             {generating ? "Writing…" : "Generate this week's recap"}
           </Button>
@@ -56,9 +62,10 @@ export default function RecapPage() {
       {loading ? (
         <Skeleton className="h-40" />
       ) : story ? (
-        <Card>
-          <CardContent className="px-6 py-6">
-            <p className="mb-4 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <Card className="glow-primary bg-grid relative overflow-hidden border-0">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,var(--glow-primary),transparent)]" />
+          <CardContent className="relative px-6 py-6">
+            <p className="mb-4 font-mono text-xs font-medium tracking-widest text-primary uppercase">
               Week of{" "}
               {new Date(story.weekOf).toLocaleDateString(undefined, {
                 month: "long",
@@ -66,11 +73,11 @@ export default function RecapPage() {
                 year: "numeric",
               })}
             </p>
-            <TypewriterReveal text={story.content} className="leading-relaxed" />
+            <TypewriterReveal text={story.content} className="text-base leading-relaxed" />
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card className="border-0">
           <CardContent className="flex flex-col items-center gap-2 px-4 py-10 text-center text-sm text-muted-foreground">
             <Newspaper className="size-6" />
             No recap yet. Generate this week&apos;s summary above.

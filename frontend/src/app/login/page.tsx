@@ -2,11 +2,12 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles } from "lucide-react";
+import { Sparkles, User, ShieldCheck } from "lucide-react";
 import { useGSAP } from "@gsap/react";
 import { gsap } from "@/lib/gsap/registerPlugins";
-import { useAuthStore } from "@/store/authStore";
+import { useAuthStore, SelfRegisterableRole } from "@/store/authStore";
 import { ApiRequestError } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,11 +20,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+const ROLE_OPTIONS: { value: SelfRegisterableRole; label: string; description: string; icon: typeof User }[] = [
+  { value: "EMPLOYEE", label: "Employee", description: "Complete adventures, earn XP", icon: User },
+  { value: "MANAGER", label: "Team Leader", description: "Also review & approve your team's tasks", icon: ShieldCheck },
+];
+
 export default function LoginPage() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [role, setRole] = useState<SelfRegisterableRole>("EMPLOYEE");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -67,7 +74,7 @@ export default function LoginPage() {
       if (mode === "login") {
         await login(email, password);
       } else {
-        await register(email, password, name);
+        await register(email, password, name, role);
       }
       router.replace("/app");
     } catch (err) {
@@ -79,23 +86,27 @@ export default function LoginPage() {
   }
 
   return (
-    <div ref={scope} className="flex min-h-screen items-center justify-center bg-muted/30 px-6">
-      <div className="w-full max-w-sm">
-        <div ref={logoRef} className="mb-6 flex items-center justify-center gap-2">
-          <div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Sparkles className="size-4" />
+    <div
+      ref={scope}
+      className="bg-grid relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-6"
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_45%_40%_at_50%_0%,var(--glow-primary),transparent)]" />
+      <div className="relative w-full max-w-sm">
+        <div ref={logoRef} className="mb-6 flex items-center justify-center gap-2.5">
+          <div className="glow-primary-strong flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <Sparkles className="size-4.5" />
           </div>
-          <span className="text-lg font-semibold tracking-tight">Weatherline</span>
+          <span className="font-display text-xl tracking-wide uppercase">Weatherline</span>
         </div>
 
-        <Card ref={cardRef}>
+        <Card ref={cardRef} className="glow-primary border-0">
           <CardHeader>
             <Tabs value={mode} onValueChange={(v) => setMode(v as "login" | "register")}>
               <TabsList className="w-full">
-                <TabsTrigger value="login" className="flex-1">
+                <TabsTrigger value="login" className="flex-1 font-mono text-xs tracking-wide uppercase">
                   Sign in
                 </TabsTrigger>
-                <TabsTrigger value="register" className="flex-1">
+                <TabsTrigger value="register" className="flex-1 font-mono text-xs tracking-wide uppercase">
                   Register
                 </TabsTrigger>
               </TabsList>
@@ -112,19 +123,52 @@ export default function LoginPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {mode === "register" && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="name">Name</Label>
-                  <Input
-                    id="name"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Your name"
-                  />
-                </div>
+                <>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="name" className="font-mono text-xs tracking-wide uppercase">
+                      Name
+                    </Label>
+                    <Input
+                      id="name"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Your name"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="font-mono text-xs tracking-wide uppercase">Account type</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {ROLE_OPTIONS.map((opt) => {
+                        const Icon = opt.icon;
+                        const selected = role === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => setRole(opt.value)}
+                            className={cn(
+                              "flex flex-col items-start gap-1.5 rounded-lg border px-3 py-2.5 text-left transition-colors",
+                              selected
+                                ? "glow-primary border-primary bg-accent"
+                                : "border-border hover:bg-muted/50"
+                            )}
+                          >
+                            <Icon className={cn("size-4", selected ? "text-primary" : "text-muted-foreground")} />
+                            <span className="text-sm font-medium">{opt.label}</span>
+                            <span className="text-xs text-muted-foreground">{opt.description}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
               )}
               <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="font-mono text-xs tracking-wide uppercase">
+                  Email
+                </Label>
                 <Input
                   id="email"
                   required
@@ -135,7 +179,9 @@ export default function LoginPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="font-mono text-xs tracking-wide uppercase">
+                  Password
+                </Label>
                 <Input
                   id="password"
                   required
@@ -149,7 +195,11 @@ export default function LoginPage() {
 
               {error && <p className="text-sm text-destructive">{error}</p>}
 
-              <Button type="submit" disabled={submitting} className="w-full">
+              <Button
+                type="submit"
+                disabled={submitting}
+                className="glow-primary w-full font-mono text-xs tracking-widest uppercase"
+              >
                 {submitting ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}
               </Button>
             </form>

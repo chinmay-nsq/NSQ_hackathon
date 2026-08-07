@@ -9,6 +9,7 @@ import { ResourceMeter } from "@/components/ResourceMeter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { PageIn } from "@/components/motion/PageIn";
 import { StaggerGrid } from "@/components/motion/StaggerGrid";
 import { HoverLift } from "@/components/motion/HoverLift";
@@ -50,19 +51,27 @@ export default function CompanyPage() {
         <StaggerGrid className="grid gap-4 md:grid-cols-2" deps={[projects.length]}>
           {projects.map((project) => (
             <HoverLift key={project.id}>
-              <Card>
-                <CardHeader>
+              <Card
+                className={cn(
+                  "border border-border/60 bg-transparent shadow-none ring-0",
+                  project.unlocked && "glow-primary bg-grid relative overflow-hidden bg-card"
+                )}
+              >
+                {project.unlocked && (
+                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_70%_at_100%_0%,var(--glow-primary),transparent)]" />
+                )}
+                <CardHeader className="relative">
                   <div className="flex items-start justify-between gap-3">
-                    <CardTitle>{project.name}</CardTitle>
+                    <CardTitle className="font-display text-lg tracking-wide uppercase">{project.name}</CardTitle>
                     {project.unlocked && (
-                      <Badge className="bg-success text-success-foreground shrink-0">
+                      <Badge className="bg-success shrink-0 font-mono text-[10px] tracking-wide text-success-foreground uppercase">
                         <CheckCircle2 />
                         Unlocked
                       </Badge>
                     )}
                   </div>
                 </CardHeader>
-                <CardContent className="px-4">
+                <CardContent className="relative px-4">
                   <p className="mb-4 text-sm text-muted-foreground">{project.description}</p>
                   {!project.unlocked && (
                     <div className="space-y-3">

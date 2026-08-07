@@ -17,6 +17,8 @@ import {
   Sparkles,
   Moon,
   Sun,
+  ClipboardCheck,
+  ShieldCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -42,6 +44,9 @@ const NAV_ITEMS = [
   { href: "/recap", label: "Weekly Recap", icon: Newspaper },
 ];
 
+const MANAGER_NAV_ITEM = { href: "/approvals", label: "Approvals", icon: ClipboardCheck };
+const ADMIN_NAV_ITEM = { href: "/admin", label: "Admin", icon: ShieldCheck };
+
 function initials(name: string) {
   return name
     .split(" ")
@@ -57,6 +62,12 @@ export function AppSidebar() {
   const { employee, logout } = useAuthStore();
   const { resolvedTheme, setTheme } = useTheme();
   const menuRef = useRef<HTMLUListElement>(null);
+
+  const navItems = [
+    ...NAV_ITEMS,
+    ...(employee?.role === "MANAGER" || employee?.role === "ADMIN" ? [MANAGER_NAV_ITEM] : []),
+    ...(employee?.role === "ADMIN" ? [ADMIN_NAV_ITEM] : []),
+  ];
 
   useGSAP(
     () => {
@@ -74,25 +85,28 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="px-3 py-4">
-        <div className="flex items-center gap-2 px-1">
-          <div className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
+        <div className="flex items-center gap-2.5 px-1">
+          <div className="glow-primary flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Sparkles className="size-4" />
           </div>
-          <span className="font-semibold tracking-tight">Weatherline</span>
+          <span className="font-display text-base tracking-wide uppercase">Weatherline</span>
         </div>
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Workspace</SidebarGroupLabel>
+          <SidebarGroupLabel className="font-mono text-[10px] tracking-[0.15em] uppercase">
+            Workspace
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu ref={menuRef}>
-              {NAV_ITEMS.map((item) => {
+              {navItems.map((item) => {
                 const active = pathname === item.href;
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
                       isActive={active}
+                      className="data-[active=true]:glow-primary data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:font-medium"
                       render={
                         <Link href={item.href}>
                           <item.icon />

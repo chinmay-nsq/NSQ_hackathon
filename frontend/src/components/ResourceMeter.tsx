@@ -43,19 +43,23 @@ export function ResourceMeter({
   );
 
   return (
-    <div className={cn("space-y-1.5", className)}>
+    <div className={cn("space-y-2", className)}>
       <div className="flex items-center justify-between text-xs">
-        <span className="flex items-center gap-1.5 font-medium text-muted-foreground">
-          <Icon className="size-3.5" />
+        <span className="flex items-center gap-1.5 font-mono tracking-wide text-muted-foreground uppercase">
+          <Icon className="size-3.5" style={{ color: meta.color }} />
           {meta.label}
         </span>
-        <span className="tabular text-muted-foreground">
+        <span className="tabular font-medium text-foreground">
           <CountUp value={current} duration={0.7} />
-          {needed > 0 && <span className="opacity-60"> / {needed}</span>}
+          {needed > 0 && <span className="text-muted-foreground opacity-60"> / {needed}</span>}
         </span>
       </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-        <div ref={fillRef} className="h-full rounded-full" style={{ backgroundColor: meta.color }} />
+      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          ref={fillRef}
+          className="h-full rounded-full"
+          style={{ backgroundColor: meta.color, boxShadow: `0 0 10px 0 ${meta.color}` }}
+        />
       </div>
     </div>
   );

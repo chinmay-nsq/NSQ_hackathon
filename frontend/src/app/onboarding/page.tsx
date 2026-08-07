@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bird, Bot, Cat, Feather, PawPrint, type LucideIcon } from "lucide-react";
 import { api, ApiRequestError } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { gsap } from "@/lib/gsap/registerPlugins";
@@ -15,15 +14,13 @@ import { PageIn } from "@/components/motion/PageIn";
 import { StaggerGrid } from "@/components/motion/StaggerGrid";
 import { CompanionViewer } from "@/components/companion3d/CompanionViewer";
 
-const SPECIES_META: Record<string, { label: string; icon: LucideIcon }> = {
-  dragon: { label: "Dragon", icon: Feather },
-  robot: { label: "Robot", icon: Bot },
-  fox: { label: "Fox", icon: PawPrint },
-  owl: { label: "Owl", icon: Bird },
-  panda: { label: "Panda", icon: Cat },
+const SPECIES_META: Record<string, { label: string; title: string }> = {
+  barbarian: { label: "Barb", title: "The Loyal Flame" },
+  wizard: { label: "Volt", title: "The Precise Mind" },
+  witch: { label: "Raven", title: "The Quiet Wisdom" },
 };
 
-const FALLBACK_SPECIES = ["dragon", "robot", "fox", "owl", "panda"];
+const FALLBACK_SPECIES = ["barbarian", "wizard", "witch"];
 
 export default function OnboardingPage() {
   const [species, setSpecies] = useState<string[]>([]);
@@ -75,29 +72,30 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-6 py-12">
-      <PageIn className="w-full max-w-xl">
+    <div className="bg-grid relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-6 py-12">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_50%_45%_at_50%_0%,var(--glow-primary),transparent)]" />
+      <PageIn className="relative w-full max-w-xl">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <p className="font-mono text-xs tracking-[0.25em] text-muted-foreground uppercase">Weatherline</p>
+          <h1 className="font-display mt-2 text-3xl tracking-wide uppercase sm:text-4xl">
             Welcome, {employee?.name?.split(" ")[0] ?? "there"}
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-3 text-sm text-muted-foreground">
             Pick an AI companion — it&apos;ll coach you, track your progress, and keep you posted on
             your team&apos;s goals.
           </p>
         </div>
 
         {selected && (
-          <CompanionViewer species={selected} className="mx-auto mb-6 h-48 w-48" />
+          <CompanionViewer species={selected} className="glow-primary-strong mx-auto mb-6 h-48 w-48 rounded-full" />
         )}
 
         {loadingSpecies ? (
           <p className="text-center text-sm text-muted-foreground">Loading companions…</p>
         ) : (
-          <StaggerGrid className="grid grid-cols-3 gap-3 sm:grid-cols-5" deps={[species.length]}>
+          <StaggerGrid className="mx-auto grid max-w-md grid-cols-3 gap-3" deps={[species.length]}>
             {species.map((s) => {
-              const meta = SPECIES_META[s] ?? { label: s, icon: PawPrint };
-              const Icon = meta.icon;
+              const meta = SPECIES_META[s] ?? { label: s, title: "" };
               const isSelected = selected === s;
               return (
                 <button
@@ -110,13 +108,13 @@ export default function OnboardingPage() {
                 >
                   <Card
                     className={cn(
-                      "cursor-pointer items-center py-5 transition-colors hover:bg-accent",
-                      isSelected && "bg-accent ring-2 ring-primary"
+                      "cursor-pointer items-center border-0 py-5 transition-colors hover:bg-accent",
+                      isSelected && "glow-primary bg-accent"
                     )}
                   >
                     <CardContent className="flex flex-col items-center gap-2 px-2">
-                      <Icon className={cn("size-6", isSelected ? "text-primary" : "text-muted-foreground")} />
-                      <span className="text-xs font-medium capitalize">{meta.label}</span>
+                      <CompanionViewer species={s} interactive={false} className="size-14" />
+                      <span className="font-mono text-[11px] tracking-wide uppercase">{meta.label}</span>
                     </CardContent>
                   </Card>
                 </button>
@@ -126,9 +124,17 @@ export default function OnboardingPage() {
         )}
 
         {selected && (
-          <div className="mx-auto mt-6 max-w-xs space-y-1.5">
-            <Label htmlFor="companion-name">
-              Name your {SPECIES_META[selected]?.label.toLowerCase() ?? selected}
+          <div className="mx-auto mt-6 max-w-xs space-y-1.5 text-center">
+            {SPECIES_META[selected]?.title && (
+              <p className="font-mono text-[11px] tracking-widest text-primary uppercase">
+                {SPECIES_META[selected].title}
+              </p>
+            )}
+            <Label
+              htmlFor="companion-name"
+              className="font-mono text-xs tracking-wide uppercase"
+            >
+              Name your companion
             </Label>
             <Input
               id="companion-name"
@@ -143,7 +149,12 @@ export default function OnboardingPage() {
         {error && <p className="mt-4 text-center text-sm text-destructive">{error}</p>}
 
         <div className="mt-6 flex justify-center">
-          <Button onClick={handleConfirm} disabled={!selected || submitting} size="lg">
+          <Button
+            onClick={handleConfirm}
+            disabled={!selected || submitting}
+            size="lg"
+            className="glow-primary font-mono text-xs tracking-widest uppercase"
+          >
             {submitting ? "Setting up…" : "Continue"}
           </Button>
         </div>

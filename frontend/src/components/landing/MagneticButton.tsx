@@ -5,7 +5,7 @@ import { gsap } from "@/lib/gsap/registerPlugins";
 import { ambientEngine } from "@/lib/audio/ambientEngine";
 import { cn } from "@/lib/utils";
 
-/** A button that pulls toward the cursor within its bounds and reacts with a subtle audio pitch lift. */
+/** A button that pulls toward the cursor within its bounds and confirms clicks with a soft chime. */
 export function MagneticButton({
   children,
   className,
@@ -31,11 +31,6 @@ export function MagneticButton({
   function handleMouseLeave() {
     if (!ref.current) return;
     gsap.to(ref.current, { x: 0, y: 0, duration: 0.5, ease: "elastic.out(1, 0.4)" });
-    ambientEngine.setHoverLift(false);
-  }
-
-  function handleMouseEnter() {
-    ambientEngine.setHoverLift(true);
   }
 
   function handleClick() {
@@ -49,7 +44,6 @@ export function MagneticButton({
       type="button"
       data-cursor="magnetic"
       onMouseMove={handleMouseMove}
-      onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
       className={cn(
