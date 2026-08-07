@@ -3,5 +3,10 @@
   "buildCommand": "npm run build",
   "rewrites": [
     { "source": "/(.*)", "destination": "/api" }
-  ]
+  ],
+  "functions": {
+    "api/index.ts": {
+      "includeFiles": "{dist/**,prisma/schema.prisma,node_modules/.prisma/client/**}"
+    }
+  }
 }
