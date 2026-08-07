@@ -22,10 +22,18 @@ const loginSchema = z.object({
 });
 
 function setSessionCookie(res: Response, token: string) {
+  // Frontend and backend live on different Vercel domains, so every request
+  // between them is cross-site from the browser's point of view.
+  // SameSite=Lax blocks cookies on cross-site fetch/XHR (it only allows them
+  // on top-level navigations) — only SameSite=None gets the cookie attached
+  // on API calls from another origin. None requires Secure, which is fine
+  // since Vercel always serves over HTTPS; it just cannot work over plain
+  // HTTP, so this intentionally only relaxes to Lax for local http dev.
+  const isProduction = env.nodeEnv === "production";
   res.cookie(env.cookieName, token, {
     httpOnly: true,
-    secure: env.nodeEnv === "production",
-    sameSite: "lax",
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
     maxAge: COOKIE_MAX_AGE_MS,
   });
 }
@@ -68,7 +76,14 @@ export const AuthController = {
   },
 
   logout(_req: Request, res: Response) {
-    res.clearCookie(env.cookieName);
+    const isProduction = env.nodeEnv === "production";
+    // clearCookie must be called with the same attributes the cookie was set
+    // with (sameSite/secure) or some browsers won't actually remove it.
+    res.clearCookie(env.cookieName, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+    });
     return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Logged out", null));
   },
 
