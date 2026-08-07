@@ -89,7 +89,18 @@ export const AdventureRepository = {
         approval: "PENDING",
         employee: { guildId: { in: guildIds } },
       },
-      include: { adventure: true, employee: { select: { id: true, name: true, title: true, avatarSeed: true } } },
+      include: {
+        adventure: true,
+        employee: {
+          select: {
+            id: true,
+            name: true,
+            title: true,
+            avatarSeed: true,
+            companion: { select: { name: true, species: true } },
+          },
+        },
+      },
       orderBy: { completedAt: "asc" },
     });
   },

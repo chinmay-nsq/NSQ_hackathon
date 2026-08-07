@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 import { api, ApiRequestError } from "@/lib/api";
 import { Guild } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -30,8 +31,28 @@ export function AssignTaskDialog({ onAssigned }: { onAssigned: () => void }) {
   const [xpReward, setXpReward] = useState(25);
   const [coinReward, setCoinReward] = useState(15);
   const [submitting, setSubmitting] = useState(false);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const loadingGuilds = open && !guildsLoaded;
+
+  async function handleGenerateWithAI(targetEmployeeId: string) {
+    setGeneratingId(targetEmployeeId);
+    try {
+      await api.post(`/adventures/solo/generate-for/${targetEmployeeId}`);
+      toast.success("Generated a task with AI");
+      setOpen(false);
+      reset();
+      onAssigned();
+    } catch (err) {
+      toast.error(
+        err instanceof ApiRequestError
+          ? err.message
+          : "Could not generate a task — they may not have completed their profile yet."
+      );
+    } finally {
+      setGeneratingId(null);
+    }
+  }
 
   useEffect(() => {
     if (!open || guildsLoaded) return;
@@ -99,7 +120,10 @@ export function AssignTaskDialog({ onAssigned }: { onAssigned: () => void }) {
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle className="font-display text-xl tracking-wide uppercase">Assign a task</DialogTitle>
-            <DialogDescription>Hand-write a task for someone on your team.</DialogDescription>
+            <DialogDescription>
+              Hand-write a task for one of your team&apos;s companions. Members are shown by companion
+              name only.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="mt-5 space-y-4">
@@ -112,20 +136,36 @@ export function AssignTaskDialog({ onAssigned }: { onAssigned: () => void }) {
                   You don&apos;t lead a team with any members yet.
                 </p>
               ) : (
-                <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-border/60 p-1.5">
+                <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-border/60 p-1.5">
                   {members.map((m) => (
-                    <button
+                    <div
                       key={m.id}
-                      type="button"
-                      onClick={() => setEmployeeId(m.id)}
                       className={cn(
-                        "flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-left text-sm transition-colors",
+                        "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors",
                         employeeId === m.id ? "bg-accent text-accent-foreground" : "hover:bg-muted/60"
                       )}
                     >
-                      <span>{m.name}</span>
-                      <span className="text-xs text-muted-foreground">{m.guildName}</span>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setEmployeeId(m.id)}
+                        className="flex min-w-0 flex-1 items-center justify-between text-left"
+                      >
+                        <span className="truncate">{m.name}</span>
+                        <span className="ml-2 shrink-0 text-xs text-muted-foreground">{m.guildName}</span>
+                      </button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        disabled={generatingId === m.id}
+                        onClick={() => handleGenerateWithAI(m.id)}
+                        className="h-7 shrink-0 px-2 font-mono text-[10px] tracking-wide uppercase"
+                        title="Generate a task for this companion with AI, based on their profile"
+                      >
+                        <Sparkles className="size-3" />
+                        {generatingId === m.id ? "…" : "AI"}
+                      </Button>
+                    </div>
                   ))}
                 </div>
               )}

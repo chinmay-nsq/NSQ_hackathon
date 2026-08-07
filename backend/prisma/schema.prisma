@@ -15,6 +15,13 @@ enum Role {
   ADMIN
 }
 
+enum Seniority {
+  JUNIOR
+  MID
+  SENIOR
+  LEAD
+}
+
 model Employee {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -30,6 +37,15 @@ model Employee {
   coins      Int    @default(0)
   reputation Int    @default(0)
   title      String @default("Novice")
+
+  // Work profile — captured once after onboarding, feeds AI task generation
+  // (both the employee's own daily solo adventures and a manager's
+  // "generate with AI" for a team member). profileCompletedAt gates the
+  // mandatory post-onboarding profile step.
+  jobRole            String?
+  seniority          Seniority?
+  skills             String[]   @default([])
+  profileCompletedAt DateTime?
 
   guildId String?
   guild   Guild?  @relation("GuildMember", fields: [guildId], references: [id])
@@ -97,6 +113,10 @@ model Guild {
   // The manager (or admin) who leads this guild and approves its members' tasks.
   managerId String?
   manager   Employee? @relation("GuildManager", fields: [managerId], references: [id])
+
+  // Shareable signup code — anyone who registers with ?invite=<inviteCode>
+  // auto-joins this guild. Unique per guild, generated on creation.
+  inviteCode String @unique @default(cuid())
 
   members       Employee[]            @relation("GuildMember")
   adventures    Adventure[]           @relation("AdventureGuild")

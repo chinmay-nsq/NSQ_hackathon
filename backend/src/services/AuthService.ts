@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { Role } from "@prisma/client";
 import { env } from "@/config/env";
 import { EmployeeRepository } from "@/repositories/EmployeeRepository";
+import { GuildRepository } from "@/repositories/GuildRepository";
 import { ApiError } from "@/utils/apiError";
 import { HttpStatus } from "@/utils/httpStatus";
 
@@ -31,7 +32,7 @@ class AuthServiceImpl {
     return jwt.verify(token, env.jwtSecret) as JwtPayload;
   }
 
-  async register(email: string, password: string, name: string, role: Role = Role.EMPLOYEE) {
+  async register(email: string, password: string, name: string, role: Role = Role.EMPLOYEE, inviteCode?: string) {
     const existing = await EmployeeRepository.findByEmail(email);
     if (existing) {
       throw new ApiError(HttpStatus.CONFLICT, "An account with this email already exists", "Conflict");
@@ -40,8 +41,17 @@ class AuthServiceImpl {
       throw new ApiError(HttpStatus.BAD_REQUEST, "Invalid role", "Bad Request");
     }
 
+    let guildId: string | undefined;
+    if (inviteCode) {
+      const guild = await GuildRepository.findByInviteCode(inviteCode);
+      if (!guild) {
+        throw new ApiError(HttpStatus.BAD_REQUEST, "Invite link is invalid or expired", "Bad Request");
+      }
+      guildId = guild.id;
+    }
+
     const passwordHash = await this.hashPassword(password);
-    const employee = await EmployeeRepository.create({ email, passwordHash, name, role });
+    const employee = await EmployeeRepository.create({ email, passwordHash, name, role, guildId });
     const token = this.signToken({ employeeId: employee.id });
 
     return { token, employee, hasCompanion: false };

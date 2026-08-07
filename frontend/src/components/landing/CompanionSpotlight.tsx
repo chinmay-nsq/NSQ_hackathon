@@ -117,7 +117,7 @@ export function CompanionSpotlight() {
                   color: isActive ? pet.color : undefined,
                 }}
               >
-                <span className={isActive ? "" : "text-white/50"}>{pet.species}</span>
+                <span className={isActive ? "" : "text-white/50"}>{pet.name}</span>
               </button>
             );
           })}

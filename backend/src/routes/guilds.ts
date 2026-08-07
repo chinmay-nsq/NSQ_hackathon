@@ -15,7 +15,14 @@ router.get(
   requireRole(Role.MANAGER, Role.ADMIN),
   asyncHandler(GuildController.listManaged)
 );
+router.get("/invite/:code", asyncHandler(GuildController.previewInvite));
 router.get("/:id", requireAuth, asyncHandler(GuildController.getById));
 router.post("/:id/join", requireAuth, asyncHandler(GuildController.join));
+router.get(
+  "/:id/invite",
+  requireAuth,
+  requireRole(Role.MANAGER, Role.ADMIN),
+  asyncHandler(GuildController.getInvite)
+);
 
 export default router;

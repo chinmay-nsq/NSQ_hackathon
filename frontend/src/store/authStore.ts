@@ -10,7 +10,13 @@ interface AuthState {
   employee: Employee | null;
   status: "idle" | "loading" | "authenticated" | "unauthenticated";
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string, role?: SelfRegisterableRole) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    name: string,
+    role?: SelfRegisterableRole,
+    inviteCode?: string
+  ) => Promise<void>;
   logout: () => Promise<void>;
   fetchMe: () => Promise<void>;
 }
@@ -28,9 +34,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await get().fetchMe();
   },
 
-  async register(email, password, name, role) {
+  async register(email, password, name, role, inviteCode) {
     set({ status: "loading" });
-    await api.post("/auth/register", { email, password, name, role });
+    await api.post("/auth/register", { email, password, name, role, inviteCode });
     await get().fetchMe();
   },
 

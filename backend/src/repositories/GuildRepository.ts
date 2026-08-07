@@ -14,7 +14,16 @@ export const GuildRepository = {
     return prisma.guild.findUnique({
       where: { id },
       include: {
-        members: { select: { id: true, name: true, level: true, title: true, xp: true } },
+        members: {
+          select: {
+            id: true,
+            name: true,
+            level: true,
+            title: true,
+            xp: true,
+            companion: { select: { name: true, species: true } },
+          },
+        },
         adventures: { where: { status: "ACTIVE" }, orderBy: { createdAt: "desc" } },
       },
     });
@@ -24,6 +33,10 @@ export const GuildRepository = {
     return prisma.guild.findUnique({ where: { id } });
   },
 
+  findByInviteCode(inviteCode: string) {
+    return prisma.guild.findUnique({ where: { inviteCode } });
+  },
+
   findIdsManagedBy(managerId: string): Promise<{ id: string }[]> {
     return prisma.guild.findMany({ where: { managerId }, select: { id: true } });
   },
@@ -31,7 +44,17 @@ export const GuildRepository = {
   findManagedByWithMembers(managerId: string) {
     return prisma.guild.findMany({
       where: { managerId },
-      include: { members: { select: { id: true, name: true, title: true, level: true } } },
+      include: {
+        members: {
+          select: {
+            id: true,
+            name: true,
+            title: true,
+            level: true,
+            companion: { select: { name: true, species: true } },
+          },
+        },
+      },
       orderBy: { name: "asc" },
     });
   },

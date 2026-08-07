@@ -10,5 +10,6 @@ const router = Router();
 router.get("/overview", requireAuth, requireRole(Role.ADMIN), asyncHandler(EmployeeController.overview));
 router.get("/", requireAuth, requireRole(Role.ADMIN), asyncHandler(EmployeeController.list));
 router.post("/:id/role", requireAuth, requireRole(Role.ADMIN), asyncHandler(EmployeeController.setRole));
+router.post("/me/profile", requireAuth, asyncHandler(EmployeeController.completeProfile));
 
 export default router;

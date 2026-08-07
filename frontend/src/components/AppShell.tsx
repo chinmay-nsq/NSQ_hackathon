@@ -11,13 +11,16 @@ import { Sparkles } from "lucide-react";
 
 const PUBLIC_ROUTES = ["/", "/login"];
 const ONBOARDING_ROUTE = "/onboarding";
+const PROFILE_ROUTE = "/onboarding/profile";
 const APP_HOME_ROUTE = "/app";
+const FULL_ONBOARDING_ROUTES = [ONBOARDING_ROUTE, PROFILE_ROUTE];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { status, employee, fetchMe } = useAuthStore();
   const pathname = usePathname();
   const router = useRouter();
   const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
+  const isOnboardingRoute = FULL_ONBOARDING_ROUTES.includes(pathname);
 
   useEffect(() => {
     if (status === "idle") {
@@ -38,12 +41,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       router.replace(ONBOARDING_ROUTE);
       return;
     }
-    if (status === "authenticated" && employee?.companion && pathname === ONBOARDING_ROUTE) {
+    if (
+      status === "authenticated" &&
+      employee?.companion &&
+      !employee.profileCompletedAt &&
+      pathname !== PROFILE_ROUTE
+    ) {
+      router.replace(PROFILE_ROUTE);
+      return;
+    }
+    if (
+      status === "authenticated" &&
+      employee?.companion &&
+      employee.profileCompletedAt &&
+      isOnboardingRoute
+    ) {
       router.replace(APP_HOME_ROUTE);
     }
-  }, [status, employee, isPublicRoute, pathname, router]);
+  }, [status, employee, isPublicRoute, isOnboardingRoute, pathname, router]);
 
-  if (isPublicRoute || pathname === ONBOARDING_ROUTE) {
+  if (isPublicRoute || isOnboardingRoute) {
     return <main className="min-h-screen">{children}</main>;
   }
 

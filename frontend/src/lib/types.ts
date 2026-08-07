@@ -1,6 +1,7 @@
 export type ResourceType = "knowledge" | "gold" | "influence" | "materials";
 
 export type Role = "EMPLOYEE" | "MANAGER" | "ADMIN";
+export type Seniority = "JUNIOR" | "MID" | "SENIOR" | "LEAD";
 
 export interface Employee {
   id: string;
@@ -14,6 +15,10 @@ export interface Employee {
   reputation: number;
   title: string;
   guildId: string | null;
+  jobRole?: string | null;
+  seniority?: Seniority | null;
+  skills?: string[];
+  profileCompletedAt?: string | null;
   companion?: Companion | null;
   guild?: Guild | null;
 }
@@ -65,7 +70,7 @@ export interface PendingApproval {
   submission: string | null;
   completedAt: string | null;
   adventure: Adventure;
-  employee: { id: string; name: string; title: string; avatarSeed: string };
+  employee: { id: string; name: string; title: string; avatarSeed: string; species?: string | null };
 }
 
 export interface CompanyOverview {
@@ -81,6 +86,8 @@ export interface GuildMember {
   level: number;
   title: string;
   xp?: number;
+  /** Present when the current viewer sees this member anonymized (by companion identity, not real name) — a manager viewing their own team. */
+  species?: string | null;
 }
 
 export interface Guild {

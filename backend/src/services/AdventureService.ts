@@ -1,3 +1,4 @@
+import { Role } from "@prisma/client";
 import { prisma } from "@/config/db";
 import { AdventureRepository } from "@/repositories/AdventureRepository";
 import { EmployeeRepository } from "@/repositories/EmployeeRepository";
@@ -9,6 +10,7 @@ import { CompanionService } from "./CompanionService";
 import { XP_PER_LEVEL, COMPANION_BOND_XP_PER_ADVENTURE } from "@/config/constants";
 import { ApiError } from "@/utils/apiError";
 import { HttpStatus } from "@/utils/httpStatus";
+import { anonymizeMember } from "@/utils/anonymize";
 
 function startOfToday(): Date {
   const d = new Date();
@@ -38,6 +40,9 @@ class AdventureServiceImpl {
       employeeName: employee.name,
       department: employee.guild?.department ?? "General",
       recentActivity: "",
+      jobRole: employee.jobRole,
+      seniority: employee.seniority,
+      skills: employee.skills,
     });
 
     const data = AdventureFactory.buildSolo(content, employeeId, employee.guildId);
@@ -72,6 +77,42 @@ class AdventureServiceImpl {
       description,
       xpReward,
       coinReward,
+      assigneeId,
+      assignee.guildId
+    );
+    return AdventureRepository.create(data);
+  }
+
+  /**
+   * A manager/admin asks the AI to generate a task for a specific team
+   * member, built only from that member's work profile — the prompt never
+   * includes their name or any other identifying detail. Still needs
+   * approval on completion, same as any manager-assigned task.
+   */
+  async generateForEmployee(assignerId: string, assigneeId: string) {
+    await this.assertCanManage(assignerId, assigneeId);
+
+    const assignee = await EmployeeRepository.findById(assigneeId);
+    if (!assignee) throw new ApiError(HttpStatus.NOT_FOUND, "Team member not found", "Not Found");
+    if (!assignee.jobRole || !assignee.seniority) {
+      throw new ApiError(
+        HttpStatus.BAD_REQUEST,
+        "This person hasn't completed their work profile yet",
+        "Bad Request"
+      );
+    }
+
+    const content = await AIService.generateSoloAdventureForProfile({
+      jobRole: assignee.jobRole,
+      seniority: assignee.seniority,
+      skills: assignee.skills,
+    });
+
+    const data = AdventureFactory.buildAssignedSolo(
+      content.title,
+      content.description,
+      content.xpReward,
+      content.coinReward,
       assigneeId,
       assignee.guildId
     );
@@ -159,7 +200,11 @@ class AdventureServiceImpl {
     return AdventureRepository.setApproval(adventureId, employeeId, "REJECTED", approverId, note);
   }
 
-  /** Pending-approval queue: guild-scoped for managers, company-wide for admins. */
+  /**
+   * Pending-approval queue: guild-scoped for managers, company-wide for
+   * admins. Managers see the submitting employee by companion identity
+   * only — never their real name.
+   */
   async listPendingFor(approverId: string) {
     const approver = await EmployeeRepository.findById(approverId);
     if (!approver) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
@@ -170,7 +215,8 @@ class AdventureServiceImpl {
 
     const guilds = await GuildRepository.findIdsManagedBy(approverId);
     if (guilds.length === 0) return [];
-    return AdventureRepository.findPendingForGuilds(guilds.map((g) => g.id));
+    const pending = await AdventureRepository.findPendingForGuilds(guilds.map((g) => g.id));
+    return pending.map((p) => ({ ...p, employee: anonymizeMember(p.employee, Role.MANAGER) }));
   }
 
   /** Confirms `managerId` (manager/admin) is allowed to act on `employeeId` — approve, reject, or assign a task. */

@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { Request, Response } from "express";
 import { z } from "zod";
 import { GuildService } from "@/services/GuildService";
 import { AuthedRequest } from "@/middleware/requireAuth";
@@ -19,7 +19,7 @@ export const GuildController = {
   },
 
   async getById(req: AuthedRequest, res: Response) {
-    const guild = await GuildService.getById(String(req.params.id));
+    const guild = await GuildService.getById(String(req.params.id), req.employeeId!);
     return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Guild fetched", { guild }));
   },
 
@@ -37,5 +37,17 @@ export const GuildController = {
   async listManaged(req: AuthedRequest, res: Response) {
     const guilds = await GuildService.listManagedBy(req.employeeId!);
     return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Managed guilds fetched", { guilds }));
+  },
+
+  /** Public (no auth) — resolves an invite code so the signup page can preview which team you're joining. */
+  async previewInvite(req: Request, res: Response) {
+    const guild = await GuildService.getByInviteCode(String(req.params.code));
+    return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Invite fetched", { guild }));
+  },
+
+  /** The current guild's shareable invite code — manager (own guild) or admin only. */
+  async getInvite(req: AuthedRequest, res: Response) {
+    const inviteCode = await GuildService.getInviteCode(String(req.params.id), req.employeeId!);
+    return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Invite code fetched", { inviteCode }));
   },
 };

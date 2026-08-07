@@ -25,13 +25,45 @@ class AIServiceImpl {
     employeeName: string;
     department: string;
     recentActivity: string;
+    jobRole?: string | null;
+    seniority?: string | null;
+    skills?: string[];
   }): Promise<GeneratedAdventureContent> {
     const system = `You are the AI Dungeon Master for Weatherline, a workplace gamification app.
-Generate ONE short solo adventure (a small daily task) for an employee.
+Generate ONE short solo adventure (a small daily task) for an employee, tailored to their role, seniority, and skills when given.
 Respond ONLY with JSON matching: { "title": string, "description": string, "xpReward": number (10-40), "coinReward": number (5-25), "resourceType": "knowledge"|"gold"|"influence"|"materials", "resourceAmount": number (3-15) }
-Keep it realistic for a workplace: learning, reflection, wellness, or peer appreciation. No fantasy jargon in the description itself, just the framing.`;
+Keep it realistic for a workplace: a small task that actually uses their skills, plus learning, reflection, wellness, or peer appreciation as variety. No fantasy jargon in the description itself, just the framing.`;
 
-    const user = `Employee: ${context.employeeName}, Department: ${context.department}. Recent activity: ${context.recentActivity || "none yet"}. Generate today's solo adventure.`;
+    const profileLine = context.jobRole
+      ? `Role: ${context.jobRole}${context.seniority ? ` (${context.seniority})` : ""}. Skills: ${(context.skills ?? []).join(", ") || "none listed"}.`
+      : "No work profile on file yet — keep it generic.";
+
+    const user = `Employee: ${context.employeeName}, Department: ${context.department}. ${profileLine} Recent activity: ${context.recentActivity || "none yet"}. Generate today's solo adventure.`;
+
+    try {
+      return await getAIProvider().completeJSON<GeneratedAdventureContent>(system, user);
+    } catch {
+      return FALLBACK_SOLO[Math.floor(Math.random() * FALLBACK_SOLO.length)];
+    }
+  }
+
+  /**
+   * Manager-triggered generation for a specific team member — built ONLY
+   * from their work profile (job role, seniority, skills), never their name
+   * or any other personally-identifying detail. Matches the anonymity model
+   * used everywhere else a manager views their team.
+   */
+  async generateSoloAdventureForProfile(context: {
+    jobRole: string;
+    seniority: string;
+    skills: string[];
+  }): Promise<GeneratedAdventureContent> {
+    const system = `You are the AI Dungeon Master for Weatherline, a workplace gamification app.
+Generate ONE short solo adventure (a small daily task) for an employee, based only on their role, seniority, and skills — you are never told their name or any other identifying detail, and must not invent one.
+Respond ONLY with JSON matching: { "title": string, "description": string, "xpReward": number (10-40), "coinReward": number (5-25), "resourceType": "knowledge"|"gold"|"influence"|"materials", "resourceAmount": number (3-15) }
+Keep it realistic for a workplace: a small task that actually uses their listed skills at their seniority level.`;
+
+    const user = `Role: ${context.jobRole} (${context.seniority}). Skills: ${context.skills.join(", ")}. Generate a task for this person.`;
 
     try {
       return await getAIProvider().completeJSON<GeneratedAdventureContent>(system, user);

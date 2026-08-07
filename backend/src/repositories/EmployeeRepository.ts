@@ -21,7 +21,7 @@ export const EmployeeRepository = {
     });
   },
 
-  create(data: { email: string; passwordHash: string; name: string; role?: Role }) {
+  create(data: { email: string; passwordHash: string; name: string; role?: Role; guildId?: string }) {
     return prisma.employee.create({ data });
   },
 

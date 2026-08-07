@@ -16,6 +16,12 @@ router.post(
   requireRole(Role.MANAGER, Role.ADMIN),
   asyncHandler(AdventureController.assign)
 );
+router.post(
+  "/solo/generate-for/:employeeId",
+  requireAuth,
+  requireRole(Role.MANAGER, Role.ADMIN),
+  asyncHandler(AdventureController.generateForEmployee)
+);
 router.post("/guild/generate", requireAuth, asyncHandler(AdventureController.generateGuild));
 router.post("/:id/complete", requireAuth, asyncHandler(AdventureController.complete));
 

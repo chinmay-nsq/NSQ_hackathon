@@ -13,6 +13,7 @@ const registerSchema = z.object({
   name: z.string().min(1),
   // ADMIN is intentionally excluded — never selectable at signup.
   role: z.enum(["EMPLOYEE", "MANAGER"]).optional(),
+  inviteCode: z.string().min(1).optional(),
 });
 
 const loginSchema = z.object({
@@ -37,7 +38,8 @@ export const AuthController = {
       parsed.email,
       parsed.password,
       parsed.name,
-      parsed.role
+      parsed.role,
+      parsed.inviteCode
     );
     setSessionCookie(res, token);
 

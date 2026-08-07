@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiRequestError } from "@/lib/api";
 import { Guild } from "@/lib/types";
@@ -31,6 +31,7 @@ export default function TeamDetailPage() {
   const [guild, setGuild] = useState<Guild | null>(null);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
+  const [copyingInvite, setCopyingInvite] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -56,11 +57,29 @@ export default function TeamDetailPage() {
     }
   }
 
+  async function handleCopyInvite() {
+    if (!guild) return;
+    setCopyingInvite(true);
+    try {
+      const data = await api.get<{ inviteCode: string }>(`/guilds/${guild.id}/invite`);
+      const link = `${window.location.origin}/login?invite=${data.inviteCode}`;
+      await navigator.clipboard.writeText(link);
+      toast.success("Invite link copied", { description: "Share it with your team." });
+    } catch (err) {
+      toast.error(err instanceof ApiRequestError ? err.message : "Could not fetch the invite link.");
+    } finally {
+      setCopyingInvite(false);
+    }
+  }
+
   if (loading) return <p className="text-sm text-muted-foreground">Loading team…</p>;
   if (error) return <p className="text-sm text-destructive">{error}</p>;
   if (!guild) return null;
 
   const isMember = employee?.guildId === guild.id;
+  // The backend is the real gate (403s if this viewer doesn't actually lead
+  // this guild) — this just decides whether to show the button at all.
+  const canInvite = employee?.role === "MANAGER" || employee?.role === "ADMIN";
 
   return (
     <PageIn>
@@ -86,11 +105,24 @@ export default function TeamDetailPage() {
             <h1 className="font-display text-2xl tracking-wide uppercase">{guild.name}</h1>
           </div>
         </div>
-        {!isMember && (
-          <Button onClick={handleJoin} disabled={joining} className="glow-primary font-mono text-xs tracking-wide uppercase">
-            {joining ? "Joining…" : "Join team"}
-          </Button>
-        )}
+        <div className="flex shrink-0 gap-2">
+          {canInvite && (
+            <Button
+              variant="outline"
+              onClick={handleCopyInvite}
+              disabled={copyingInvite}
+              className="font-mono text-xs tracking-wide uppercase"
+            >
+              <Link2 />
+              {copyingInvite ? "Copying…" : "Copy invite link"}
+            </Button>
+          )}
+          {!isMember && (
+            <Button onClick={handleJoin} disabled={joining} className="glow-primary font-mono text-xs tracking-wide uppercase">
+              {joining ? "Joining…" : "Join team"}
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -135,9 +167,16 @@ export default function TeamDetailPage() {
 
       <Card className="mt-4 border-0">
         <CardHeader>
-          <CardTitle className="font-mono text-xs tracking-widest text-muted-foreground uppercase">
-            Members ({guild.members.length})
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="font-mono text-xs tracking-widest text-muted-foreground uppercase">
+              Members ({guild.members.length})
+            </CardTitle>
+            {guild.members.some((m) => m.species !== undefined) && (
+              <span className="font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
+                Shown by companion
+              </span>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="px-4">
           {guild.members.length === 0 ? (

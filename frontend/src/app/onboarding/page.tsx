@@ -18,9 +18,13 @@ const SPECIES_META: Record<string, { label: string; title: string }> = {
   barbarian: { label: "Barb", title: "The Loyal Flame" },
   wizard: { label: "Volt", title: "The Precise Mind" },
   witch: { label: "Raven", title: "The Quiet Wisdom" },
+  hog_rider: { label: "Charger", title: "The Reckless Push" },
+  balloon: { label: "Drift", title: "The Perfect Timing" },
+  dragon: { label: "Ember", title: "The Big Hype" },
+  lava_hound: { label: "Basalt", title: "The Steady Shield" },
 };
 
-const FALLBACK_SPECIES = ["barbarian", "wizard", "witch"];
+const FALLBACK_SPECIES = ["barbarian", "wizard", "witch", "hog_rider", "balloon", "dragon", "lava_hound"];
 
 export default function OnboardingPage() {
   const [species, setSpecies] = useState<string[]>([]);
@@ -64,7 +68,7 @@ export default function OnboardingPage() {
     try {
       await api.post("/companion/", { species: selected, name: name.trim() });
       await fetchMe();
-      router.replace("/app");
+      router.replace("/onboarding/profile");
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : "Something went wrong. Try again.");
       setSubmitting(false);
@@ -93,7 +97,7 @@ export default function OnboardingPage() {
         {loadingSpecies ? (
           <p className="text-center text-sm text-muted-foreground">Loading companions…</p>
         ) : (
-          <StaggerGrid className="mx-auto grid max-w-md grid-cols-3 gap-3" deps={[species.length]}>
+          <StaggerGrid className="mx-auto grid max-w-lg grid-cols-4 gap-3" deps={[species.length]}>
             {species.map((s) => {
               const meta = SPECIES_META[s] ?? { label: s, title: "" };
               const isSelected = selected === s;

@@ -1,12 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Sparkles, User, ShieldCheck } from "lucide-react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Sparkles, User, ShieldCheck, Users } from "lucide-react";
 import { useGSAP } from "@gsap/react";
 import { gsap } from "@/lib/gsap/registerPlugins";
 import { useAuthStore, SelfRegisterableRole } from "@/store/authStore";
-import { ApiRequestError } from "@/lib/api";
+import { api, ApiRequestError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,20 +25,33 @@ const ROLE_OPTIONS: { value: SelfRegisterableRole; label: string; description: s
   { value: "MANAGER", label: "Team Leader", description: "Also review & approve your team's tasks", icon: ShieldCheck },
 ];
 
-export default function LoginPage() {
-  const [mode, setMode] = useState<"login" | "register">("login");
+function LoginPageInner() {
+  const searchParams = useSearchParams();
+  const inviteCode = searchParams.get("invite");
+
+  const [mode, setMode] = useState<"login" | "register">(inviteCode ? "register" : "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState<SelfRegisterableRole>("EMPLOYEE");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [inviteTeamName, setInviteTeamName] = useState<string | null>(null);
+  const [inviteInvalid, setInviteInvalid] = useState(false);
 
   const { login, register } = useAuthStore();
   const router = useRouter();
   const scope = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!inviteCode) return;
+    api
+      .get<{ guild: { name: string } }>(`/guilds/invite/${inviteCode}`)
+      .then((data) => setInviteTeamName(data.guild.name))
+      .catch(() => setInviteInvalid(true));
+  }, [inviteCode]);
 
   useGSAP(
     () => {
@@ -74,7 +87,7 @@ export default function LoginPage() {
       if (mode === "login") {
         await login(email, password);
       } else {
-        await register(email, password, name, role);
+        await register(email, password, name, inviteCode ? "EMPLOYEE" : role, inviteCode ?? undefined);
       }
       router.replace("/app");
     } catch (err) {
@@ -84,6 +97,8 @@ export default function LoginPage() {
       setSubmitting(false);
     }
   }
+
+  const showRolePicker = mode === "register" && !inviteCode;
 
   return (
     <div
@@ -98,6 +113,23 @@ export default function LoginPage() {
           </div>
           <span className="font-display text-xl tracking-wide uppercase">Weatherline</span>
         </div>
+
+        {mode === "register" && inviteCode && (
+          <div className="glow-primary mb-4 flex items-center gap-2.5 rounded-lg border border-primary/30 bg-accent px-4 py-3">
+            <Users className="size-4 shrink-0 text-primary" />
+            <p className="text-sm">
+              {inviteInvalid ? (
+                <span className="text-destructive">This invite link is invalid or expired.</span>
+              ) : inviteTeamName ? (
+                <>
+                  You&apos;re joining <span className="font-medium text-primary">{inviteTeamName}</span>
+                </>
+              ) : (
+                "Checking invite link…"
+              )}
+            </p>
+          </div>
+        )}
 
         <Card ref={cardRef} className="glow-primary border-0">
           <CardHeader>
@@ -137,32 +169,34 @@ export default function LoginPage() {
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="font-mono text-xs tracking-wide uppercase">Account type</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {ROLE_OPTIONS.map((opt) => {
-                        const Icon = opt.icon;
-                        const selected = role === opt.value;
-                        return (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => setRole(opt.value)}
-                            className={cn(
-                              "flex flex-col items-start gap-1.5 rounded-lg border px-3 py-2.5 text-left transition-colors",
-                              selected
-                                ? "glow-primary border-primary bg-accent"
-                                : "border-border hover:bg-muted/50"
-                            )}
-                          >
-                            <Icon className={cn("size-4", selected ? "text-primary" : "text-muted-foreground")} />
-                            <span className="text-sm font-medium">{opt.label}</span>
-                            <span className="text-xs text-muted-foreground">{opt.description}</span>
-                          </button>
-                        );
-                      })}
+                  {showRolePicker && (
+                    <div className="space-y-1.5">
+                      <Label className="font-mono text-xs tracking-wide uppercase">Account type</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {ROLE_OPTIONS.map((opt) => {
+                          const Icon = opt.icon;
+                          const selected = role === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => setRole(opt.value)}
+                              className={cn(
+                                "flex flex-col items-start gap-1.5 rounded-lg border px-3 py-2.5 text-left transition-colors",
+                                selected
+                                  ? "glow-primary border-primary bg-accent"
+                                  : "border-border hover:bg-muted/50"
+                              )}
+                            >
+                              <Icon className={cn("size-4", selected ? "text-primary" : "text-muted-foreground")} />
+                              <span className="text-sm font-medium">{opt.label}</span>
+                              <span className="text-xs text-muted-foreground">{opt.description}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </>
               )}
               <div className="space-y-1.5">
@@ -207,5 +241,13 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
   );
 }

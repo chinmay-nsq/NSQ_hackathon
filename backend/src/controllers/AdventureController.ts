@@ -62,6 +62,14 @@ export const AdventureController = {
       .json(new ApiResponse(HttpStatus.CREATED, "Adventure assigned", { adventure }));
   },
 
+  async generateForEmployee(req: AuthedRequest, res: Response) {
+    const employeeId = String(req.params.employeeId);
+    const adventure = await AdventureService.generateForEmployee(req.employeeId!, employeeId);
+    return res
+      .status(HttpStatus.CREATED)
+      .json(new ApiResponse(HttpStatus.CREATED, "Adventure generated", { adventure }));
+  },
+
   async generateGuild(req: AuthedRequest, res: Response) {
     const adventure = await AdventureService.generateGuild(req.employeeId!);
     return res

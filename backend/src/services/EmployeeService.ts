@@ -1,10 +1,27 @@
-import { Role } from "@prisma/client";
+import { Role, Seniority } from "@prisma/client";
 import { prisma } from "@/config/db";
 import { EmployeeRepository } from "@/repositories/EmployeeRepository";
 import { ApiError } from "@/utils/apiError";
 import { HttpStatus } from "@/utils/httpStatus";
 
 class EmployeeServiceImpl {
+  /**
+   * Completes the mandatory post-onboarding work profile (job role,
+   * seniority, skills). Feeds AI task generation for this employee, both
+   * their own daily solo adventures and a manager's "generate with AI".
+   */
+  async completeProfile(employeeId: string, jobRole: string, seniority: Seniority, skills: string[]) {
+    const employee = await EmployeeRepository.findById(employeeId);
+    if (!employee) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
+
+    return EmployeeRepository.update(employeeId, {
+      jobRole,
+      seniority,
+      skills,
+      profileCompletedAt: new Date(),
+    });
+  }
+
   /** All employees with basic guild/role info — admin only. */
   listAll() {
     return prisma.employee.findMany({

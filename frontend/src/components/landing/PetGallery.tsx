@@ -73,7 +73,7 @@ export function PetGallery() {
       <div className="gallery-head mb-16 max-w-2xl">
         <p className="font-mono text-xs uppercase tracking-[0.25em] text-white/40">Meet the Party</p>
         <h2 className="mt-3 font-display text-[clamp(2rem,6vw,4.2rem)] leading-[0.95] text-white">
-          Three companions. Break the crystal to meet yours.
+          Seven companions. Break the crystal to meet yours.
         </h2>
         <p className="mt-5 max-w-lg text-base leading-relaxed text-white/50">
           Every companion has its own voice, its own instincts, and its own way of showing up
