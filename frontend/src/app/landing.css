@@ -39,6 +39,34 @@ html.has-custom-cursor .landing-page * {
   cursor: none !important;
 }
 
+.ambient-particle {
+  position: absolute;
+  bottom: -5%;
+  border-radius: 50%;
+  opacity: 0;
+  animation-name: ambient-drift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes ambient-drift {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.55;
+  }
+  92% {
+    opacity: 0.35;
+  }
+  100% {
+    transform: translate(var(--drift), -110vh);
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .landing-page * {
     animation-duration: 0.01ms !important;

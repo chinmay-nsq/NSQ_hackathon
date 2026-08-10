@@ -3,7 +3,6 @@
 import { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import { gsap, ScrollTrigger } from "@/lib/gsap/registerPlugins";
-import { ambientEngine } from "@/lib/audio/ambientEngine";
 import { PetCarousel } from "./PetCarousel";
 
 export function PetGallery() {
@@ -19,7 +18,6 @@ export function PetGallery() {
         start: "top 60%",
         once: true,
         onEnter: () => {
-          ambientEngine.playWhoosh("in");
           gsap.fromTo(
             ".gallery-head > *",
             { opacity: 0, y: 24 },

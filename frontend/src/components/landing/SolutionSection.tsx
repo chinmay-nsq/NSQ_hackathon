@@ -4,7 +4,6 @@ import { useRef } from "react";
 import { User, Users, Building2 } from "lucide-react";
 import { useGSAP } from "@gsap/react";
 import { gsap, ScrollTrigger } from "@/lib/gsap/registerPlugins";
-import { ambientEngine } from "@/lib/audio/ambientEngine";
 
 const LOOP = [
   { label: "Employee", detail: "grows through daily quests", icon: User, metric: "+40 XP / quest" },
@@ -19,13 +18,6 @@ export function SolutionSection() {
     () => {
       const section = scope.current;
       if (!section) return;
-
-      ScrollTrigger.create({
-        trigger: section,
-        start: "top 60%",
-        once: true,
-        onEnter: () => ambientEngine.playWhoosh("in"),
-      });
 
       gsap.timeline({
         scrollTrigger: {

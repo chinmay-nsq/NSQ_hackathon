@@ -2,10 +2,9 @@
 
 import { useRef } from "react";
 import { gsap } from "@/lib/gsap/registerPlugins";
-import { ambientEngine } from "@/lib/audio/ambientEngine";
 import { cn } from "@/lib/utils";
 
-/** A button that pulls toward the cursor within its bounds and confirms clicks with a soft chime. */
+/** A button that pulls toward the cursor within its bounds. */
 export function MagneticButton({
   children,
   className,
@@ -33,11 +32,6 @@ export function MagneticButton({
     gsap.to(ref.current, { x: 0, y: 0, duration: 0.5, ease: "elastic.out(1, 0.4)" });
   }
 
-  function handleClick() {
-    ambientEngine.playChime();
-    onClick?.();
-  }
-
   return (
     <button
       ref={ref}
@@ -45,7 +39,7 @@ export function MagneticButton({
       data-cursor="magnetic"
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      onClick={handleClick}
+      onClick={onClick}
       className={cn(
         "relative inline-flex items-center justify-center overflow-hidden transition-colors",
         className

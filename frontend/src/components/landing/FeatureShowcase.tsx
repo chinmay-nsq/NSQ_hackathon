@@ -4,7 +4,6 @@ import { useRef } from "react";
 import { Swords, Users, Sparkles, Store, ArrowRight } from "lucide-react";
 import { useGSAP } from "@gsap/react";
 import { gsap, ScrollTrigger } from "@/lib/gsap/registerPlugins";
-import { ambientEngine } from "@/lib/audio/ambientEngine";
 
 const FEATURES = [
   {
@@ -49,13 +48,6 @@ export function FeatureShowcase() {
 
       const distance = track.scrollWidth - window.innerWidth;
       if (distance <= 0) return;
-
-      ScrollTrigger.create({
-        trigger: section,
-        start: "top 60%",
-        once: true,
-        onEnter: () => ambientEngine.playWhoosh("in"),
-      });
 
       const cards = Array.from(track.querySelectorAll<HTMLElement>(".feature-card"));
 

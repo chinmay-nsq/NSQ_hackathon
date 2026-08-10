@@ -3,7 +3,6 @@
 import { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import { gsap, ScrollTrigger } from "@/lib/gsap/registerPlugins";
-import { ambientEngine } from "@/lib/audio/ambientEngine";
 
 const SYMPTOMS = [
   { text: "Surveys nobody reads the results of.", week: "Week 1" },
@@ -21,13 +20,6 @@ export function ProblemSection() {
       if (!section) return;
 
       const rows = section.querySelectorAll(".symptom-row");
-
-      ScrollTrigger.create({
-        trigger: section,
-        start: "top 60%",
-        once: true,
-        onEnter: () => ambientEngine.playWhoosh("in"),
-      });
 
       gsap.timeline({
         scrollTrigger: {

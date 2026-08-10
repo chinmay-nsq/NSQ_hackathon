@@ -3,7 +3,6 @@
 import { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import { gsap, ScrollTrigger } from "@/lib/gsap/registerPlugins";
-import { ambientEngine } from "@/lib/audio/ambientEngine";
 
 const STATS = [
   { value: 5, suffix: "", label: "AI companion species" },
@@ -27,8 +26,6 @@ export function StatsSection() {
         start: "top 65%",
         once: true,
         onEnter: () => {
-          ambientEngine.playWhoosh("in");
-
           gsap.fromTo(".stats-head", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5 });
 
           counters.forEach((el, i) => {
@@ -42,7 +39,6 @@ export function StatsSection() {
               onUpdate: () => {
                 el.textContent = Math.round(obj.val).toString();
               },
-              onComplete: () => ambientEngine.playTick(),
             });
           });
           gsap.fromTo(

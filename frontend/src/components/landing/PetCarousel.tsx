@@ -5,7 +5,6 @@ import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useGSAP } from "@gsap/react";
 import { gsap } from "@/lib/gsap/registerPlugins";
-import { ambientEngine } from "@/lib/audio/ambientEngine";
 import { cn } from "@/lib/utils";
 import { CrystalScene } from "./CrystalScene";
 import { PETS, type PetProfile } from "./petData";
@@ -29,7 +28,6 @@ function SideCrystal({
       type="button"
       data-cursor="magnetic"
       onClick={onSelect}
-      onMouseEnter={() => ambientEngine.playTick()}
       aria-label={`View ${pet.name}`}
       className="group relative flex size-20 shrink-0 items-center justify-center opacity-70 transition-opacity duration-300 hover:opacity-100 sm:size-24"
     >
@@ -60,7 +58,6 @@ export function PetCarousel() {
 
   function goTo(index: number) {
     if (index === centerIndex) return;
-    ambientEngine.playTick();
     setCenterIndex(((index % PETS.length) + PETS.length) % PETS.length);
   }
 

@@ -12,12 +12,12 @@ import { CompanionSpotlight } from "@/components/landing/CompanionSpotlight";
 import { StatsSection } from "@/components/landing/StatsSection";
 import { CTASection } from "@/components/landing/CTASection";
 import { MagneticCursor } from "@/components/landing/MagneticCursor";
+import { AmbientParticles } from "@/components/landing/AmbientParticles";
 import { SoundToggle } from "@/components/landing/SoundToggle";
 import { SoundPrompt } from "@/components/landing/SoundPrompt";
 import { SoundAutoResume } from "@/components/landing/SoundAutoResume";
 import { ScrollProgressLine } from "@/components/landing/ScrollProgressLine";
 import { useScrollReactiveAudio } from "@/lib/audio/useScrollReactiveAudio";
-import { ambientEngine } from "@/lib/audio/ambientEngine";
 import { musicEngine } from "@/lib/audio/musicEngine";
 
 export default function LandingPage() {
@@ -26,13 +26,13 @@ export default function LandingPage() {
 
   useEffect(() => {
     return () => {
-      ambientEngine.stop();
       musicEngine.stop();
     };
   }, []);
 
   return (
-    <div className="landing-page">
+    <div className="landing-page relative">
+      <AmbientParticles />
       <MagneticCursor />
       <ScrollProgressLine />
       <SoundToggle />

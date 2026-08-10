@@ -4,7 +4,6 @@ import { useRef } from "react";
 import Image from "next/image";
 import { useGSAP } from "@gsap/react";
 import { gsap, ScrollTrigger } from "@/lib/gsap/registerPlugins";
-import { ambientEngine } from "@/lib/audio/ambientEngine";
 import { CrystalScene } from "./CrystalScene";
 
 const CRYSTAL_COLOR = "#ff5a36"; // matches --coral
@@ -45,9 +44,6 @@ export function HeroCrystal({ sectionRef }: { sectionRef: React.RefObject<HTMLEl
         if (explodedRef.current) return;
         explodedRef.current = true;
 
-        ambientEngine.stopChargeIntensity();
-        ambientEngine.playCrystalCrack(2.2);
-
         // The character lunges forward as the shell gives way. The gem itself
         // breaks apart as real 3D shard geometry inside CrystalScene, driven
         // by explodedRef — no DOM/CSS shard overlay needed anymore.
@@ -68,8 +64,6 @@ export function HeroCrystal({ sectionRef }: { sectionRef: React.RefObject<HTMLEl
           const p = self.progress; // 0 -> 1 across the pinned scroll distance
           intensityRef.current = p;
           shakeRef.current = p * 1.4;
-
-          ambientEngine.setChargeIntensity(p);
 
           if (p >= 0.985) {
             explode();

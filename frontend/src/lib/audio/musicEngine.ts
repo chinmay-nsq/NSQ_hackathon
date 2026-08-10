@@ -1,7 +1,7 @@
 /**
- * Quiet looping background music for the landing page, backed by a real
- * audio file (public/bg_music.mp3). Routed through Web Audio so it shares
- * a graph with ambientEngine's SFX and can be gently filtered by scroll depth.
+ * Quiet looping background music for the landing page, backed by the
+ * provided audio file (public/bg_music.mp3). Routed through Web Audio so it
+ * can be gently filtered by scroll depth.
  *
  * Must be started from a real user gesture (browser autoplay policy).
  */
@@ -39,10 +39,9 @@ class MusicEngine {
     const ctx = new AudioCtx();
     this.ctx = ctx;
 
-    // See ambientEngine.ts's start() for why this is necessary — a context
-    // can come up suspended even inside a real user-gesture handler, and the
-    // whole Web Audio graph (including this <audio> element routed through
-    // it) produces silence until resumed.
+    // A context can come up suspended even inside a real user-gesture
+    // handler, and the whole Web Audio graph (including this <audio> element
+    // routed through it) produces silence until resumed.
     if (ctx.state === "suspended") {
       ctx.resume().catch(() => {});
     }
@@ -97,7 +96,7 @@ class MusicEngine {
     this.state = muted ? "muted" : "running";
   }
 
-  /** Brightens very subtly with scroll depth, mirroring ambientEngine but much subtler. */
+  /** Brightens very subtly with scroll depth. */
   setScrollProgress(progress: number) {
     if (!this.ctx || !this.filter) return;
     const clamped = Math.max(0, Math.min(1, progress));

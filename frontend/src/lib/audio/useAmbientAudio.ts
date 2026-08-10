@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ambientEngine } from "./ambientEngine";
 import { musicEngine } from "./musicEngine";
 
 const STORAGE_KEY = "weatherline_sound_enabled";
@@ -11,9 +10,9 @@ export function useAmbientAudio() {
   // hydration mismatch) — the real stored preference is applied after mount.
   const [enabled, setEnabled] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
-  // True if the visitor had sound on last time, but the engines haven't
+  // True if the visitor had sound on last time, but the engine hasn't
   // actually been started yet this session (browsers block audio without a
-  // real gesture, so a mount effect can't start them). The very first real
+  // real gesture, so a mount effect can't start it). The very first real
   // click anywhere should honor this instead of requiring a second click.
   const [hasStoredPreference, setHasStoredPreference] = useState(false);
 
@@ -28,7 +27,6 @@ export function useAmbientAudio() {
   }, []);
 
   const enable = useCallback(() => {
-    ambientEngine.start();
     musicEngine.start();
     setEnabled(true);
     setHasInteracted(true);
@@ -37,7 +35,6 @@ export function useAmbientAudio() {
   }, []);
 
   const disable = useCallback(() => {
-    ambientEngine.setMuted(true);
     musicEngine.setMuted(true);
     setEnabled(false);
     setHasStoredPreference(false);

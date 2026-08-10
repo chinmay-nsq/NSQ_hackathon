@@ -4,7 +4,6 @@ import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useGSAP } from "@gsap/react";
 import { gsap, ScrollTrigger } from "@/lib/gsap/registerPlugins";
-import { ambientEngine } from "@/lib/audio/ambientEngine";
 import { MagneticButton } from "./MagneticButton";
 
 export function CTASection() {
@@ -15,13 +14,6 @@ export function CTASection() {
     () => {
       const section = scope.current;
       if (!section) return;
-
-      ScrollTrigger.create({
-        trigger: section,
-        start: "top 60%",
-        once: true,
-        onEnter: () => ambientEngine.playWhoosh("in"),
-      });
 
       gsap.fromTo(
         ".cta-content > *",

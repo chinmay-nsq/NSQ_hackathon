@@ -3,7 +3,6 @@
 import { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import { gsap } from "@/lib/gsap/registerPlugins";
-import { ambientEngine } from "@/lib/audio/ambientEngine";
 import { MagneticButton } from "./MagneticButton";
 import { HeroCrystal } from "./HeroCrystal";
 
@@ -122,7 +121,6 @@ export function HeroSection({ onEnter }: { onEnter: () => void }) {
             <a
               href="#solution"
               data-cursor="magnetic"
-              onMouseEnter={() => ambientEngine.playTick()}
               className="font-mono text-sm uppercase tracking-widest text-white/50 transition-colors hover:text-white"
             >
               See how it works
