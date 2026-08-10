@@ -40,6 +40,14 @@ class AmbientEngine {
     const ctx = new AudioCtx();
     this.ctx = ctx;
 
+    // Some browsers create the context in a "suspended" state even when
+    // constructed from within a real user-gesture handler — the graph then
+    // produces no audio at all until resumed, with no error thrown anywhere.
+    // resume() is safe to call even if the context is already running.
+    if (ctx.state === "suspended") {
+      ctx.resume().catch(() => {});
+    }
+
     const master = ctx.createGain();
     master.gain.value = 1;
     master.connect(ctx.destination);
@@ -50,6 +58,9 @@ class AmbientEngine {
 
   setMuted(muted: boolean) {
     if (!this.ctx || !this.master) return;
+    if (!muted && this.ctx.state === "suspended") {
+      this.ctx.resume().catch(() => {});
+    }
     const target = muted ? 0 : 1;
     this.master.gain.linearRampToValueAtTime(target, this.ctx.currentTime + 0.4);
     this.state = muted ? "muted" : "running";

@@ -11,14 +11,19 @@ export function useAmbientAudio() {
   // hydration mismatch) — the real stored preference is applied after mount.
   const [enabled, setEnabled] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
+  // True if the visitor had sound on last time, but the engines haven't
+  // actually been started yet this session (browsers block audio without a
+  // real gesture, so a mount effect can't start them). The very first real
+  // click anywhere should honor this instead of requiring a second click.
+  const [hasStoredPreference, setHasStoredPreference] = useState(false);
 
   useEffect(() => {
     // Deliberate one-time sync from a browser-only source (localStorage) that
-    // cannot be read during SSR — reading it in the initializer instead causes
-    // a hydration mismatch, since the server has no localStorage to read.
+    // cannot be read during SSR — reading it in the initializer instead
+    // causes a hydration mismatch, since the server has no localStorage.
     if (window.localStorage.getItem(STORAGE_KEY) === "true") {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setEnabled(true);
+      setHasStoredPreference(true);
     }
   }, []);
 
@@ -27,6 +32,7 @@ export function useAmbientAudio() {
     musicEngine.start();
     setEnabled(true);
     setHasInteracted(true);
+    setHasStoredPreference(false);
     window.localStorage.setItem(STORAGE_KEY, "true");
   }, []);
 
@@ -34,6 +40,7 @@ export function useAmbientAudio() {
     ambientEngine.setMuted(true);
     musicEngine.setMuted(true);
     setEnabled(false);
+    setHasStoredPreference(false);
     window.localStorage.setItem(STORAGE_KEY, "false");
   }, []);
 
@@ -45,5 +52,5 @@ export function useAmbientAudio() {
     }
   }, [enabled, disable, enable]);
 
-  return { enabled, hasInteracted, enable, disable, toggle };
+  return { enabled, hasInteracted, hasStoredPreference, enable, disable, toggle };
 }

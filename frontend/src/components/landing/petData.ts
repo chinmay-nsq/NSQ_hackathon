@@ -2,6 +2,8 @@ export interface PetProfile {
   species: string;
   name: string;
   title: string;
+  ability: string;
+  abilityDescription: string;
   personality: string;
   specialty: string;
   quote: string;
@@ -14,6 +16,8 @@ export const PETS: PetProfile[] = [
     species: "barbarian",
     name: "Barb",
     title: "The Loyal Flame",
+    ability: "Hype Surge",
+    abilityDescription: "Turns your smallest win into a moment everyone on the team actually sees.",
     personality: "Fiercely protective, a little dramatic, never backs down from hyping up your wins.",
     specialty: "Best for teams that thrive on momentum and public wins.",
     quote: "You shipped that? Everyone needs to know.",
@@ -24,6 +28,8 @@ export const PETS: PetProfile[] = [
     species: "wizard",
     name: "Volt",
     title: "The Precise Mind",
+    ability: "Streak Sight",
+    abilityDescription: "Tracks every streak and pattern in your work, so nothing good goes unnoticed.",
     personality: "Witty, endlessly curious, keeps receipts on every streak you've ever had.",
     specialty: "Best for data-minded teams who want the numbers behind the praise.",
     quote: "Your streak is 12 days. Statistically, you're unstoppable.",
@@ -34,6 +40,8 @@ export const PETS: PetProfile[] = [
     species: "witch",
     name: "Raven",
     title: "The Quiet Wisdom",
+    ability: "Silent Insight",
+    abilityDescription: "Says less, notices more — surfaces the one thing you actually needed to hear.",
     personality: "Calm, observant, speaks rarely but always says the thing you needed to hear.",
     specialty: "Best for teams that want fewer, more meaningful check-ins.",
     quote: "You've grown more this month than you think.",
@@ -44,6 +52,8 @@ export const PETS: PetProfile[] = [
     species: "hog_rider",
     name: "Charger",
     title: "The Reckless Push",
+    ability: "Momentum Charge",
+    abilityDescription: "Breaks procrastination on contact — turns 'someday' into 'starting now'.",
     personality: "Reckless, upbeat, charges straight at whatever you've been avoiding.",
     specialty: "Best for teams that need a nudge to just start the hard thing.",
     quote: "Stop planning it. Go do it.",
@@ -54,6 +64,8 @@ export const PETS: PetProfile[] = [
     species: "balloon",
     name: "Drift",
     title: "The Perfect Timing",
+    ability: "Perfect Drop",
+    abilityDescription: "Arrives with exactly the right nudge, exactly when you needed it — never before.",
     personality: "Laid-back, a little mischievous, drifts in at exactly the right moment.",
     specialty: "Best for teams that like a well-timed nudge over constant noise.",
     quote: "Funny you're checking in now — I was just about to.",
@@ -64,6 +76,8 @@ export const PETS: PetProfile[] = [
     species: "dragon",
     name: "Ember",
     title: "The Big Hype",
+    ability: "Celebration Roar",
+    abilityDescription: "Makes every win — big or small — feel like it deserves the whole team's attention.",
     personality: "Bold, warm-hearted, makes even small wins feel like a big deal.",
     specialty: "Best for teams that thrive on visible momentum and celebration.",
     quote: "That's a win. We're telling everyone.",
@@ -74,6 +88,8 @@ export const PETS: PetProfile[] = [
     species: "lava_hound",
     name: "Basalt",
     title: "The Steady Shield",
+    ability: "Load Bearing",
+    abilityDescription: "Quietly absorbs the pressure during crunch, so you don't have to carry it alone.",
     personality: "Steady, quietly protective, the one who shows up when things get heavy.",
     specialty: "Best for teams that need support during crunch, not just praise after.",
     quote: "I've got the load. Take the day you need.",

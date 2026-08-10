@@ -39,6 +39,14 @@ class MusicEngine {
     const ctx = new AudioCtx();
     this.ctx = ctx;
 
+    // See ambientEngine.ts's start() for why this is necessary — a context
+    // can come up suspended even inside a real user-gesture handler, and the
+    // whole Web Audio graph (including this <audio> element routed through
+    // it) produces silence until resumed.
+    if (ctx.state === "suspended") {
+      ctx.resume().catch(() => {});
+    }
+
     const element = new Audio(TRACK_SRC);
     element.loop = true;
     element.crossOrigin = "anonymous";
@@ -81,6 +89,9 @@ class MusicEngine {
 
   setMuted(muted: boolean) {
     if (!this.ctx || !this.master) return;
+    if (!muted && this.ctx.state === "suspended") {
+      this.ctx.resume().catch(() => {});
+    }
     const target = muted ? 0 : TARGET_VOLUME;
     this.master.gain.linearRampToValueAtTime(target, this.ctx.currentTime + 0.6);
     this.state = muted ? "muted" : "running";

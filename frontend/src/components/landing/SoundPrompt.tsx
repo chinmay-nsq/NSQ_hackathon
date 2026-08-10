@@ -8,7 +8,7 @@ const SEEN_KEY = "weatherline_sound_prompt_seen";
 
 /** A one-time, dismissible prompt inviting the visitor to turn on ambient sound. */
 export function SoundPrompt() {
-  const { enabled, hasInteracted, enable } = useAmbientAudio();
+  const { enabled, hasInteracted, hasStoredPreference, enable } = useAmbientAudio();
   // Always false on first render (must match SSR, which has no sessionStorage)
   // — the real "already seen" state is applied after mount.
   const [dismissed, setDismissed] = useState(false);
@@ -20,7 +20,9 @@ export function SoundPrompt() {
     }
   }, []);
 
-  if (enabled || hasInteracted || dismissed) return null;
+  // A returning visitor with sound already on is silently resumed by
+  // SoundAutoResume on their first click — no need to prompt them again.
+  if (enabled || hasInteracted || hasStoredPreference || dismissed) return null;
 
   function handleDismiss() {
     setDismissed(true);

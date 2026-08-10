@@ -14,6 +14,7 @@ import { CTASection } from "@/components/landing/CTASection";
 import { MagneticCursor } from "@/components/landing/MagneticCursor";
 import { SoundToggle } from "@/components/landing/SoundToggle";
 import { SoundPrompt } from "@/components/landing/SoundPrompt";
+import { SoundAutoResume } from "@/components/landing/SoundAutoResume";
 import { ScrollProgressLine } from "@/components/landing/ScrollProgressLine";
 import { useScrollReactiveAudio } from "@/lib/audio/useScrollReactiveAudio";
 import { ambientEngine } from "@/lib/audio/ambientEngine";
@@ -36,6 +37,7 @@ export default function LandingPage() {
       <ScrollProgressLine />
       <SoundToggle />
       <SoundPrompt />
+      <SoundAutoResume />
 
       <HeroSection onEnter={() => router.push("/login")} />
       <ProblemSection />
