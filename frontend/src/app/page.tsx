@@ -7,6 +7,7 @@ import { HeroSection } from "@/components/landing/HeroSection";
 import { ProblemSection } from "@/components/landing/ProblemSection";
 import { SolutionSection } from "@/components/landing/SolutionSection";
 import { FeatureShowcase } from "@/components/landing/FeatureShowcase";
+import { HowItWorks } from "@/components/landing/HowItWorks";
 import { PetGallery } from "@/components/landing/PetGallery";
 import { CompanionSpotlight } from "@/components/landing/CompanionSpotlight";
 import { StatsSection } from "@/components/landing/StatsSection";
@@ -43,6 +44,7 @@ export default function LandingPage() {
       <ProblemSection />
       <SolutionSection />
       <FeatureShowcase />
+      <HowItWorks />
       <PetGallery />
       <CompanionSpotlight />
       <StatsSection />

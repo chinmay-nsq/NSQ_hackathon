@@ -17,6 +17,7 @@ import { HoverLift } from "@/components/motion/HoverLift";
 import { CountUp } from "@/components/motion/CountUp";
 import { AnimatedBar } from "@/components/motion/AnimatedBar";
 import { CompanionViewer } from "@/components/companion3d/CompanionViewer";
+import { GettingStarted } from "@/components/GettingStarted";
 
 const FALLBACK_DIALOGUE = "I'm here with you — let's see what today brings!";
 const XP_PER_LEVEL = 100;
@@ -79,6 +80,8 @@ export default function DashboardPage() {
         title={`Welcome back${employee ? `, ${employee.name.split(" ")[0]}` : ""}`}
         description="Here's what's happening with you and your team today."
       />
+
+      {employee && <GettingStarted employee={employee} adventures={adventures} />}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="glow-primary bg-grid relative overflow-hidden border-0 lg:col-span-2">
