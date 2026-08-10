@@ -10,6 +10,13 @@ export const GuildRepository = {
     });
   },
 
+  findByIdWithMembers(id: string) {
+    return prisma.guild.findUnique({
+      where: { id },
+      include: { members: { select: { id: true, name: true, level: true, title: true } } },
+    });
+  },
+
   findByIdWithDetails(id: string) {
     return prisma.guild.findUnique({
       where: { id },

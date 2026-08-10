@@ -3,7 +3,6 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
 import { useGSAP } from "@gsap/react";
 import { gsap } from "@/lib/gsap/registerPlugins";
 import {
@@ -15,8 +14,6 @@ import {
   User,
   LogOut,
   Sparkles,
-  Moon,
-  Sun,
   ClipboardCheck,
   ShieldCheck,
 } from "lucide-react";
@@ -60,7 +57,6 @@ export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { employee, logout } = useAuthStore();
-  const { resolvedTheme, setTheme } = useTheme();
   const menuRef = useRef<HTMLUListElement>(null);
 
   const navItems = [
@@ -145,12 +141,6 @@ export function AppSidebar() {
                 </Link>
               }
             />
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}>
-              {resolvedTheme === "dark" ? <Sun /> : <Moon />}
-              <span>{resolvedTheme === "dark" ? "Light mode" : "Dark mode"}</span>
-            </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton

@@ -82,6 +82,55 @@ export const AdventureRepository = {
     });
   },
 
+  /**
+   * Manager/admin-assigned tasks that haven't been completed yet, for
+   * members of the given guilds — the "awaiting completion" section above
+   * the review queue. `assignedById` set (not just aiGenerated: false)
+   * distinguishes a manager-assigned task from an employee's own
+   * self-authored one, which otherwise look identical.
+   */
+  findAssignedNotCompletedForGuilds(guildIds: string[]) {
+    return prisma.adventure.findMany({
+      where: {
+        type: "SOLO",
+        assignedById: { not: null },
+        status: "ACTIVE",
+        guildId: { in: guildIds },
+        progress: { none: { completed: true } },
+      },
+      include: {
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            title: true,
+            avatarSeed: true,
+            companion: { select: { name: true, species: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  },
+
+  /** Same as findAssignedNotCompletedForGuilds but company-wide, for admins. */
+  findAllAssignedNotCompleted() {
+    return prisma.adventure.findMany({
+      where: {
+        type: "SOLO",
+        assignedById: { not: null },
+        status: "ACTIVE",
+        progress: { none: { completed: true } },
+      },
+      include: {
+        createdBy: {
+          select: { id: true, name: true, title: true, avatarSeed: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  },
+
   /** Pending-approval queue for a manager: adventures completed by members of the given guilds. */
   findPendingForGuilds(guildIds: string[]) {
     return prisma.adventureProgress.findMany({

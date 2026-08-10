@@ -53,7 +53,8 @@ export const AdventureFactory = {
     xpReward: number,
     coinReward: number,
     assigneeId: string,
-    guildId: string | null
+    guildId: string | null,
+    assignerId: string
   ): Prisma.AdventureCreateInput {
     return {
       type: "SOLO",
@@ -63,6 +64,7 @@ export const AdventureFactory = {
       coinReward,
       aiGenerated: false,
       createdBy: { connect: { id: assigneeId } },
+      assignedBy: { connect: { id: assignerId } },
       ...(guildId ? { guild: { connect: { id: guildId } } } : {}),
     };
   },

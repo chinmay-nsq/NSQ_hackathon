@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { AppSidebar } from "@/components/AppSidebar";
 import { CoinDisplay } from "@/components/CoinDisplay";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Sparkles } from "lucide-react";
@@ -85,9 +86,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <CoinDisplay />
+          <ThemeToggle />
         </header>
-        <main className="flex-1 p-6">
-          <div className="mx-auto w-full max-w-6xl">{children}</div>
+        <main className="min-w-0 flex-1 p-6">
+          <div className="mx-auto w-full min-w-0 max-w-6xl">{children}</div>
         </main>
       </SidebarInset>
     </SidebarProvider>

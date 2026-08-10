@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Users } from "lucide-react";
+import { Users, UsersRound } from "lucide-react";
 import { api, ApiRequestError } from "@/lib/api";
 import { Guild } from "@/lib/types";
 import { useAuthStore } from "@/store/authStore";
@@ -38,7 +38,11 @@ export default function TeamsPage() {
     <PageIn>
       <PageHeader
         title="Teams"
-        description="Every department has its own team, resources, and roster."
+        description={
+          canCreateGuild
+            ? "Teams you lead, with their resources and roster."
+            : "Your team, its resources, and its roster."
+        }
         action={canCreateGuild ? <CreateGuildDialog onCreated={load} /> : undefined}
       />
 
@@ -48,6 +52,14 @@ export default function TeamsPage() {
         <div className="space-y-px">
           <Skeleton className="h-20" />
           <Skeleton className="h-20" />
+        </div>
+      ) : guilds.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-border py-20 text-center">
+          <UsersRound className="size-8 text-muted-foreground" strokeWidth={1.5} />
+          <p className="font-medium">You haven&apos;t joined a team yet</p>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            Ask your team lead for an invite link to get started.
+          </p>
         </div>
       ) : (
         <StaggerGrid className="divide-y divide-border/60 border-t border-border/60" deps={[guilds.length]}>

@@ -16,6 +16,7 @@ import { PageIn } from "@/components/motion/PageIn";
 import { StaggerGrid } from "@/components/motion/StaggerGrid";
 import { HoverLift } from "@/components/motion/HoverLift";
 import { CreateAdventureDialog } from "@/components/adventures/CreateAdventureDialog";
+import { AssignTaskDialog } from "@/components/adventures/AssignTaskDialog";
 
 const TYPE_LABEL: Record<string, string> = {
   SOLO: "Solo",
@@ -60,6 +61,13 @@ export default function AdventuresPage() {
   // separate thing and shouldn't disable this button.
   const hasSoloToday = adventures.some((a) => a.type === "SOLO" && a.status === "ACTIVE" && a.aiGenerated);
   const hasGuildToday = adventures.some((a) => a.type === "GUILD" && a.status === "ACTIVE");
+  // Only the guild's own lead (or an admin) can start a team adventure — the
+  // backend is the real gate, this just decides whether to show the button.
+  const canStartGuildAdventure =
+    Boolean(employee?.guildId) &&
+    (employee?.role === "ADMIN" ||
+      (employee?.role === "MANAGER" && employee?.guild?.managerId === employee?.id));
+  const canAssignTasks = employee?.role === "MANAGER" || employee?.role === "ADMIN";
 
   return (
     <PageIn>
@@ -68,6 +76,7 @@ export default function AdventuresPage() {
         description="Short tasks that earn you XP, coins, and resources for your team."
         action={
           <div className="flex flex-wrap justify-end gap-2">
+            {canAssignTasks && <AssignTaskDialog onAssigned={load} />}
             <CreateAdventureDialog onCreated={load} />
             <Button
               variant="outline"
@@ -79,7 +88,7 @@ export default function AdventuresPage() {
               <Plus />
               {generating === "solo" ? "Generating…" : "New solo adventure"}
             </Button>
-            {employee?.guildId && (
+            {canStartGuildAdventure && (
               <Button
                 variant="outline"
                 size="sm"

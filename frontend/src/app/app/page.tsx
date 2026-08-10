@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Coins, Flame, Sparkles, Star, type LucideIcon } from "lucide-react";
 import { api } from "@/lib/api";
-import { Adventure } from "@/lib/types";
+import { Adventure, AssignedTask, Guild, PendingApproval } from "@/lib/types";
 import { useAuthStore } from "@/store/authStore";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,6 +57,11 @@ export default function DashboardPage() {
   const [dialogueLoading, setDialogueLoading] = useState(true);
   const [adventures, setAdventures] = useState<Adventure[]>([]);
   const [adventuresLoading, setAdventuresLoading] = useState(true);
+  const [managedGuilds, setManagedGuilds] = useState<Guild[]>([]);
+  const [assignedTasks, setAssignedTasks] = useState<AssignedTask[]>([]);
+  const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>([]);
+
+  const isLead = employee?.role === "MANAGER" || employee?.role === "ADMIN";
 
   useEffect(() => {
     api
@@ -71,6 +76,25 @@ export default function DashboardPage() {
       .finally(() => setAdventuresLoading(false));
   }, []);
 
+  // Manager/admin-only data for the lead's "Getting Started" checklist.
+  useEffect(() => {
+    if (!isLead) return;
+    api
+      .get<{ guilds: Guild[] }>("/guilds/managed")
+      .then((data) => setManagedGuilds(data.guilds))
+      .catch(() => setManagedGuilds([]));
+    api
+      .get<{ pending: PendingApproval[]; assigned: AssignedTask[] }>("/adventures/pending")
+      .then((data) => {
+        setPendingApprovals(data.pending);
+        setAssignedTasks(data.assigned);
+      })
+      .catch(() => {
+        setPendingApprovals([]);
+        setAssignedTasks([]);
+      });
+  }, [isLead]);
+
   const pendingAdventures = adventures.filter((a) => !a.progress?.[0]?.completed && a.status === "ACTIVE");
   const xpIntoLevel = (employee?.xp ?? 0) % XP_PER_LEVEL;
 
@@ -81,7 +105,15 @@ export default function DashboardPage() {
         description="Here's what's happening with you and your team today."
       />
 
-      {employee && <GettingStarted employee={employee} adventures={adventures} />}
+      {employee && (
+        <GettingStarted
+          employee={employee}
+          adventures={adventures}
+          managedGuilds={managedGuilds}
+          assignedTasks={assignedTasks}
+          pendingApprovals={pendingApprovals}
+        />
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="glow-primary bg-grid relative overflow-hidden border-0 lg:col-span-2">

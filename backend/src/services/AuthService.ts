@@ -42,7 +42,10 @@ class AuthServiceImpl {
     }
 
     let guildId: string | undefined;
-    if (inviteCode) {
+    // Invite links join the invitee to a team as a member — only meaningful
+    // for employees. A manager signing up leads their own team, never joins
+    // one via someone else's invite link.
+    if (inviteCode && role === Role.EMPLOYEE) {
       const guild = await GuildRepository.findByInviteCode(inviteCode);
       if (!guild) {
         throw new ApiError(HttpStatus.BAD_REQUEST, "Invite link is invalid or expired", "Bad Request");

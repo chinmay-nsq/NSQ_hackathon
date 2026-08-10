@@ -13,19 +13,14 @@ const createGuildSchema = z.object({
 });
 
 export const GuildController = {
-  async list(_req: AuthedRequest, res: Response) {
-    const guilds = await GuildService.listAll();
+  async list(req: AuthedRequest, res: Response) {
+    const guilds = await GuildService.listAll(req.employeeId!);
     return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Guilds fetched", { guilds }));
   },
 
   async getById(req: AuthedRequest, res: Response) {
     const guild = await GuildService.getById(String(req.params.id), req.employeeId!);
     return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Guild fetched", { guild }));
-  },
-
-  async join(req: AuthedRequest, res: Response) {
-    const employee = await GuildService.join(req.employeeId!, String(req.params.id));
-    return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Joined guild", { employee }));
   },
 
   async create(req: RoleCheckedRequest, res: Response) {

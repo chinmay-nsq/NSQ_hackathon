@@ -58,8 +58,9 @@ model Employee {
   purchases         Purchase[]
   reflections       Reflection[]
 
-  createdAdventures Adventure[]         @relation("AdventureCreator")
-  approvedProgress  AdventureProgress[] @relation("ProgressApprover")
+  createdAdventures  Adventure[]         @relation("AdventureCreator")
+  assignedAdventures Adventure[]         @relation("AdventureAssigner")
+  approvedProgress   AdventureProgress[] @relation("ProgressApprover")
 }
 
 model Companion {
@@ -215,6 +216,12 @@ model Adventure {
 
   createdById String?
   createdBy   Employee? @relation("AdventureCreator", fields: [createdById], references: [id])
+
+  // Set only for SOLO adventures a manager/admin assigned to someone else —
+  // distinguishes "my manager gave me this" from an employee's own
+  // self-authored task, both of which otherwise look identical (aiGenerated: false).
+  assignedById String?
+  assignedBy   Employee? @relation("AdventureAssigner", fields: [assignedById], references: [id])
 
   aiGenerated Boolean   @default(true)
   expiresAt   DateTime?

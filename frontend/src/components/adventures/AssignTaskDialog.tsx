@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CompanionViewer } from "@/components/companion3d/CompanionViewer";
 import {
   Dialog,
   DialogContent,
@@ -20,12 +22,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-/** Manager/admin-only: hand-writes a task and assigns it directly to one member of a team they lead. */
+/** Manager/admin-only: hand-writes a task and assigns it to one or more members of a team they lead. */
 export function AssignTaskDialog({ onAssigned }: { onAssigned: () => void }) {
   const [open, setOpen] = useState(false);
   const [guilds, setGuilds] = useState<Guild[]>([]);
   const [guildsLoaded, setGuildsLoaded] = useState(false);
-  const [employeeId, setEmployeeId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [xpReward, setXpReward] = useState(25);
@@ -64,7 +66,7 @@ export function AssignTaskDialog({ onAssigned }: { onAssigned: () => void }) {
   }, [open, guildsLoaded]);
 
   function reset() {
-    setEmployeeId(null);
+    setSelectedIds(new Set());
     setTitle("");
     setDescription("");
     setXpReward(25);
@@ -72,9 +74,22 @@ export function AssignTaskDialog({ onAssigned }: { onAssigned: () => void }) {
     setError(null);
   }
 
+  function toggleMember(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    setSelectedIds((prev) => (prev.size === members.length ? new Set() : new Set(members.map((m) => m.id))));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!employeeId) {
+    if (selectedIds.size === 0) {
       setError("Choose who this task is for.");
       return;
     }
@@ -82,7 +97,7 @@ export function AssignTaskDialog({ onAssigned }: { onAssigned: () => void }) {
     setError(null);
     try {
       await api.post("/adventures/solo/assign", {
-        employeeId,
+        employeeIds: Array.from(selectedIds),
         title: title.trim(),
         description: description.trim(),
         xpReward,
@@ -99,6 +114,7 @@ export function AssignTaskDialog({ onAssigned }: { onAssigned: () => void }) {
   }
 
   const members = guilds.flatMap((g) => g.members.map((m) => ({ ...m, guildName: g.name })));
+  const allSelected = members.length > 0 && selectedIds.size === members.length;
 
   return (
     <Dialog
@@ -121,14 +137,25 @@ export function AssignTaskDialog({ onAssigned }: { onAssigned: () => void }) {
           <DialogHeader>
             <DialogTitle className="font-display text-xl tracking-wide uppercase">Assign a task</DialogTitle>
             <DialogDescription>
-              Hand-write a task for one of your team&apos;s companions. Members are shown by companion
-              name only.
+              Hand-write a task and assign it to one or more of your team&apos;s companions. Members
+              are shown by companion name only.
             </DialogDescription>
           </DialogHeader>
 
           <div className="mt-5 space-y-4">
             <div className="space-y-1.5">
-              <Label className="font-mono text-xs tracking-wide uppercase">Assign to</Label>
+              <div className="flex items-center justify-between">
+                <Label className="font-mono text-xs tracking-wide uppercase">Assign to</Label>
+                {members.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={toggleAll}
+                    className="font-mono text-[10px] tracking-wide text-muted-foreground uppercase hover:text-foreground"
+                  >
+                    {allSelected ? "Deselect all" : "Select all"}
+                  </button>
+                )}
+              </div>
               {loadingGuilds ? (
                 <p className="text-sm text-muted-foreground">Loading your team…</p>
               ) : members.length === 0 ? (
@@ -137,37 +164,53 @@ export function AssignTaskDialog({ onAssigned }: { onAssigned: () => void }) {
                 </p>
               ) : (
                 <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-border/60 p-1.5">
-                  {members.map((m) => (
-                    <div
-                      key={m.id}
-                      className={cn(
-                        "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors",
-                        employeeId === m.id ? "bg-accent text-accent-foreground" : "hover:bg-muted/60"
-                      )}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setEmployeeId(m.id)}
-                        className="flex min-w-0 flex-1 items-center justify-between text-left"
+                  {members.map((m) => {
+                    const checked = selectedIds.has(m.id);
+                    return (
+                      <div
+                        key={m.id}
+                        className={cn(
+                          "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                          checked ? "bg-accent text-accent-foreground" : "hover:bg-muted/60"
+                        )}
                       >
-                        <span className="truncate">{m.name}</span>
-                        <span className="ml-2 shrink-0 text-xs text-muted-foreground">{m.guildName}</span>
-                      </button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        disabled={generatingId === m.id}
-                        onClick={() => handleGenerateWithAI(m.id)}
-                        className="h-7 shrink-0 px-2 font-mono text-[10px] tracking-wide uppercase"
-                        title="Generate a task for this companion with AI, based on their profile"
-                      >
-                        <Sparkles className="size-3" />
-                        {generatingId === m.id ? "…" : "AI"}
-                      </Button>
-                    </div>
-                  ))}
+                        <button
+                          type="button"
+                          onClick={() => toggleMember(m.id)}
+                          className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={() => toggleMember(m.id)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          {m.species && (
+                            <CompanionViewer species={m.species} interactive={false} className="size-8 shrink-0" />
+                          )}
+                          <span className="min-w-0 flex-1 truncate">{m.name}</span>
+                          <span className="ml-2 shrink-0 text-xs text-muted-foreground">{m.guildName}</span>
+                        </button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          disabled={generatingId === m.id}
+                          onClick={() => handleGenerateWithAI(m.id)}
+                          className="h-7 shrink-0 px-2 font-mono text-[10px] tracking-wide uppercase"
+                          title="Generate a task for this companion with AI, based on their profile"
+                        >
+                          <Sparkles className="size-3" />
+                          {generatingId === m.id ? "…" : "AI"}
+                        </Button>
+                      </div>
+                    );
+                  })}
                 </div>
+              )}
+              {selectedIds.size > 0 && (
+                <p className="font-mono text-[11px] text-muted-foreground uppercase">
+                  {selectedIds.size} member{selectedIds.size === 1 ? "" : "s"} selected
+                </p>
               )}
             </div>
 
@@ -239,7 +282,11 @@ export function AssignTaskDialog({ onAssigned }: { onAssigned: () => void }) {
               disabled={submitting || members.length === 0}
               className="glow-primary font-mono text-xs tracking-wide uppercase"
             >
-              {submitting ? "Assigning…" : "Assign task"}
+              {submitting
+                ? "Assigning…"
+                : selectedIds.size > 1
+                  ? `Assign to ${selectedIds.size}`
+                  : "Assign task"}
             </Button>
           </DialogFooter>
         </form>

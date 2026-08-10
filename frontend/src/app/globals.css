@@ -4,6 +4,31 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
+  Theme toggle circular-reveal (see ThemeToggle.tsx): the new theme's
+  snapshot is clipped by our own animated clip-path, so the browser's
+  default cross-fade must be disabled or it fights the wipe.
+*/
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(root) {
+    animation: none !important;
+  }
+}
+
+/*
   Weatherline — cinematic game-UI dashboard, matching the landing page's
   dark ink + coral identity. Light and dark both lean bolder/higher-contrast
   than a typical SaaS admin theme; --glow-* tokens back real box-shadow glow

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { ArrowLeft, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiRequestError } from "@/lib/api";
@@ -26,11 +26,9 @@ const RESOURCES = ["knowledge", "gold", "influence", "materials"] as const;
 
 export default function TeamDetailPage() {
   const params = useParams<{ id: string }>();
-  const router = useRouter();
-  const { employee, fetchMe } = useAuthStore();
+  const { employee } = useAuthStore();
   const [guild, setGuild] = useState<Guild | null>(null);
   const [loading, setLoading] = useState(true);
-  const [joining, setJoining] = useState(false);
   const [copyingInvite, setCopyingInvite] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,21 +39,6 @@ export default function TeamDetailPage() {
       .catch((err) => setError(err instanceof ApiRequestError ? err.message : "Failed to load team"))
       .finally(() => setLoading(false));
   }, [params.id]);
-
-  async function handleJoin() {
-    if (!guild) return;
-    setJoining(true);
-    try {
-      await api.post(`/guilds/${guild.id}/join`);
-      await fetchMe();
-      toast.success(`You joined ${guild.name}`);
-      router.refresh();
-    } catch (err) {
-      toast.error(err instanceof ApiRequestError ? err.message : "Could not join this team.");
-    } finally {
-      setJoining(false);
-    }
-  }
 
   async function handleCopyInvite() {
     if (!guild) return;
@@ -76,7 +59,6 @@ export default function TeamDetailPage() {
   if (error) return <p className="text-sm text-destructive">{error}</p>;
   if (!guild) return null;
 
-  const isMember = employee?.guildId === guild.id;
   // The backend is the real gate (403s if this viewer doesn't actually lead
   // this guild) — this just decides whether to show the button at all.
   const canInvite = employee?.role === "MANAGER" || employee?.role === "ADMIN";
@@ -115,11 +97,6 @@ export default function TeamDetailPage() {
             >
               <Link2 />
               {copyingInvite ? "Copying…" : "Copy invite link"}
-            </Button>
-          )}
-          {!isMember && (
-            <Button onClick={handleJoin} disabled={joining} className="glow-primary font-mono text-xs tracking-wide uppercase">
-              {joining ? "Joining…" : "Join team"}
             </Button>
           )}
         </div>

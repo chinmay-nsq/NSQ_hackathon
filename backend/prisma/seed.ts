@@ -66,13 +66,28 @@ async function main() {
   }
 
   const marketplaceItems = [
+    // Small, frequent — easy first purchases.
     { name: "Coffee Voucher", description: "One free coffee, on the kingdom.", cost: 50, icon: "coffee" },
-    { name: "Pizza Lunch", description: "A team pizza lunch voucher.", cost: 150, icon: "pizza" },
-    { name: "Company Merchandise", description: "Redeem for kingdom-branded swag.", cost: 200, icon: "shirt" },
-    { name: "Event Ticket", description: "A ticket to a company event.", cost: 300, icon: "ticket" },
-    { name: "Learning Credit", description: "Credit toward a course or book.", cost: 250, icon: "book" },
-    { name: "WFH Pass", description: "One extra work-from-home day.", cost: 400, icon: "home" },
+    { name: "Sticker Pack", description: "A pack of limited-edition kingdom stickers.", cost: 60, icon: "sparkle" },
     { name: "Mystery Chest", description: "A chest of random rewards.", cost: 100, icon: "gift" },
+    { name: "Desk Plant", description: "A little green companion for your desk.", cost: 120, icon: "sprout" },
+    { name: "Playlist Takeover", description: "Control the office playlist for a day.", cost: 130, icon: "music" },
+    { name: "Pizza Lunch", description: "A team pizza lunch voucher.", cost: 150, icon: "pizza" },
+
+    // Mid-tier — a week or two of quests away.
+    { name: "Company Merchandise", description: "Redeem for kingdom-branded swag.", cost: 200, icon: "shirt" },
+    { name: "Late Start Pass", description: "Roll in two hours late, guilt-free.", cost: 220, icon: "sunrise" },
+    { name: "Learning Credit", description: "Credit toward a course or book.", cost: 250, icon: "book" },
+    { name: "Reserved Parking Spot", description: "The best spot in the lot, for one week.", cost: 280, icon: "car" },
+    { name: "Event Ticket", description: "A ticket to a company event.", cost: 300, icon: "ticket" },
+    { name: "Team Game Session", description: "An hour of paid time for a team game break.", cost: 320, icon: "gamepad" },
+
+    // Big-ticket — aspirational, real progression.
+    { name: "WFH Pass", description: "One extra work-from-home day.", cost: 400, icon: "home" },
+    { name: "Pick the Team Lunch Spot", description: "You choose where the whole team eats next.", cost: 450, icon: "utensils" },
+    { name: "Half-Day Off", description: "Leave at noon, fully paid.", cost: 550, icon: "sun" },
+    { name: "Gadget Fund", description: "Credit toward a keyboard, headset, or gear of your choice.", cost: 650, icon: "headphones" },
+    { name: "Extra Day Off", description: "One additional paid day off, no questions asked.", cost: 750, icon: "calendar-heart" },
   ];
 
   for (const item of marketplaceItems) {

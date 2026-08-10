@@ -58,29 +58,45 @@ class AdventureServiceImpl {
     return AdventureRepository.create(data);
   }
 
-  /** A manager/admin assigns a task directly to one member of their team. Still needs approval on completion. */
+  /**
+   * A manager/admin assigns the same hand-written task to one or more
+   * members of their team in one action — each selected member gets their
+   * own independent copy (own progress, own approval), not a shared task.
+   */
   async assignSolo(
     assignerId: string,
-    assigneeId: string,
+    assigneeIds: string[],
     title: string,
     description: string,
     xpReward: number,
     coinReward: number
   ) {
-    await this.assertCanManage(assignerId, assigneeId);
+    const uniqueIds = Array.from(new Set(assigneeIds));
 
-    const assignee = await EmployeeRepository.findById(assigneeId);
-    if (!assignee) throw new ApiError(HttpStatus.NOT_FOUND, "Team member not found", "Not Found");
-
-    const data = AdventureFactory.buildAssignedSolo(
-      title,
-      description,
-      xpReward,
-      coinReward,
-      assigneeId,
-      assignee.guildId
+    const assignees = await Promise.all(
+      uniqueIds.map(async (assigneeId) => {
+        await this.assertCanManage(assignerId, assigneeId);
+        const assignee = await EmployeeRepository.findById(assigneeId);
+        if (!assignee) throw new ApiError(HttpStatus.NOT_FOUND, "Team member not found", "Not Found");
+        return assignee;
+      })
     );
-    return AdventureRepository.create(data);
+
+    return prisma.$transaction(
+      assignees.map((assignee) =>
+        AdventureRepository.create(
+          AdventureFactory.buildAssignedSolo(
+            title,
+            description,
+            xpReward,
+            coinReward,
+            assignee.id,
+            assignee.guildId,
+            assignerId
+          )
+        )
+      )
+    );
   }
 
   /**
@@ -114,11 +130,13 @@ class AdventureServiceImpl {
       content.xpReward,
       content.coinReward,
       assigneeId,
-      assignee.guildId
+      assignee.guildId,
+      assignerId
     );
     return AdventureRepository.create(data);
   }
 
+  /** Only the guild's own manager (or an admin) can spark a new team adventure — regular members complete it, they don't start it. */
   async generateGuild(employeeId: string) {
     const employee = await EmployeeRepository.findById(employeeId);
     if (!employee?.guildId) {
@@ -127,6 +145,15 @@ class AdventureServiceImpl {
 
     const guild = await GuildRepository.findById(employee.guildId);
     if (!guild) throw new ApiError(HttpStatus.NOT_FOUND, "Guild not found", "Not Found");
+
+    const isLeadOfThisGuild = employee.role === "MANAGER" && guild.managerId === employeeId;
+    if (employee.role !== "ADMIN" && !isLeadOfThisGuild) {
+      throw new ApiError(
+        HttpStatus.FORBIDDEN,
+        "Only your team's lead can start a new team adventure",
+        "Forbidden"
+      );
+    }
 
     const existing = await AdventureRepository.findTodaysGuildAdventure(guild.id, startOfToday());
     if (existing) return existing;
@@ -201,22 +228,37 @@ class AdventureServiceImpl {
   }
 
   /**
-   * Pending-approval queue: guild-scoped for managers, company-wide for
-   * admins. Managers see the submitting employee by companion identity
-   * only — never their real name.
+   * Approvals queue: guild-scoped for managers, company-wide for admins.
+   * Returns two lists — tasks assigned but not yet completed ("awaiting
+   * completion"), and tasks completed and awaiting review ("pending"), so a
+   * lead can see the full lifecycle of what they've handed out. Managers see
+   * the employee by companion identity only — never their real name.
    */
   async listPendingFor(approverId: string) {
     const approver = await EmployeeRepository.findById(approverId);
     if (!approver) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
 
     if (approver.role === "ADMIN") {
-      return AdventureRepository.findAllPending();
+      const [pending, assigned] = await Promise.all([
+        AdventureRepository.findAllPending(),
+        AdventureRepository.findAllAssignedNotCompleted(),
+      ]);
+      return { pending, assigned };
     }
 
     const guilds = await GuildRepository.findIdsManagedBy(approverId);
-    if (guilds.length === 0) return [];
-    const pending = await AdventureRepository.findPendingForGuilds(guilds.map((g) => g.id));
-    return pending.map((p) => ({ ...p, employee: anonymizeMember(p.employee, Role.MANAGER) }));
+    if (guilds.length === 0) return { pending: [], assigned: [] };
+
+    const guildIds = guilds.map((g) => g.id);
+    const [pending, assigned] = await Promise.all([
+      AdventureRepository.findPendingForGuilds(guildIds),
+      AdventureRepository.findAssignedNotCompletedForGuilds(guildIds),
+    ]);
+
+    return {
+      pending: pending.map((p) => ({ ...p, employee: anonymizeMember(p.employee, Role.MANAGER) })),
+      assigned: assigned.map((a) => ({ ...a, createdBy: anonymizeMember(a.createdBy!, Role.MANAGER) })),
+    };
   }
 
   /** Confirms `managerId` (manager/admin) is allowed to act on `employeeId` — approve, reject, or assign a task. */

@@ -6,33 +6,53 @@ import { ApiError } from "@/utils/apiError";
 import { HttpStatus } from "@/utils/httpStatus";
 
 class GuildServiceImpl {
-  listAll() {
-    return GuildRepository.findAllWithMembers();
+  /**
+   * Admins see every team (company-wide oversight). Everyone else only sees
+   * the team they actually belong to — managers see the team(s) they lead,
+   * employees see the team they've joined. No one can browse other teams.
+   */
+  async listAll(viewerId: string) {
+    const viewer = await EmployeeRepository.findById(viewerId);
+    if (!viewer) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
+
+    if (viewer.role === "ADMIN") {
+      return GuildRepository.findAllWithMembers();
+    }
+    if (viewer.role === "MANAGER") {
+      return GuildRepository.findManagedByWithMembers(viewerId);
+    }
+    if (!viewer.guildId) return [];
+    const guild = await GuildRepository.findByIdWithMembers(viewer.guildId);
+    return guild ? [guild] : [];
   }
 
   /**
-   * Fetches a guild's detail. If the viewer is that guild's manager, members
-   * are shown by companion identity only (never real name) — admins and the
-   * members themselves always see real names.
+   * Fetches a guild's detail. Only that guild's own members, its manager, or
+   * an admin may view it — no browsing other teams by id. If the viewer is
+   * that guild's manager, members are shown by companion identity only
+   * (never real name) — admins and the members themselves always see real
+   * names.
    */
   async getById(id: string, viewerId: string) {
     const guild = await GuildRepository.findByIdWithDetails(id);
     if (!guild) throw new ApiError(HttpStatus.NOT_FOUND, "Guild not found", "Not Found");
 
     const viewer = await EmployeeRepository.findById(viewerId);
-    const isManagerOfThisGuild = viewer?.role === "MANAGER" && guild.managerId === viewerId;
+    if (!viewer) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
+
+    const isManagerOfThisGuild = viewer.role === "MANAGER" && guild.managerId === viewerId;
+    const isMember = viewer.guildId === guild.id;
+    const canView = viewer.role === "ADMIN" || isManagerOfThisGuild || isMember;
+    if (!canView) {
+      throw new ApiError(HttpStatus.FORBIDDEN, "You don't have permission to view this team", "Forbidden");
+    }
+
     if (!isManagerOfThisGuild) return guild;
 
     return {
       ...guild,
       members: guild.members.map((m) => anonymizeMember(m, Role.MANAGER)),
     };
-  }
-
-  async join(employeeId: string, guildId: string) {
-    const guild = await GuildRepository.findById(guildId);
-    if (!guild) throw new ApiError(HttpStatus.NOT_FOUND, "Guild not found", "Not Found");
-    return EmployeeRepository.setGuild(employeeId, guildId);
   }
 
   /** Resolves an invite code to basic guild info — used by the signup page to preview which team you're joining. */

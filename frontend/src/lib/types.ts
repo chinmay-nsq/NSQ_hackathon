@@ -73,6 +73,17 @@ export interface PendingApproval {
   employee: { id: string; name: string; title: string; avatarSeed: string; species?: string | null };
 }
 
+/** A manager-assigned task that hasn't been completed yet — "awaiting completion" in Approvals. */
+export interface AssignedTask {
+  id: string;
+  title: string;
+  description: string;
+  xpReward: number;
+  coinReward: number;
+  createdAt: string;
+  createdBy: { id: string; name: string; title: string; avatarSeed: string; species?: string | null };
+}
+
 export interface CompanyOverview {
   employeeCount: number;
   guildCount: number;
@@ -105,6 +116,7 @@ export interface Guild {
   influence: number;
   materials: number;
   members: GuildMember[];
+  managerId?: string;
 }
 
 export interface Kingdom {

@@ -15,7 +15,7 @@ const createManualSchema = z.object({
 });
 
 const assignSchema = z.object({
-  employeeId: z.string().min(1),
+  employeeIds: z.array(z.string().min(1)).min(1).max(50),
   title: z.string().min(3).max(120),
   description: z.string().min(10).max(2000),
   xpReward: z.number().int().min(5).max(200).default(25),
@@ -49,9 +49,9 @@ export const AdventureController = {
 
   async assign(req: AuthedRequest, res: Response) {
     const parsed = assignSchema.parse(req.body ?? {});
-    const adventure = await AdventureService.assignSolo(
+    const adventures = await AdventureService.assignSolo(
       req.employeeId!,
-      parsed.employeeId,
+      parsed.employeeIds,
       parsed.title,
       parsed.description,
       parsed.xpReward,
@@ -59,7 +59,7 @@ export const AdventureController = {
     );
     return res
       .status(HttpStatus.CREATED)
-      .json(new ApiResponse(HttpStatus.CREATED, "Adventure assigned", { adventure }));
+      .json(new ApiResponse(HttpStatus.CREATED, "Adventure assigned", { adventures }));
   },
 
   async generateForEmployee(req: AuthedRequest, res: Response) {
@@ -87,8 +87,10 @@ export const AdventureController = {
   },
 
   async listPending(req: AuthedRequest, res: Response) {
-    const pending = await AdventureService.listPendingFor(req.employeeId!);
-    return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Pending approvals fetched", { pending }));
+    const { pending, assigned } = await AdventureService.listPendingFor(req.employeeId!);
+    return res
+      .status(HttpStatus.OK)
+      .json(new ApiResponse(HttpStatus.OK, "Pending approvals fetched", { pending, assigned }));
   },
 
   async approve(req: AuthedRequest, res: Response) {
