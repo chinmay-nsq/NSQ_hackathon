@@ -15,30 +15,48 @@ interface RawQuizQuestion {
   correctIndex: number;
 }
 
+// Used only if the AI call fails/is unavailable — kept technical rather than
+// behavioral so a quiz still reads as a "skills" quiz even in the worst case,
+// even though it can't be tailored to the employee's actual listed skills.
 const FALLBACK_QUIZ_QUESTIONS: RawQuizQuestion[] = [
   {
-    question: "What's generally the best first step when you don't understand a task?",
-    options: ["Guess and hope for the best", "Ask a clarifying question", "Ignore it", "Wait for someone else to do it"],
+    question: "In version control, what does a 'merge conflict' mean?",
+    options: [
+      "Two branches changed the same lines differently and Git can't auto-resolve it",
+      "A file was deleted",
+      "The repository is out of storage",
+      "Two people are online at the same time",
+    ],
+    correctIndex: 0,
+  },
+  {
+    question: "What is the primary purpose of an index in a database table?",
+    options: ["To encrypt the data", "To speed up lookups on that column", "To back up the table", "To enforce column names"],
     correctIndex: 1,
   },
   {
-    question: "Which habit most improves long-term code/document quality?",
-    options: ["Skipping review", "Regular small revisions", "Writing everything at once", "Never asking for feedback"],
+    question: "In a typical request/response API call, what does a 4xx status code indicate?",
+    options: ["A server-side error", "A successful request", "A client-side error, like bad input", "The server is redirecting"],
+    correctIndex: 2,
+  },
+  {
+    question: "What does 'technical debt' generally refer to?",
+    options: [
+      "Money owed to a software vendor",
+      "The implied cost of extra rework from choosing a quick fix over a better long-term approach",
+      "A bug that can never be fixed",
+      "The time spent in meetings",
+    ],
     correctIndex: 1,
   },
   {
-    question: "When a deadline is at risk, what's the most useful early action?",
-    options: ["Stay silent and hope it works out", "Flag it early to your team", "Wait until it's overdue", "Blame the tools"],
-    correctIndex: 1,
-  },
-  {
-    question: "What best describes a healthy feedback loop at work?",
-    options: ["Feedback only during annual reviews", "Frequent, specific, two-way feedback", "No feedback at all", "Feedback only when something goes wrong"],
-    correctIndex: 1,
-  },
-  {
-    question: "Which is the strongest sign of good documentation?",
-    options: ["It's long", "Someone new can follow it without help", "It uses technical jargon", "It's never updated"],
+    question: "What's the main benefit of writing automated tests for a piece of logic?",
+    options: [
+      "They make the code run faster",
+      "They catch regressions when the code changes later",
+      "They replace the need for documentation",
+      "They are required by law",
+    ],
     correctIndex: 1,
   },
 ];
@@ -102,14 +120,15 @@ Keep it realistic for a workplace: a small task that actually uses their skills,
     skills?: string[];
   }): Promise<QuizQuestionContent[]> {
     const system = `You are a skills-quiz generator for Skibidi-Sprint, a workplace gamification app.
-Generate EXACTLY 5 multiple-choice questions that test practical knowledge relevant to the employee's role, seniority, and skills.
+Generate EXACTLY 5 multiple-choice questions that test HARD, TECHNICAL/DOMAIN knowledge tied directly to the employee's listed skills — each question must be traceable to one specific skill from the list (e.g. a "react" skill gets a question about React hooks/rendering/state, a "postgres" skill gets a question about indexes/transactions/query plans).
 Each question must have exactly 4 options, with exactly one correct answer.
 Respond ONLY with JSON matching: { "questions": [{ "question": string, "options": [string, string, string, string], "correctIndex": number (0-3) }] }
-Keep questions practical and specific to the listed skills — not generic trivia. Vary difficulty by seniority.`;
+Vary difficulty by seniority (JUNIOR = fundamentals, LEAD = deep/edge-case knowledge).
+Do NOT write generic workplace-behavior, soft-skill, or "best practice" questions (e.g. about communication, feedback, deadlines, documentation habits) — every question must test concrete knowledge of one of the listed skills. If skills are genuinely empty, fall back to practical questions about the employee's job role itself, still never behavioral ones.`;
 
     const profileLine = context.jobRole
-      ? `Role: ${context.jobRole}${context.seniority ? ` (${context.seniority})` : ""}. Skills: ${(context.skills ?? []).join(", ") || "none listed"}.`
-      : "No work profile on file yet — keep questions generic workplace best-practice questions.";
+      ? `Role: ${context.jobRole}${context.seniority ? ` (${context.seniority})` : ""}. Skills: ${(context.skills ?? []).join(", ") || "none listed"}. Write one question per skill where possible, cycling through the list if there are fewer than 5 skills.`
+      : "No work profile on file yet — write practical technical questions for a generic software/office role, not behavioral ones.";
 
     const user = `${profileLine} Generate today's 5-question skill quiz.`;
 
