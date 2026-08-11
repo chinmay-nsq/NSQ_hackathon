@@ -69,7 +69,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return (
       <main className="bg-grid flex min-h-screen items-center justify-center gap-2.5 bg-background text-muted-foreground">
         <Sparkles className="size-4 animate-pulse text-primary" />
-        <span className="font-display text-sm tracking-wide uppercase">Loading Weatherline…</span>
+        <span className="font-display text-sm tracking-wide uppercase">Loading Skibidi-Sprint…</span>
       </main>
     );
   }

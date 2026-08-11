@@ -28,7 +28,7 @@ export default function ProfilePage() {
 
   return (
     <PageIn className="max-w-2xl">
-      <PageHeader title="Profile" description="Your progress across Weatherline." />
+      <PageHeader title="Profile" description="Your progress across Skibidi-Sprint." />
 
       <HoverLift>
         <Card className="glow-primary bg-grid relative overflow-hidden border-0">

@@ -90,7 +90,7 @@ export function HeroSection({ onEnter }: { onEnter: () => void }) {
       <div className="relative mx-auto grid w-full max-w-7xl gap-12 lg:grid-cols-[minmax(0,1fr)_440px] lg:items-center lg:gap-8 lg:pr-6">
         <div className="min-w-0">
           <p className="hero-kicker font-mono text-xs uppercase tracking-[0.25em] text-white/50">
-            Weatherline — Team Engagement, Reinvented
+            Skibidi-Sprint — Team Engagement, Reinvented
           </p>
 
           <h1 className="mt-4 font-display text-[clamp(2.6rem,7.5vw,6.5rem)] leading-[0.92] tracking-tight text-white">

@@ -113,7 +113,7 @@ export default function OnboardingPage() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_50%_45%_at_50%_0%,var(--glow-primary),transparent)]" />
       <PageIn className="relative w-full max-w-xl">
         <div className="mb-8 text-center">
-          <p className="font-mono text-xs tracking-[0.25em] text-muted-foreground uppercase">Weatherline</p>
+          <p className="font-mono text-xs tracking-[0.25em] text-muted-foreground uppercase">Skibidi-Sprint</p>
           <h1 className="font-display mt-2 text-3xl tracking-wide uppercase sm:text-4xl">
             Welcome, {employee?.name?.split(" ")[0] ?? "there"}
           </h1>

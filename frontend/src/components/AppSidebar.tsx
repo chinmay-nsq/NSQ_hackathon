@@ -87,7 +87,7 @@ export function AppSidebar() {
           <div className="glow-primary flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Sparkles className="size-4" />
           </div>
-          <span className="font-display text-base tracking-wide uppercase">Weatherline</span>
+          <span className="font-display text-base tracking-wide uppercase">Skibidi-Sprint</span>
         </div>
       </SidebarHeader>
 

@@ -71,7 +71,7 @@ class AIServiceImpl {
     seniority?: string | null;
     skills?: string[];
   }): Promise<GeneratedAdventureContent> {
-    const system = `You are the AI Dungeon Master for Weatherline, a workplace gamification app.
+    const system = `You are the AI Dungeon Master for Skibidi-Sprint, a workplace gamification app.
 Generate ONE short solo adventure (a small daily task) for an employee, tailored to their role, seniority, and skills when given.
 Respond ONLY with JSON matching: { "title": string, "description": string, "xpReward": number (10-40), "coinReward": number (5-25), "resourceType": "knowledge"|"gold"|"influence"|"materials", "resourceAmount": number (3-15) }
 Keep it realistic for a workplace: a small task that actually uses their skills, plus learning, reflection, wellness, or peer appreciation as variety. No fantasy jargon in the description itself, just the framing.`;
@@ -101,7 +101,7 @@ Keep it realistic for a workplace: a small task that actually uses their skills,
     seniority?: string | null;
     skills?: string[];
   }): Promise<QuizQuestionContent[]> {
-    const system = `You are a skills-quiz generator for Weatherline, a workplace gamification app.
+    const system = `You are a skills-quiz generator for Skibidi-Sprint, a workplace gamification app.
 Generate EXACTLY 5 multiple-choice questions that test practical knowledge relevant to the employee's role, seniority, and skills.
 Each question must have exactly 4 options, with exactly one correct answer.
 Respond ONLY with JSON matching: { "questions": [{ "question": string, "options": [string, string, string, string], "correctIndex": number (0-3) }] }
@@ -139,7 +139,7 @@ Keep questions practical and specific to the listed skills — not generic trivi
     seniority: string;
     skills: string[];
   }): Promise<GeneratedAdventureContent> {
-    const system = `You are the AI Dungeon Master for Weatherline, a workplace gamification app.
+    const system = `You are the AI Dungeon Master for Skibidi-Sprint, a workplace gamification app.
 Generate ONE short solo adventure (a small daily task) for an employee, based only on their role, seniority, and skills — you are never told their name or any other identifying detail, and must not invent one.
 Respond ONLY with JSON matching: { "title": string, "description": string, "xpReward": number (10-40), "coinReward": number (5-25), "resourceType": "knowledge"|"gold"|"influence"|"materials", "resourceAmount": number (3-15) }
 Keep it realistic for a workplace: a small task that actually uses their listed skills at their seniority level.`;
@@ -157,7 +157,7 @@ Keep it realistic for a workplace: a small task that actually uses their listed 
     guildName: string;
     department: string;
   }): Promise<GeneratedAdventureContent> {
-    const system = `You are the AI Dungeon Master for Weatherline. Generate ONE short guild (team) adventure — a small collaborative task for a whole department team.
+    const system = `You are the AI Dungeon Master for Skibidi-Sprint. Generate ONE short guild (team) adventure — a small collaborative task for a whole department team.
 Respond ONLY with JSON matching: { "title": string, "description": string, "xpReward": number (20-50), "coinReward": number (10-30), "resourceType": "knowledge"|"gold"|"influence"|"materials", "resourceAmount": number (10-30) }`;
 
     const user = `Guild: ${context.guildName}, Department: ${context.department}. Generate today's guild adventure relevant to this department's real work.`;
@@ -186,7 +186,7 @@ Respond ONLY with JSON matching: { "title": string, "description": string, "xpRe
     dailyQuizStatus: "not_generated" | "pending" | "completed";
     recentMemory?: string;
   }): Promise<string> {
-    const system = `You are ${context.companionName}, a ${context.species} AI companion in Weatherline, a workplace gamification app.
+    const system = `You are ${context.companionName}, a ${context.species} AI companion in Skibidi-Sprint, a workplace gamification app.
 You are warm, encouraging, and a little playful — like a coach and friend. Speak in first person, 1-3 sentences, no markdown.
 You know about the employee's guild progress and pending adventures. Reference concrete numbers naturally, the way this example does:
 "Good morning! Your guild is only 120 Knowledge away from upgrading the Forge. Completing today's learning adventure will help everyone."
@@ -213,7 +213,7 @@ If told their daily skill quiz is still unanswered, you MUST nudge them to go ta
   }
 
   async generateWeeklyStory(context: { events: string[] }): Promise<string> {
-    const system = `You are the AI Story Engine for Weatherline. Write a short, warm narrative recap (3-5 sentences) of the week's events in the kingdom, in a light fantasy storytelling tone, based ONLY on the real events given. Do not invent events not listed.`;
+    const system = `You are the AI Story Engine for Skibidi-Sprint. Write a short, warm narrative recap (3-5 sentences) of the week's events in the kingdom, in a light fantasy storytelling tone, based ONLY on the real events given. Do not invent events not listed.`;
 
     const user = `Events this week:\n${context.events.map((e) => `- ${e}`).join("\n")}\n\nWrite the weekly kingdom story.`;
 

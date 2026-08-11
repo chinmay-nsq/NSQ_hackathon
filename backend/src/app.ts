@@ -30,7 +30,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.get("/health", (_req, res) => {
-  res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Weatherline API is running", null));
+  res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Skibidi-Sprint API is running", null));
 });
 
 app.use("/auth", authRouter);

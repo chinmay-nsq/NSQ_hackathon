@@ -34,7 +34,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 const SITE_URL = "https://weatherliner.vercel.app";
-const TITLE = "Weatherline — Team Engagement, Reinvented";
+const TITLE = "Skibidi-Sprint — Team Engagement, Reinvented";
 const DESCRIPTION =
   "Every task becomes a quest. Every team, a party. Every company, a world worth showing up for — powered by an AI that actually pays attention.";
 
@@ -46,13 +46,13 @@ export const metadata: Metadata = {
     title: TITLE,
     description: DESCRIPTION,
     url: SITE_URL,
-    siteName: "Weatherline",
+    siteName: "Skibidi-Sprint",
     images: [
       {
         url: "/image.png",
         width: 1788,
         height: 880,
-        alt: "Weatherline — work feels like a game you want to play.",
+        alt: "Skibidi-Sprint — work feels like a game you want to play.",
       },
     ],
     locale: "en_US",

@@ -105,7 +105,7 @@ export function HeroCrystal({ sectionRef }: { sectionRef: React.RefObject<HTMLEl
       <div ref={imageWrapRef} className="relative h-[80%] w-[80%]">
         <Image
           src="/barb.png"
-          alt="Weatherline's companion"
+          alt="Skibidi-Sprint's companion"
           width={1301}
           height={1599}
           priority

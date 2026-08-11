@@ -57,7 +57,7 @@ export function CTASection() {
       </div>
 
       <footer className="absolute bottom-8 flex w-full max-w-5xl items-center justify-between px-6 font-mono text-[11px] uppercase tracking-widest text-white/30 sm:px-0">
-        <span>Weatherline</span>
+        <span>Skibidi-Sprint</span>
         <span>© {new Date().getFullYear()}</span>
       </footer>
     </section>

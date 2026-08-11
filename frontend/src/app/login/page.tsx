@@ -111,7 +111,7 @@ function LoginPageInner() {
           <div className="glow-primary-strong flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Sparkles className="size-4.5" />
           </div>
-          <span className="font-display text-xl tracking-wide uppercase">Weatherline</span>
+          <span className="font-display text-xl tracking-wide uppercase">Skibidi-Sprint</span>
         </div>
 
         {mode === "register" && inviteCode && (

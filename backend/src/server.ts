@@ -8,7 +8,7 @@ const startServer = async () => {
     await connectDB();
 
     app.listen(env.port, () => {
-      logger.info(`Weatherline backend listening on http://localhost:${env.port}`);
+      logger.info(`Skibidi-Sprint backend listening on http://localhost:${env.port}`);
     });
   } catch (err) {
     logger.error(`Failed to start server: ${err}`);
