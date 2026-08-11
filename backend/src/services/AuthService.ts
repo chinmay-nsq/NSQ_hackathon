@@ -4,6 +4,7 @@ import { Role } from "@prisma/client";
 import { env } from "@/config/env";
 import { EmployeeRepository } from "@/repositories/EmployeeRepository";
 import { GuildRepository } from "@/repositories/GuildRepository";
+import { NotificationService } from "./NotificationService";
 import { ApiError } from "@/utils/apiError";
 import { HttpStatus } from "@/utils/httpStatus";
 
@@ -72,6 +73,10 @@ class AuthServiceImpl {
     }
 
     const token = this.signToken({ employeeId: employee.id });
+
+    // Fire-and-forget: never let this delay or fail the login response.
+    void NotificationService.checkOnboardingStall(employee.id);
+
     return { token, employee, hasCompanion: Boolean(employee.companion) };
   }
 

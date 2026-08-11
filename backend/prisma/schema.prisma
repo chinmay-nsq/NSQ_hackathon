@@ -47,6 +47,15 @@ model Employee {
   skills             String[]   @default([])
   profileCompletedAt DateTime?
 
+  // Set once, the first time this employee's welcome quest is generated
+  // (right after they complete their profile) — guards it from ever being
+  // generated a second time, alongside their normal daily quiz.
+  welcomeQuestGeneratedAt DateTime?
+
+  // Set once a "finish your profile" stall nudge has been sent, so it's
+  // only ever sent once per employee, not on every subsequent login.
+  onboardingNudgeSentAt DateTime?
+
   guildId String?
   guild   Guild?  @relation("GuildMember", fields: [guildId], references: [id])
 
@@ -357,6 +366,7 @@ model Listing {
 
 enum NotificationType {
   REWARD_CLAIMED // an employee redeemed a marketplace reward — their manager is notified
+  ONBOARDING_STALLED // an employee picked a companion but never finished their profile — nudge sent to themself
 }
 
 // A lightweight in-app notification. recipientId is who sees it (e.g. a

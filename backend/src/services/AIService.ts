@@ -9,6 +9,11 @@ export interface QuizQuestionContent {
   number: string;
 }
 
+export interface ProfileSuggestion {
+  seniority: "JUNIOR" | "MID" | "SENIOR" | "LEAD";
+  skills: string[];
+}
+
 interface RawQuizQuestion {
   question: string;
   options: [string, string, string, string];
@@ -79,6 +84,23 @@ const FALLBACK_SOLO: GeneratedAdventureContent[] = [
     resourceAmount: 8,
   },
 ];
+
+// Used only if the AI call fails during onboarding — generic enough to not
+// be actively wrong for most office/software roles, since the employee can
+// still freely edit the suggested chips before confirming.
+const FALLBACK_PROFILE_SUGGESTION: ProfileSuggestion = {
+  seniority: "MID",
+  skills: ["communication", "problem-solving", "time-management"],
+};
+
+const FALLBACK_WELCOME_QUEST: GeneratedAdventureContent = {
+  title: "Say Hello",
+  description: "Introduce yourself to your guild — share your role and one thing you're excited to work on.",
+  xpReward: 20,
+  coinReward: 15,
+  resourceType: "influence",
+  resourceAmount: 10,
+};
 
 class AIServiceImpl {
   async generateSoloAdventure(context: {
@@ -240,6 +262,83 @@ If told their daily skill quiz is still unanswered, you MUST nudge them to go ta
       return await getAIProvider().completeText(system, user);
     } catch {
       return `This week, the kingdom's guilds pressed forward together. ${context.events.join(" ")}`;
+    }
+  }
+
+  /**
+   * Onboarding: given just a free-typed job title, suggests a starting
+   * seniority + a handful of relevant skills as editable chips, so a new
+   * employee confirms/adjusts instead of typing up to 15 skills from a
+   * blank input. Purely a starting point — never blocks submission.
+   */
+  async suggestProfile(jobRole: string): Promise<ProfileSuggestion> {
+    const system = `You infer a starting work profile from a job title for Skibidi-Sprint, a workplace gamification app.
+Respond ONLY with JSON matching: { "seniority": "JUNIOR"|"MID"|"SENIOR"|"LEAD", "skills": string[] }
+Guess a reasonable default seniority (MID if genuinely ambiguous) and 5-8 concrete, specific skills a person with that job title would plausibly have (tools, technologies, or practical competencies — not vague traits like "hardworking"). Lowercase, short (1-3 words each).`;
+
+    const user = `Job title: "${jobRole}". Suggest their starting profile.`;
+
+    try {
+      const result = await getAIProvider().completeJSON<ProfileSuggestion>(system, user);
+      const seniority = (["JUNIOR", "MID", "SENIOR", "LEAD"] as const).includes(result.seniority)
+        ? result.seniority
+        : "MID";
+      const skills = Array.isArray(result.skills) ? result.skills.slice(0, 8).filter(Boolean) : [];
+      return skills.length > 0 ? { seniority, skills } : FALLBACK_PROFILE_SUGGESTION;
+    } catch {
+      return FALLBACK_PROFILE_SUGGESTION;
+    }
+  }
+
+  /**
+   * Onboarding: the companion's first message to a brand-new teammate,
+   * introducing their guild using real roster/resource data — never
+   * invented details. Distinct from generateCompanionDialogue (the
+   * recurring dashboard greeting) — this fires exactly once, right after
+   * profile completion.
+   */
+  async generateGuildWelcome(context: {
+    companionName: string;
+    species: string;
+    employeeName: string;
+    guildName: string;
+    memberHighlight?: string;
+    guildResourceGap?: string;
+  }): Promise<string> {
+    const system = `You are ${context.companionName}, a ${context.species} AI companion in Skibidi-Sprint, a workplace gamification app.
+This is the very first thing you ever say to a brand-new teammate who just joined a guild (team). Be warm and welcoming, 2-4 sentences, first person, no markdown.
+Introduce their guild using ONLY the real facts given — never invent teammate names, stats, or events not mentioned.`;
+
+    const user = `New teammate: ${context.employeeName}. Guild: ${context.guildName}. ${context.memberHighlight ?? "No specific teammate activity to mention."} ${context.guildResourceGap ?? ""} Write their welcome message.`;
+
+    try {
+      return await getAIProvider().completeText(system, user);
+    } catch {
+      return `Welcome to ${context.guildName}, ${context.employeeName}! I'm ${context.companionName} — I'll help you track quests, level up, and see how the guild's doing. Glad you're here.`;
+    }
+  }
+
+  /**
+   * Onboarding: a one-time "welcome quest" generated alongside (not instead
+   * of) a brand-new employee's first daily quiz — a small, low-stakes first
+   * task that makes them visible to their new team, rather than the same
+   * generic skill quiz everyone gets every day.
+   */
+  async generateWelcomeQuest(context: {
+    employeeName: string;
+    guildName?: string;
+    jobRole?: string | null;
+  }): Promise<GeneratedAdventureContent> {
+    const system = `You are the AI Dungeon Master for Skibidi-Sprint, a workplace gamification app.
+Generate ONE short "welcome quest" — a brand-new employee's very first task, on their first day. It should help them make a small, visible first contribution to their new team (e.g. introducing themselves, sharing something about their background, asking a question in a team channel) — NOT a generic skill quiz or solo learning task.
+Respond ONLY with JSON matching: { "title": string, "description": string, "xpReward": number (15-30), "coinReward": number (10-20), "resourceType": "knowledge"|"gold"|"influence"|"materials", "resourceAmount": number (5-15) }`;
+
+    const user = `New employee: ${context.employeeName}. Guild: ${context.guildName ?? "no guild yet"}. Role: ${context.jobRole ?? "unspecified"}. Generate their day-one welcome quest.`;
+
+    try {
+      return await getAIProvider().completeJSON<GeneratedAdventureContent>(system, user);
+    } catch {
+      return FALLBACK_WELCOME_QUEST;
     }
   }
 }

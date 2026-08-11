@@ -37,7 +37,7 @@ const NAV_ITEMS = [
   { href: "/app", label: "Dashboard", icon: LayoutDashboard },
   { href: "/adventures", label: "Adventures", icon: Swords },
   { href: "/teams", label: "Teams", icon: Users },
-  { href: "/company", label: "Company", icon: Sparkles },
+  // { href: "/company", label: "Company", icon: Sparkles }, // temporarily hidden
   { href: "/rewards", label: "Rewards", icon: Store },
   { href: "/trading", label: "Trading Post", icon: ArrowLeftRight },
   { href: "/recap", label: "Weekly Recap", icon: Newspaper },

@@ -1,15 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, Gift } from "lucide-react";
+import { Bell, Gift, Sparkles, type LucideIcon } from "lucide-react";
 import { api } from "@/lib/api";
-import { AppNotification } from "@/lib/types";
+import { AppNotification, NotificationType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+const NOTIFICATION_ICONS: Record<NotificationType, LucideIcon> = {
+  REWARD_CLAIMED: Gift,
+  ONBOARDING_STALLED: Sparkles,
+};
 
 function timeAgo(iso: string): string {
   const seconds = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
@@ -80,26 +85,29 @@ export function NotificationBell() {
           {notifications.length === 0 ? (
             <p className="px-3 py-6 text-center text-sm text-muted-foreground">Nothing yet.</p>
           ) : (
-            notifications.map((n) => (
-              <div
-                key={n.id}
-                className={cn(
-                  "flex items-start gap-2.5 border-b border-border/40 px-3 py-2.5 last:border-b-0",
-                  !n.read && "bg-accent/40"
-                )}
-              >
-                <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-accent">
-                  <Gift className="size-3.5 text-accent-foreground" strokeWidth={1.5} />
+            notifications.map((n) => {
+              const Icon = NOTIFICATION_ICONS[n.type] ?? Bell;
+              return (
+                <div
+                  key={n.id}
+                  className={cn(
+                    "flex items-start gap-2.5 border-b border-border/40 px-3 py-2.5 last:border-b-0",
+                    !n.read && "bg-accent/40"
+                  )}
+                >
+                  <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-accent">
+                    <Icon className="size-3.5 text-accent-foreground" strokeWidth={1.5} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">{n.title}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{n.body}</p>
+                    <p className="mt-1 font-mono text-[10px] tracking-wide text-muted-foreground/70 uppercase">
+                      {timeAgo(n.createdAt)}
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{n.title}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{n.body}</p>
-                  <p className="mt-1 font-mono text-[10px] tracking-wide text-muted-foreground/70 uppercase">
-                    {timeAgo(n.createdAt)}
-                  </p>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </DropdownMenuContent>

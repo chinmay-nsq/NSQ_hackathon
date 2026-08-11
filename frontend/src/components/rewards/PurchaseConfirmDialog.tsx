@@ -6,6 +6,7 @@ import { REWARD_ICONS } from "@/lib/rewardIcons";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -54,6 +55,17 @@ export function PurchaseConfirmDialog({
             </div>
 
             <DialogFooter className="mt-4">
+              <DialogClose
+                render={
+                  <Button
+                    variant="outline"
+                    disabled={submitting}
+                    className="font-mono text-xs tracking-wide uppercase"
+                  />
+                }
+              >
+                Cancel
+              </DialogClose>
               <Button
                 disabled={submitting}
                 className="glow-primary font-mono text-xs tracking-wide uppercase"

@@ -3,6 +3,12 @@ export type ResourceType = "knowledge" | "gold" | "influence" | "materials";
 export type Role = "EMPLOYEE" | "MANAGER" | "ADMIN";
 export type Seniority = "JUNIOR" | "MID" | "SENIOR" | "LEAD";
 
+/** AI-suggested starting profile from just a job title — onboarding intake. */
+export interface ProfileSuggestion {
+  seniority: Seniority;
+  skills: string[];
+}
+
 export interface Employee {
   id: string;
   email: string;
@@ -239,7 +245,7 @@ export interface MyListing {
   purchase: Purchase;
 }
 
-export type NotificationType = "REWARD_CLAIMED";
+export type NotificationType = "REWARD_CLAIMED" | "ONBOARDING_STALLED";
 
 export interface AppNotification {
   id: string;
