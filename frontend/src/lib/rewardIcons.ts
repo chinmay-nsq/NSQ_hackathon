@@ -1,0 +1,51 @@
+import {
+  Coffee,
+  Pizza,
+  Shirt,
+  Ticket,
+  BookOpen,
+  Home,
+  Gift,
+  Sparkle,
+  Sprout,
+  Music,
+  Sunrise,
+  Car,
+  Gamepad2,
+  Utensils,
+  Sun,
+  Headphones,
+  CalendarHeart,
+  type LucideIcon,
+} from "lucide-react";
+
+/** Shared reward-item icon lookup — used by the Rewards marketplace and the Trading Post. */
+export const REWARD_ICONS: Record<string, LucideIcon> = {
+  coffee: Coffee,
+  pizza: Pizza,
+  shirt: Shirt,
+  ticket: Ticket,
+  book: BookOpen,
+  home: Home,
+  gift: Gift,
+  sparkle: Sparkle,
+  sprout: Sprout,
+  music: Music,
+  sunrise: Sunrise,
+  car: Car,
+  gamepad: Gamepad2,
+  utensils: Utensils,
+  sun: Sun,
+  headphones: Headphones,
+  "calendar-heart": CalendarHeart,
+};
+
+export const REWARD_TILE_COLORS = [
+  "#ff5a36",
+  "#ffb35a",
+  "#4ac4d9",
+  "#9b5de5",
+  "#e0655a",
+  "#5a4ecb",
+  "#e8622c",
+];

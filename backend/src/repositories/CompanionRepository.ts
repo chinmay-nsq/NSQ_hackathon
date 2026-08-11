@@ -6,6 +6,13 @@ export const CompanionRepository = {
     return prisma.companion.findUnique({ where: { employeeId } });
   },
 
+  /** Case-insensitive lookup — "Nova" and "nova" count as the same taken name. */
+  findByNameInsensitive(name: string) {
+    return prisma.companion.findFirst({
+      where: { name: { equals: name, mode: "insensitive" } },
+    });
+  },
+
   findByEmployeeIdWithMemories(employeeId: string, take = 5) {
     return prisma.companion.findUnique({
       where: { employeeId },

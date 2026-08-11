@@ -27,6 +27,12 @@ export const CompanionController = {
       .json(new ApiResponse(HttpStatus.CREATED, "Companion created", { companion }));
   },
 
+  async checkName(req: Request, res: Response) {
+    const name = String(req.query.name ?? "");
+    const available = await CompanionService.isNameAvailable(name);
+    return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Availability checked", { available }));
+  },
+
   async me(req: AuthedRequest, res: Response) {
     const companion = await CompanionService.getMine(req.employeeId!);
     return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Companion fetched", { companion }));

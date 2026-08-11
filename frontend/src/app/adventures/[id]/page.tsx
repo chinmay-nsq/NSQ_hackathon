@@ -17,6 +17,8 @@ import { PageIn } from "@/components/motion/PageIn";
 import { gsap } from "@/lib/gsap/registerPlugins";
 import { celebrationBurst } from "@/lib/gsap/burst";
 import { flyCoinsToBalance } from "@/lib/gsap/coinFly";
+import { QuizRunner, type QuizResult } from "@/components/adventures/QuizRunner";
+import { QuizReview } from "@/components/adventures/QuizReview";
 
 const TYPE_LABEL: Record<string, string> = {
   SOLO: "Solo",
@@ -47,14 +49,14 @@ export default function AdventureDetailPage() {
       .finally(() => setLoading(false));
   }, [params.id]);
 
-  async function handleComplete() {
+  async function handleComplete(quiz?: QuizResult) {
     if (!adventure) return;
     setCompleting(true);
     setError(null);
     try {
       const result = await api.post<{ pendingApproval: boolean; employee?: Employee }>(
         `/adventures/${adventure.id}/complete`,
-        { submission: submission.trim() || undefined }
+        { submission: submission.trim() || undefined, quiz }
       );
 
       const btn = completeButtonRef.current;
@@ -72,6 +74,10 @@ export default function AdventureDetailPage() {
       if (result.pendingApproval) {
         toast.success("Submitted for review", {
           description: "Your manager will approve this before it's credited.",
+        });
+      } else if (quiz) {
+        toast.success(`+${adventure.xpReward} XP, +${quiz.correctCount * 5} coins`, {
+          description: `${quiz.correctCount} / ${quiz.answers.length} correct.`,
         });
       } else {
         toast.success(`+${adventure.xpReward} XP, +${adventure.coinReward} coins`, {
@@ -107,9 +113,12 @@ export default function AdventureDetailPage() {
   const progress = adventure.progress?.[0];
   const completed = Boolean(progress?.completed);
   const approval = progress?.approval ?? "NONE";
+  const hasQuiz = Boolean(adventure.quiz && adventure.quiz.length > 0);
+  const isActiveQuiz = !completed && hasQuiz;
+  const isCompletedQuiz = completed && hasQuiz;
 
   return (
-    <PageIn className="max-w-2xl">
+    <PageIn className={hasQuiz ? "w-full" : "max-w-2xl"}>
       <Link
         href="/adventures"
         className="mb-4 inline-flex items-center font-mono text-xs tracking-wide text-muted-foreground uppercase transition-colors hover:text-primary"
@@ -162,12 +171,29 @@ export default function AdventureDetailPage() {
             </span>
             <span className="flex items-center gap-1.5">
               <Coins className="size-4 text-currency" />
-              <span className="tabular font-medium">{adventure.coinReward}</span>
+              <span className="tabular font-medium">
+                {adventure.quiz && adventure.quiz.length > 0 ? `up to ${adventure.coinReward}` : adventure.coinReward}
+              </span>
               <span className="text-muted-foreground">coins</span>
             </span>
           </div>
 
-          {!completed && (
+          {isActiveQuiz && adventure.quiz && (
+            <>
+              {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+              <QuizRunner
+                questions={adventure.quiz}
+                submitting={completing}
+                onSubmit={(result) => void handleComplete(result)}
+              />
+            </>
+          )}
+
+          {isCompletedQuiz && adventure.quiz && progress?.quizAnswers && (
+            <QuizReview questions={adventure.quiz} answers={progress.quizAnswers} />
+          )}
+
+          {!completed && !hasQuiz && (
             <>
               <div className="mt-6 space-y-1.5">
                 <Label htmlFor="submission" className="font-mono text-xs tracking-wide uppercase">
@@ -187,7 +213,7 @@ export default function AdventureDetailPage() {
 
               <Button
                 ref={completeButtonRef}
-                onClick={handleComplete}
+                onClick={() => void handleComplete()}
                 disabled={completing}
                 className="glow-primary mt-4 font-mono text-xs tracking-wide uppercase"
               >

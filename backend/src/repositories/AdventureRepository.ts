@@ -2,14 +2,25 @@ import { prisma } from "@/config/db";
 import { Prisma, AdventureType, AdventureStatus, ApprovalStatus } from "@prisma/client";
 
 export const AdventureRepository = {
-  findActiveForEmployee(employeeId: string, guildId: string | null) {
+  /**
+   * Active adventures, plus the employee's own SOLO adventures completed
+   * TODAY (not full history) — so a just-finished daily quiz/task is still
+   * visible and reviewable for the rest of the day, instead of vanishing
+   * from the list the instant it's marked COMPLETED.
+   */
+  findActiveForEmployee(employeeId: string, guildId: string | null, startOfDay: Date) {
     return prisma.adventure.findMany({
       where: {
-        status: "ACTIVE",
         OR: [
-          { type: "SOLO", createdById: employeeId },
-          { type: "GUILD", guildId: guildId ?? "__none__" },
-          { type: "CROSS_GUILD" },
+          { status: "ACTIVE", type: "SOLO", createdById: employeeId },
+          { status: "ACTIVE", type: "GUILD", guildId: guildId ?? "__none__" },
+          { status: "ACTIVE", type: "CROSS_GUILD" },
+          {
+            status: "COMPLETED",
+            type: "SOLO",
+            createdById: employeeId,
+            progress: { some: { employeeId, completedAt: { gte: startOfDay } } },
+          },
         ],
       },
       include: { progress: { where: { employeeId } } },
@@ -53,7 +64,8 @@ export const AdventureRepository = {
     employeeId: string,
     submission: string | undefined,
     approval: ApprovalStatus,
-    approvedById?: string
+    approvedById?: string,
+    quizResult?: { answers: number[]; correctCount: number }
   ) {
     const shared = {
       completed: true,
@@ -61,6 +73,9 @@ export const AdventureRepository = {
       completedAt: new Date(),
       approval,
       ...(approvedById ? { approvedById, approvedAt: new Date() } : {}),
+      ...(quizResult
+        ? { quizAnswers: quizResult.answers, quizCorrectCount: quizResult.correctCount }
+        : {}),
     };
     return prisma.adventureProgress.upsert({
       where: { adventureId_employeeId: { adventureId, employeeId } },
@@ -126,6 +141,53 @@ export const AdventureRepository = {
         createdBy: {
           select: { id: true, name: true, title: true, avatarSeed: true },
         },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  },
+
+  /**
+   * Full history of every task a manager has assigned to members of the
+   * given guilds — every status (not started, pending, approved,
+   * rejected), not just the currently-outstanding ones. Used for the
+   * "Assigned by you" section, distinct from the action-oriented Approvals
+   * queues above.
+   */
+  findAssignedHistoryForGuilds(guildIds: string[]) {
+    return prisma.adventure.findMany({
+      where: {
+        type: "SOLO",
+        assignedById: { not: null },
+        guildId: { in: guildIds },
+      },
+      include: {
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            title: true,
+            avatarSeed: true,
+            companion: { select: { name: true, species: true } },
+          },
+        },
+        progress: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  },
+
+  /** Same as findAssignedHistoryForGuilds but company-wide, for admins. */
+  findAllAssignedHistory() {
+    return prisma.adventure.findMany({
+      where: {
+        type: "SOLO",
+        assignedById: { not: null },
+      },
+      include: {
+        createdBy: {
+          select: { id: true, name: true, title: true, avatarSeed: true },
+        },
+        progress: true,
       },
       orderBy: { createdAt: "desc" },
     });

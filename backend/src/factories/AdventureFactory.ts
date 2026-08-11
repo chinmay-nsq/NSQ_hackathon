@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { ResourceType } from "@/config/constants";
+import { QuizQuestionContent } from "@/services/AIService";
 
 export interface GeneratedAdventureContent {
   title: string;
@@ -9,6 +10,13 @@ export interface GeneratedAdventureContent {
   resourceType: ResourceType;
   resourceAmount: number;
 }
+
+// The self-serve daily quiz: 5 coins per correct answer (5 questions), plus
+// a flat XP reward just for taking it — coinReward here is the maximum
+// possible (all 5 correct); actual crediting is quizCorrectCount * COINS_PER_CORRECT.
+export const QUIZ_COINS_PER_CORRECT = 5;
+export const QUIZ_QUESTION_COUNT = 5;
+export const QUIZ_XP_REWARD = 20;
 
 const RESOURCE_REWARD_FIELD: Record<ResourceType, string> = {
   knowledge: "knowledgeReward",
@@ -77,6 +85,33 @@ export const AdventureFactory = {
       xpReward: content.xpReward,
       coinReward: content.coinReward,
       [RESOURCE_REWARD_FIELD[content.resourceType]]: content.resourceAmount,
+      createdBy: { connect: { id: employeeId } },
+      ...(guildId ? { guild: { connect: { id: guildId } } } : {}),
+    };
+  },
+
+  /**
+   * The self-serve daily solo quest — a 5-question skill quiz instead of a
+   * text task. `dailyQuizDate` (paired with a DB-level unique constraint on
+   * [createdById, dailyQuizDate]) is what actually prevents two of these
+   * ever existing for the same employee on the same day, even under
+   * concurrent requests — the application-level "does one exist" check
+   * alone can't close that race.
+   */
+  buildSoloQuiz(
+    questions: QuizQuestionContent[],
+    employeeId: string,
+    guildId: string | null,
+    dailyQuizDate: string
+  ): Prisma.AdventureCreateInput {
+    return {
+      type: "SOLO",
+      title: "Daily Skill Quiz",
+      description: "Answer 5 questions tailored to your skills. Earn 5 coins for each correct answer.",
+      xpReward: QUIZ_XP_REWARD,
+      coinReward: QUIZ_QUESTION_COUNT * QUIZ_COINS_PER_CORRECT,
+      quiz: questions as unknown as Prisma.InputJsonValue,
+      dailyQuizDate,
       createdBy: { connect: { id: employeeId } },
       ...(guildId ? { guild: { connect: { id: guildId } } } : {}),
     };

@@ -1,10 +1,10 @@
-import { Role } from "@prisma/client";
+import { Role, Prisma } from "@prisma/client";
 import { prisma } from "@/config/db";
 import { AdventureRepository } from "@/repositories/AdventureRepository";
 import { EmployeeRepository } from "@/repositories/EmployeeRepository";
 import { GuildRepository } from "@/repositories/GuildRepository";
 import { CompanionRepository } from "@/repositories/CompanionRepository";
-import { AdventureFactory } from "@/factories/AdventureFactory";
+import { AdventureFactory, QUIZ_COINS_PER_CORRECT, QUIZ_QUESTION_COUNT } from "@/factories/AdventureFactory";
 import { AIService } from "./AIService";
 import { CompanionService } from "./CompanionService";
 import { XP_PER_LEVEL, COMPANION_BOND_XP_PER_ADVENTURE } from "@/config/constants";
@@ -18,6 +18,20 @@ function startOfToday(): Date {
   return d;
 }
 
+/**
+ * "YYYY-MM-DD" for the current local day — used as the daily-quiz
+ * uniqueness key. Built from local calendar fields directly, NOT via
+ * toISOString() (which converts to UTC and would shift the date near
+ * midnight in any timezone ahead of UTC, e.g. IST).
+ */
+function todayDateKey(): string {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function xpToLevel(xp: number): number {
   return Math.floor(xp / XP_PER_LEVEL) + 1;
 }
@@ -26,9 +40,19 @@ class AdventureServiceImpl {
   async listForEmployee(employeeId: string) {
     const employee = await EmployeeRepository.findByIdWithRelations(employeeId);
     if (!employee) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
-    return AdventureRepository.findActiveForEmployee(employeeId, employee.guildId);
+    return AdventureRepository.findActiveForEmployee(employeeId, employee.guildId, startOfToday());
   }
 
+  /**
+   * The self-serve daily solo quest — a 5-question skill quiz tailored to
+   * the employee's profile. The `existing` check below is just a fast path
+   * to skip the AI call when possible; the actual duplicate-prevention
+   * guarantee is the DB-level unique constraint on
+   * [createdById, dailyQuizDate] (see AdventureFactory.buildSoloQuiz) —
+   * without it, two concurrent requests (two tabs, a double-click, a
+   * frontend auto-generate race) can both pass this check before either
+   * commits, each call the AI, and both create a quiz for the same day.
+   */
   async generateSolo(employeeId: string) {
     const employee = await EmployeeRepository.findByIdWithRelations(employeeId);
     if (!employee) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
@@ -36,17 +60,24 @@ class AdventureServiceImpl {
     const existing = await AdventureRepository.findTodaysSoloAdventure(employeeId, startOfToday());
     if (existing) return existing;
 
-    const content = await AIService.generateSoloAdventure({
-      employeeName: employee.name,
-      department: employee.guild?.department ?? "General",
-      recentActivity: "",
+    const questions = await AIService.generateSkillQuiz({
       jobRole: employee.jobRole,
       seniority: employee.seniority,
       skills: employee.skills,
     });
 
-    const data = AdventureFactory.buildSolo(content, employeeId, employee.guildId);
-    return AdventureRepository.create(data);
+    const data = AdventureFactory.buildSoloQuiz(questions, employeeId, employee.guildId, todayDateKey());
+    try {
+      return await AdventureRepository.create(data);
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+        // Lost the race — another request already created today's quiz.
+        // Return that one instead of failing this request.
+        const winner = await AdventureRepository.findTodaysSoloAdventure(employeeId, startOfToday());
+        if (winner) return winner;
+      }
+      throw err;
+    }
   }
 
   /** Employee-authored solo adventure — no AI, fixed reward, requires manager/admin approval before crediting. */
@@ -172,8 +203,20 @@ class AdventureServiceImpl {
    * today's behavior — reward is credited immediately. Employee-authored
    * ("manual") adventures go PENDING instead: no crediting until a
    * manager/admin approves them via `approve()`.
+   *
+   * Quiz-type solo adventures pass `quizAnswers` (the option index the
+   * employee picked per question) and `quizCorrectCount` (graded
+   * client-side against the obfuscated answer key) — coins credited are
+   * `quizCorrectCount * QUIZ_COINS_PER_CORRECT`, not the adventure's flat
+   * `coinReward`. The backend does not re-verify the score; it trusts the
+   * client-reported count.
    */
-  async complete(employeeId: string, adventureId: string, submission?: string) {
+  async complete(
+    employeeId: string,
+    adventureId: string,
+    submission?: string,
+    quiz?: { answers: number[]; correctCount: number }
+  ) {
     const adventure = await AdventureRepository.findById(adventureId);
     if (!adventure) throw new ApiError(HttpStatus.NOT_FOUND, "Adventure not found", "Not Found");
     if (adventure.status !== "ACTIVE") {
@@ -194,7 +237,21 @@ class AdventureServiceImpl {
     const employee = await EmployeeRepository.findById(employeeId);
     if (!employee) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
 
-    const updatedEmployee = await this.creditReward(employee, adventure, submission, "APPROVED", null);
+    const isQuiz = adventure.quiz !== null;
+    if (isQuiz && !quiz) {
+      throw new ApiError(HttpStatus.BAD_REQUEST, "Quiz answers are required to complete this adventure", "Bad Request");
+    }
+    const coinOverride = isQuiz && quiz ? Math.max(0, Math.min(quiz.correctCount, QUIZ_QUESTION_COUNT)) * QUIZ_COINS_PER_CORRECT : undefined;
+
+    const updatedEmployee = await this.creditReward(
+      employee,
+      adventure,
+      submission,
+      "APPROVED",
+      null,
+      coinOverride,
+      isQuiz ? quiz : undefined
+    );
     return { pendingApproval: false as const, employee: updatedEmployee };
   }
 
@@ -261,6 +318,30 @@ class AdventureServiceImpl {
     };
   }
 
+  /**
+   * Full history of every task a lead has ever assigned — every status,
+   * not just the currently-outstanding ones — guild-scoped for managers,
+   * company-wide for admins. Managers see the assignee by companion
+   * identity only, never their real name. Distinct from listPendingFor,
+   * which is the action-oriented "needs your review" queue.
+   */
+  async listAssignedHistoryFor(viewerId: string) {
+    const viewer = await EmployeeRepository.findById(viewerId);
+    if (!viewer) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
+
+    if (viewer.role === "ADMIN") {
+      const history = await AdventureRepository.findAllAssignedHistory();
+      return history;
+    }
+
+    const guilds = await GuildRepository.findIdsManagedBy(viewerId);
+    if (guilds.length === 0) return [];
+
+    const guildIds = guilds.map((g) => g.id);
+    const history = await AdventureRepository.findAssignedHistoryForGuilds(guildIds);
+    return history.map((a) => ({ ...a, createdBy: anonymizeMember(a.createdBy!, Role.MANAGER) }));
+  }
+
   /** Confirms `managerId` (manager/admin) is allowed to act on `employeeId` — approve, reject, or assign a task. */
   private async assertCanManage(managerId: string, employeeId: string) {
     if (managerId === employeeId) {
@@ -300,16 +381,26 @@ class AdventureServiceImpl {
     },
     submission: string | undefined,
     approval: "APPROVED",
-    approvedById: string | null
+    approvedById: string | null,
+    coinOverride?: number,
+    quizResult?: { answers: number[]; correctCount: number }
   ) {
     const newXp = employee.xp + adventure.xpReward;
+    const coinsToCredit = coinOverride ?? adventure.coinReward;
 
     const ops = [
-      AdventureRepository.upsertProgress(adventure.id, employee.id, submission, approval, approvedById ?? undefined),
+      AdventureRepository.upsertProgress(
+        adventure.id,
+        employee.id,
+        submission,
+        approval,
+        approvedById ?? undefined,
+        quizResult
+      ),
       EmployeeRepository.update(employee.id, {
         xp: newXp,
         level: xpToLevel(newXp),
-        coins: { increment: adventure.coinReward },
+        coins: { increment: coinsToCredit },
       }),
     ];
     const [, updatedEmployee] = await prisma.$transaction(ops);

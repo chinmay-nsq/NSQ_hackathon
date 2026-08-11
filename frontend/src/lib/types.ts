@@ -43,6 +43,15 @@ export interface AdventureProgress {
   submission?: string | null;
   approval?: ApprovalStatus;
   rejectionNote?: string | null;
+  quizAnswers?: number[] | null;
+  quizCorrectCount?: number | null;
+}
+
+export interface QuizQuestion {
+  question: string;
+  options: [string, string, string, string];
+  string: string;
+  number: string;
 }
 
 export interface Adventure {
@@ -61,6 +70,7 @@ export interface Adventure {
   aiGenerated?: boolean;
   createdAt: string;
   progress: AdventureProgress[];
+  quiz?: QuizQuestion[] | null;
 }
 
 export interface PendingApproval {
@@ -82,6 +92,19 @@ export interface AssignedTask {
   coinReward: number;
   createdAt: string;
   createdBy: { id: string; name: string; title: string; avatarSeed: string; species?: string | null };
+}
+
+/** One row in a lead's full "every task I've ever assigned" history, any status. */
+export interface AssignedTaskHistoryItem {
+  id: string;
+  title: string;
+  description: string;
+  status: AdventureStatus;
+  xpReward: number;
+  coinReward: number;
+  createdAt: string;
+  createdBy: { id: string; name: string; title: string; avatarSeed: string; species?: string | null };
+  progress: AdventureProgress[];
 }
 
 export interface CompanyOverview {
@@ -152,4 +175,35 @@ export interface MarketplaceItem {
   cost: number;
   icon: string;
   active: boolean;
+}
+
+export interface Purchase {
+  id: string;
+  employeeId: string;
+  itemId: string;
+  item: MarketplaceItem;
+  createdAt: string;
+}
+
+export type ListingStatus = "ACTIVE" | "SOLD" | "CANCELLED";
+
+/** A trading-post listing browsed by other employees — seller shown by companion identity only. */
+export interface Listing {
+  id: string;
+  status: ListingStatus;
+  askingPrice: number;
+  createdAt: string;
+  soldAt?: string | null;
+  purchase: Purchase;
+  seller: { id: string; name: string; title: string; avatarSeed: string; species?: string | null };
+}
+
+/** One of the current employee's own listings — no seller identity needed, it's always you. */
+export interface MyListing {
+  id: string;
+  status: ListingStatus;
+  askingPrice: number;
+  createdAt: string;
+  soldAt?: string | null;
+  purchase: Purchase;
 }

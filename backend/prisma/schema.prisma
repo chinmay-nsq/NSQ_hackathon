@@ -61,6 +61,9 @@ model Employee {
   createdAdventures  Adventure[]         @relation("AdventureCreator")
   assignedAdventures Adventure[]         @relation("AdventureAssigner")
   approvedProgress   AdventureProgress[] @relation("ProgressApprover")
+
+  listingsSelling Listing[] @relation("ListingSeller")
+  listingsBought  Listing[] @relation("ListingBuyer")
 }
 
 model Companion {
@@ -68,8 +71,8 @@ model Companion {
   employeeId String   @unique
   employee   Employee @relation(fields: [employeeId], references: [id])
 
-  species        String // barbarian, wizard, witch
-  name           String
+  species        String // barbarian, archer, witch
+  name           String    @unique
   bondLevel      Int       @default(1)
   bondXp         Int       @default(0)
   lastDialogueAt DateTime?
@@ -227,7 +230,24 @@ model Adventure {
   expiresAt   DateTime?
   createdAt   DateTime  @default(now())
 
+  // Set only on the self-serve daily quiz, to a "YYYY-MM-DD" date string —
+  // paired with the unique index below, this makes it impossible for two
+  // concurrent generate requests (e.g. two tabs, or a fast double-click) to
+  // ever create two quizzes for the same employee on the same day: the
+  // second insert fails a real DB constraint instead of racing a
+  // check-then-create in application code.
+  dailyQuizDate String?
+
+  // Set only for the self-serve daily solo quest, which is a 5-question
+  // skill quiz rather than a plain text task. Each entry: { question,
+  // options: string[], string: string, number: string } — the correct
+  // option's index is never stored directly; it's derivable by reducing
+  // `number` to a single digit and indexing into `string` at that position.
+  quiz Json?
+
   progress AdventureProgress[]
+
+  @@unique([createdById, dailyQuizDate])
 }
 
 enum ApprovalStatus {
@@ -248,6 +268,12 @@ model AdventureProgress {
   submission  String?   @db.Text
   completedAt DateTime?
   createdAt   DateTime  @default(now())
+
+  // Set only when completing a quiz-type solo adventure — the option index
+  // the employee picked per question, and how many were graded correct
+  // (client-reported; coins are credited 5 per correct answer).
+  quizAnswers      Json?
+  quizCorrectCount Int?
 
   // Approval workflow — AI-generated adventures skip straight to APPROVED
   // (crediting on completion, same as before); manually-created adventures
@@ -290,4 +316,36 @@ model Purchase {
   item       MarketplaceItem @relation(fields: [itemId], references: [id])
 
   createdAt DateTime @default(now())
+
+  listings Listing[]
+}
+
+enum ListingStatus {
+  ACTIVE
+  SOLD
+  CANCELLED
+}
+
+// The Trading Post: an employee re-lists something they already own
+// (a Purchase) for other employees to buy with coins, at up to what they
+// originally paid — never more. Ownership of the underlying Purchase
+// transfers to the buyer on sale, so a bought item can be re-listed again
+// later by its new owner.
+model Listing {
+  id     String @id @default(cuid())
+  status ListingStatus @default(ACTIVE)
+
+  purchaseId String
+  purchase   Purchase @relation(fields: [purchaseId], references: [id])
+
+  sellerId String
+  seller   Employee @relation("ListingSeller", fields: [sellerId], references: [id])
+
+  buyerId String?
+  buyer   Employee? @relation("ListingBuyer", fields: [buyerId], references: [id])
+
+  askingPrice Int
+
+  createdAt DateTime  @default(now())
+  soldAt    DateTime?
 }

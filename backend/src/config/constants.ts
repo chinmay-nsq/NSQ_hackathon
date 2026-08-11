@@ -3,7 +3,7 @@ export type ResourceType = (typeof RESOURCE_TYPES)[number];
 
 export const COMPANION_SPECIES = [
   "barbarian",
-  "wizard",
+  "archer",
   "witch",
   "hog_rider",
   "balloon",

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Check, X, Loader2 } from "lucide-react";
 import { api, ApiRequestError } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { gsap } from "@/lib/gsap/registerPlugins";
@@ -13,10 +14,11 @@ import { cn } from "@/lib/utils";
 import { PageIn } from "@/components/motion/PageIn";
 import { StaggerGrid } from "@/components/motion/StaggerGrid";
 import { CompanionViewer } from "@/components/companion3d/CompanionViewer";
+import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
 
 const SPECIES_META: Record<string, { label: string; title: string }> = {
   barbarian: { label: "Barb", title: "The Loyal Flame" },
-  wizard: { label: "Volt", title: "The Precise Mind" },
+  archer: { label: "Hawk", title: "The Steady Aim" },
   witch: { label: "Raven", title: "The Quiet Wisdom" },
   hog_rider: { label: "Charger", title: "The Reckless Push" },
   balloon: { label: "Drift", title: "The Perfect Timing" },
@@ -24,7 +26,7 @@ const SPECIES_META: Record<string, { label: string; title: string }> = {
   lava_hound: { label: "Basalt", title: "The Steady Shield" },
 };
 
-const FALLBACK_SPECIES = ["barbarian", "wizard", "witch", "hog_rider", "balloon", "dragon", "lava_hound"];
+const FALLBACK_SPECIES = ["barbarian", "archer", "witch", "hog_rider", "balloon", "dragon", "lava_hound"];
 
 export default function OnboardingPage() {
   const [species, setSpecies] = useState<string[]>([]);
@@ -33,10 +35,18 @@ export default function OnboardingPage() {
   const [loadingSpecies, setLoadingSpecies] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nameAvailable, setNameAvailable] = useState<boolean | null>(null);
+  const [fetchingAvailability, setFetchingAvailability] = useState(false);
   const cardRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const { employee, fetchMe } = useAuthStore();
   const router = useRouter();
+  const trimmedName = name.trim();
+  const debouncedName = useDebouncedValue(trimmedName, 400);
+  // Still true while the debounce timer is settling, not just while the
+  // request itself is in flight — otherwise the indicator disappears for the
+  // 400ms gap between keystrokes stopping and the check actually firing.
+  const checkingName = trimmedName !== "" && (trimmedName !== debouncedName || fetchingAvailability);
 
   useEffect(() => {
     api
@@ -45,6 +55,25 @@ export default function OnboardingPage() {
       .catch(() => setSpecies(FALLBACK_SPECIES))
       .finally(() => setLoadingSpecies(false));
   }, []);
+
+  useEffect(() => {
+    if (!debouncedName) return;
+    let cancelled = false;
+    api
+      .get<{ available: boolean }>(`/companion/check-name?name=${encodeURIComponent(debouncedName)}`)
+      .then((data) => {
+        if (!cancelled) setNameAvailable(data.available);
+      })
+      .catch(() => {
+        if (!cancelled) setNameAvailable(null);
+      })
+      .finally(() => {
+        if (!cancelled) setFetchingAvailability(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedName]);
 
   function handleSelect(s: string) {
     setSelected(s);
@@ -61,6 +90,10 @@ export default function OnboardingPage() {
     }
     if (!name.trim()) {
       setError("Give your companion a name.");
+      return;
+    }
+    if (nameAvailable === false) {
+      setError("That companion name is already taken — try another.");
       return;
     }
     setError(null);
@@ -140,13 +173,32 @@ export default function OnboardingPage() {
             >
               Name your companion
             </Label>
-            <Input
-              id="companion-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Nova"
-              maxLength={30}
-            />
+            <div className="relative">
+              <Input
+                id="companion-name"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setNameAvailable(null);
+                  setFetchingAvailability(true);
+                }}
+                placeholder="e.g. Nova"
+                maxLength={30}
+                className="pr-9"
+              />
+              <div className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2">
+                {checkingName ? (
+                  <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                ) : nameAvailable === true ? (
+                  <Check className="size-4 text-success" />
+                ) : nameAvailable === false ? (
+                  <X className="size-4 text-destructive" />
+                ) : null}
+              </div>
+            </div>
+            {nameAvailable === false && !checkingName && (
+              <p className="text-xs text-destructive">That name is already taken — try another.</p>
+            )}
           </div>
         )}
 
@@ -155,7 +207,7 @@ export default function OnboardingPage() {
         <div className="mt-6 flex justify-center">
           <Button
             onClick={handleConfirm}
-            disabled={!selected || submitting}
+            disabled={!selected || submitting || checkingName || nameAvailable === false}
             size="lg"
             className="glow-primary font-mono text-xs tracking-widest uppercase"
           >

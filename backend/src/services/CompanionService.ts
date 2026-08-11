@@ -1,5 +1,7 @@
+import { Prisma } from "@prisma/client";
 import { CompanionRepository } from "@/repositories/CompanionRepository";
 import { EmployeeRepository } from "@/repositories/EmployeeRepository";
+import { AdventureRepository } from "@/repositories/AdventureRepository";
 import { CompanionFactory } from "@/factories/CompanionFactory";
 import { AIService } from "./AIService";
 import { CompanionSpecies, RESOURCE_TYPES } from "@/config/constants";
@@ -7,13 +9,42 @@ import { prisma } from "@/config/db";
 import { ApiError } from "@/utils/apiError";
 import { HttpStatus } from "@/utils/httpStatus";
 
+function startOfToday(): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 class CompanionServiceImpl {
   async create(employeeId: string, species: CompanionSpecies, name: string) {
     const existing = await CompanionRepository.findByEmployeeId(employeeId);
     if (existing) {
       throw new ApiError(HttpStatus.CONFLICT, "You already have a companion", "Conflict");
     }
-    return prisma.companion.create({ data: CompanionFactory.build(employeeId, species, name) });
+    const nameTaken = await CompanionRepository.findByNameInsensitive(name);
+    if (nameTaken) {
+      throw new ApiError(HttpStatus.CONFLICT, "That companion name is already taken", "Conflict");
+    }
+
+    try {
+      return await prisma.companion.create({ data: CompanionFactory.build(employeeId, species, name) });
+    } catch (err) {
+      // A second request could win the same name in the gap between the
+      // check above and this insert — the DB's unique index is the real
+      // guard; this just turns that race into the same friendly 409 instead
+      // of a raw Prisma error.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+        throw new ApiError(HttpStatus.CONFLICT, "That companion name is already taken", "Conflict");
+      }
+      throw err;
+    }
+  }
+
+  async isNameAvailable(name: string): Promise<boolean> {
+    const trimmed = name.trim();
+    if (!trimmed) return false;
+    const existing = await CompanionRepository.findByNameInsensitive(trimmed);
+    return !existing;
   }
 
   async getMine(employeeId: string) {
@@ -33,6 +64,19 @@ class CompanionServiceImpl {
       where: { employeeId, completed: false },
     });
 
+    // A freshly-generated daily quiz has no AdventureProgress row at all
+    // until it's completed, so the count above can't see it — check today's
+    // solo adventure directly. "not_generated" (no row yet) must be told to
+    // the AI as a DISTINCT state from "completed" — otherwise a brand-new
+    // account that has never taken the quiz gets told it's "already done".
+    const todaysSolo = await AdventureRepository.findTodaysSoloAdventure(employeeId, startOfToday());
+    const dailyQuizStatus: "not_generated" | "pending" | "completed" =
+      !todaysSolo || todaysSolo.quiz === null
+        ? "not_generated"
+        : todaysSolo.status === "COMPLETED"
+          ? "completed"
+          : "pending";
+
     let guildResourceGap: string | undefined;
     if (employee.guild) {
       const guild = employee.guild;
@@ -49,6 +93,7 @@ class CompanionServiceImpl {
       guildName: employee.guild?.name,
       guildResourceGap,
       pendingAdventures,
+      dailyQuizStatus,
       recentMemory: latestMemory?.summary,
     });
 

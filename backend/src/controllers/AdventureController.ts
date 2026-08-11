@@ -7,6 +7,12 @@ import { HttpStatus } from "@/utils/httpStatus";
 
 const completeSchema = z.object({
   submission: z.string().max(2000).optional(),
+  quiz: z
+    .object({
+      answers: z.array(z.number().int().min(0).max(3)).length(5),
+      correctCount: z.number().int().min(0).max(5),
+    })
+    .optional(),
 });
 
 const createManualSchema = z.object({
@@ -81,7 +87,7 @@ export const AdventureController = {
     const parsed = completeSchema.parse(req.body ?? {});
 
     const adventureId = String(req.params.id);
-    const result = await AdventureService.complete(req.employeeId!, adventureId, parsed.submission);
+    const result = await AdventureService.complete(req.employeeId!, adventureId, parsed.submission, parsed.quiz);
     const message = result.pendingApproval ? "Submitted for manager approval" : "Adventure completed";
     return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, message, result));
   },
@@ -91,6 +97,13 @@ export const AdventureController = {
     return res
       .status(HttpStatus.OK)
       .json(new ApiResponse(HttpStatus.OK, "Pending approvals fetched", { pending, assigned }));
+  },
+
+  async listAssignedHistory(req: AuthedRequest, res: Response) {
+    const history = await AdventureService.listAssignedHistoryFor(req.employeeId!);
+    return res
+      .status(HttpStatus.OK)
+      .json(new ApiResponse(HttpStatus.OK, "Assignment history fetched", { history }));
   },
 
   async approve(req: AuthedRequest, res: Response) {

@@ -1,53 +1,12 @@
 "use client";
 
 import { useRef } from "react";
-import {
-  Coffee,
-  Pizza,
-  Shirt,
-  Ticket,
-  BookOpen,
-  Home,
-  Gift,
-  Coins,
-  Sparkle,
-  Sprout,
-  Music,
-  Sunrise,
-  Car,
-  Gamepad2,
-  Utensils,
-  Sun,
-  Headphones,
-  CalendarHeart,
-  type LucideIcon,
-} from "lucide-react";
+import { Gift, Coins } from "lucide-react";
 import { useGSAP } from "@gsap/react";
 import { gsap } from "@/lib/gsap/registerPlugins";
 import { MarketplaceItem } from "@/lib/types";
+import { REWARD_ICONS, REWARD_TILE_COLORS } from "@/lib/rewardIcons";
 import { cn } from "@/lib/utils";
-
-const ICONS: Record<string, LucideIcon> = {
-  coffee: Coffee,
-  pizza: Pizza,
-  shirt: Shirt,
-  ticket: Ticket,
-  book: BookOpen,
-  home: Home,
-  gift: Gift,
-  sparkle: Sparkle,
-  sprout: Sprout,
-  music: Music,
-  sunrise: Sunrise,
-  car: Car,
-  gamepad: Gamepad2,
-  utensils: Utensils,
-  sun: Sun,
-  headphones: Headphones,
-  "calendar-heart": CalendarHeart,
-};
-
-const TILE_COLORS = ["#ff5a36", "#ffb35a", "#4ac4d9", "#9b5de5", "#e0655a", "#5a4ecb", "#e8622c"];
 
 export function RewardTile({
   item,
@@ -66,8 +25,8 @@ export function RewardTile({
   onRedeem: () => void;
   buttonRef: (el: HTMLButtonElement | null) => void;
 }) {
-  const Icon = ICONS[item.icon] ?? Gift;
-  const color = TILE_COLORS[index % TILE_COLORS.length];
+  const Icon = REWARD_ICONS[item.icon] ?? Gift;
+  const color = REWARD_TILE_COLORS[index % REWARD_TILE_COLORS.length];
   const tileRef = useRef<HTMLDivElement>(null);
   const iconWrapRef = useRef<HTMLDivElement>(null);
 
@@ -143,7 +102,7 @@ export function RewardTile({
         </div>
 
         <div
-          className="tabular flex items-center gap-1.5 rounded-full border border-currency/30 bg-currency/10 px-3 py-1 font-mono text-xs font-medium text-currency-foreground"
+          className="tabular flex items-center gap-1.5 rounded-full border border-currency/30 bg-currency/10 px-3 py-1 font-mono text-xs font-medium text-currency"
         >
           <Coins className="size-3.5 text-currency" />
           {item.cost}

@@ -3,7 +3,7 @@ import { CompanionSpecies } from "@/config/constants";
 
 const SPECIES_STARTING_FLAVOR: Record<CompanionSpecies, string> = {
   barbarian: "fiercely protective, a little dramatic, never backs down from hyping up your wins",
-  wizard: "witty, endlessly curious, keeps receipts on every streak you've ever had",
+  archer: "witty, endlessly curious, keeps receipts on every streak you've ever had",
   witch: "calm, observant, speaks rarely but always says the thing you needed to hear",
   hog_rider: "reckless, upbeat, charges straight at whatever you've been avoiding",
   balloon: "laid-back, a little mischievous, drifts in at exactly the right moment",

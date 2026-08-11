@@ -18,6 +18,7 @@ import { CountUp } from "@/components/motion/CountUp";
 import { AnimatedBar } from "@/components/motion/AnimatedBar";
 import { CompanionViewer } from "@/components/companion3d/CompanionViewer";
 import { GettingStarted } from "@/components/GettingStarted";
+import { ensureDailyQuiz } from "@/lib/ensureDailyQuiz";
 
 const FALLBACK_DIALOGUE = "I'm here with you — let's see what today brings!";
 const XP_PER_LEVEL = 100;
@@ -64,16 +65,23 @@ export default function DashboardPage() {
   const isLead = employee?.role === "MANAGER" || employee?.role === "ADMIN";
 
   useEffect(() => {
-    api
-      .get<{ dialogue: string }>("/companion/dialogue")
-      .then((data) => setDialogue(data.dialogue))
-      .catch(() => setDialogue(FALLBACK_DIALOGUE))
-      .finally(() => setDialogueLoading(false));
+    // Ensure today's quiz exists BEFORE asking the companion for a greeting
+    // — otherwise the dialogue request can race ahead and describe "nothing
+    // pending" right before the quiz silently appears a moment later.
     api
       .get<{ adventures: Adventure[] }>("/adventures/")
-      .then((data) => setAdventures(data.adventures))
-      .catch(() => setAdventures([]))
-      .finally(() => setAdventuresLoading(false));
+      .then((data) => ensureDailyQuiz(data.adventures))
+      .catch(() => [] as Adventure[])
+      .then((adventures) => {
+        setAdventures(adventures);
+        setAdventuresLoading(false);
+
+        api
+          .get<{ dialogue: string }>("/companion/dialogue")
+          .then((data) => setDialogue(data.dialogue))
+          .catch(() => setDialogue(FALLBACK_DIALOGUE))
+          .finally(() => setDialogueLoading(false));
+      });
   }, []);
 
   // Manager/admin-only data for the lead's "Getting Started" checklist.
