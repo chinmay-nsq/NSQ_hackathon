@@ -34,7 +34,7 @@ model Employee {
   // Personal progression
   xp         Int    @default(0)
   level      Int    @default(1)
-  coins      Int    @default(0)
+  coins      Int    @default(100)
   reputation Int    @default(0)
   title      String @default("Novice")
 
