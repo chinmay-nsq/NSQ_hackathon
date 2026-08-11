@@ -1,4 +1,4 @@
-import { Role, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/config/db";
 import { AdventureRepository } from "@/repositories/AdventureRepository";
 import { EmployeeRepository } from "@/repositories/EmployeeRepository";
@@ -10,7 +10,6 @@ import { CompanionService } from "./CompanionService";
 import { XP_PER_LEVEL, COMPANION_BOND_XP_PER_ADVENTURE } from "@/config/constants";
 import { ApiError } from "@/utils/apiError";
 import { HttpStatus } from "@/utils/httpStatus";
-import { anonymizeMember } from "@/utils/anonymize";
 
 function startOfToday(): Date {
   const d = new Date();
@@ -286,44 +285,44 @@ class AdventureServiceImpl {
 
   /**
    * Approvals queue: guild-scoped for managers, company-wide for admins.
-   * Returns two lists — tasks assigned but not yet completed ("awaiting
-   * completion"), and tasks completed and awaiting review ("pending"), so a
-   * lead can see the full lifecycle of what they've handed out. Managers see
-   * the employee by companion identity only — never their real name.
+   * Returns three lists covering the full lifecycle of a lead's assigned
+   * tasks: "assigned" (not yet completed), "pending" (completed, awaiting
+   * review), and "approved" (reviewed and accepted). Shows real employee
+   * identity (name, not companion) — a manager needs to know exactly who a
+   * task is assigned to and who completed what.
    */
   async listPendingFor(approverId: string) {
     const approver = await EmployeeRepository.findById(approverId);
     if (!approver) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
 
     if (approver.role === "ADMIN") {
-      const [pending, assigned] = await Promise.all([
-        AdventureRepository.findAllPending(),
+      const [pending, approved, assigned] = await Promise.all([
+        AdventureRepository.findByApprovalStatusAll("PENDING"),
+        AdventureRepository.findByApprovalStatusAll("APPROVED"),
         AdventureRepository.findAllAssignedNotCompleted(),
       ]);
-      return { pending, assigned };
+      return { pending, approved, assigned: assigned.map(this.withAssignee) };
     }
 
     const guilds = await GuildRepository.findIdsManagedBy(approverId);
-    if (guilds.length === 0) return { pending: [], assigned: [] };
+    if (guilds.length === 0) return { pending: [], approved: [], assigned: [] };
 
     const guildIds = guilds.map((g) => g.id);
-    const [pending, assigned] = await Promise.all([
-      AdventureRepository.findPendingForGuilds(guildIds),
+    const [pending, approved, assigned] = await Promise.all([
+      AdventureRepository.findByApprovalStatusForGuilds("PENDING", guildIds),
+      AdventureRepository.findByApprovalStatusForGuilds("APPROVED", guildIds),
       AdventureRepository.findAssignedNotCompletedForGuilds(guildIds),
     ]);
 
-    return {
-      pending: pending.map((p) => ({ ...p, employee: anonymizeMember(p.employee, Role.MANAGER) })),
-      assigned: assigned.map((a) => ({ ...a, createdBy: anonymizeMember(a.createdBy!, Role.MANAGER) })),
-    };
+    return { pending, approved, assigned: assigned.map(this.withAssignee) };
   }
 
   /**
    * Full history of every task a lead has ever assigned — every status,
    * not just the currently-outstanding ones — guild-scoped for managers,
-   * company-wide for admins. Managers see the assignee by companion
-   * identity only, never their real name. Distinct from listPendingFor,
-   * which is the action-oriented "needs your review" queue.
+   * company-wide for admins. Real employee identity, same reasoning as
+   * listPendingFor. Distinct from listPendingFor, which is the
+   * action-oriented "needs your review" queue.
    */
   async listAssignedHistoryFor(viewerId: string) {
     const viewer = await EmployeeRepository.findById(viewerId);
@@ -331,7 +330,7 @@ class AdventureServiceImpl {
 
     if (viewer.role === "ADMIN") {
       const history = await AdventureRepository.findAllAssignedHistory();
-      return history;
+      return history.map(this.withAssignee);
     }
 
     const guilds = await GuildRepository.findIdsManagedBy(viewerId);
@@ -339,7 +338,39 @@ class AdventureServiceImpl {
 
     const guildIds = guilds.map((g) => g.id);
     const history = await AdventureRepository.findAssignedHistoryForGuilds(guildIds);
-    return history.map((a) => ({ ...a, createdBy: anonymizeMember(a.createdBy!, Role.MANAGER) }));
+    return history.map(this.withAssignee);
+  }
+
+  /**
+   * A SOLO assignment creates exactly one AdventureProgress row (for its
+   * assignee), so `progress[0].employee` is who the task is actually
+   * assigned to — `createdBy` is the assigning manager, not useful for
+   * "who is this task assigned to" and kept only for the admin-wide views
+   * that don't include progress.
+   */
+  private withAssignee<T extends { progress?: { employee: unknown }[]; createdBy?: unknown }>(adventure: T) {
+    const assignee = adventure.progress?.[0]?.employee ?? adventure.createdBy;
+    return { ...adventure, assignee };
+  }
+
+  /**
+   * An employee's own view of the same 3-state lifecycle managers see:
+   * "assigned" (manager-assigned tasks not yet completed), "pending"
+   * (completed, awaiting manager review), and "approved" (reviewed and
+   * credited). Always the viewer's own identity — no anonymization applies
+   * to your own data.
+   */
+  async myApprovalsFor(employeeId: string) {
+    const [assigned, completed] = await Promise.all([
+      AdventureRepository.findAssignedNotCompletedForEmployee(employeeId),
+      AdventureRepository.findCompletedHistoryForEmployee(employeeId),
+    ]);
+
+    return {
+      assigned,
+      pending: completed.filter((c) => c.approval === "PENDING"),
+      approved: completed.filter((c) => c.approval === "APPROVED"),
+    };
   }
 
   /** Confirms `managerId` (manager/admin) is allowed to act on `employeeId` — approve, reject, or assign a task. */

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, Clock, Hourglass, X } from "lucide-react";
+import { Check, CheckCircle2, Clock, Hourglass, X } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiRequestError } from "@/lib/api";
 import { AssignedTask, PendingApproval } from "@/lib/types";
@@ -22,6 +22,7 @@ function initials(name: string) {
 export default function ApprovalsPage() {
   const { employee, fetchMe } = useAuthStore();
   const [pending, setPending] = useState<PendingApproval[]>([]);
+  const [approved, setApproved] = useState<PendingApproval[]>([]);
   const [assigned, setAssigned] = useState<AssignedTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,9 +31,12 @@ export default function ApprovalsPage() {
 
   const load = useCallback(() => {
     return api
-      .get<{ pending: PendingApproval[]; assigned: AssignedTask[] }>("/adventures/pending")
+      .get<{ pending: PendingApproval[]; approved: PendingApproval[]; assigned: AssignedTask[] }>(
+        "/adventures/pending"
+      )
       .then((data) => {
         setPending(data.pending);
+        setApproved(data.approved);
         setAssigned(data.assigned);
       })
       .catch((err) => setError(err instanceof ApiRequestError ? err.message : "Could not load approvals."))
@@ -58,6 +62,7 @@ export default function ApprovalsPage() {
         description: `${item.employee.name} earned +${item.adventure.xpReward} XP, +${item.adventure.coinReward} coins.`,
       });
       setPending((prev) => prev.filter((p) => p.id !== item.id));
+      setApproved((prev) => [{ ...item, adventure: item.adventure }, ...prev]);
       // If the approver is also crediting themself indirectly via guild totals, refresh their own stats too.
       await fetchMe();
     } catch (err) {
@@ -123,13 +128,13 @@ export default function ApprovalsPage() {
                   <div key={task.id} className="flex items-start gap-4 py-5">
                     <Avatar className="size-10 shrink-0">
                       <AvatarFallback className="font-display bg-accent text-accent-foreground">
-                        {initials(task.createdBy.name)}
+                        {initials(task.assignee.name)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="font-medium">{task.createdBy.name}</p>
-                        <span className="text-xs text-muted-foreground">{task.createdBy.title}</span>
+                        <p className="font-medium">{task.assignee.name}</p>
+                        <span className="text-xs text-muted-foreground">{task.assignee.title}</span>
                       </div>
                       <div className="mt-1 flex items-center gap-2">
                         <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
@@ -210,6 +215,47 @@ export default function ApprovalsPage() {
                         Approve
                       </Button>
                     </div>
+                  </div>
+                ))}
+              </StaggerGrid>
+            )}
+          </section>
+
+          <section>
+            <h2 className="mb-3 flex items-center gap-2 font-mono text-xs tracking-widest text-muted-foreground uppercase">
+              <CheckCircle2 className="size-3.5" />
+              Approved ({approved.length})
+            </h2>
+            {approved.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nothing approved yet.</p>
+            ) : (
+              <StaggerGrid className="divide-y divide-border/60 border-t border-border/60" deps={[approved.length]}>
+                {approved.map((item) => (
+                  <div key={item.id} className="flex items-start gap-4 py-5">
+                    <Avatar className="size-10 shrink-0">
+                      <AvatarFallback className="font-display bg-accent text-accent-foreground">
+                        {initials(item.employee.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{item.employee.name}</p>
+                        <span className="text-xs text-muted-foreground">{item.employee.title}</span>
+                      </div>
+                      <div className="mt-1 flex items-center gap-2">
+                        <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
+                          {item.adventure.title}
+                        </Badge>
+                        <span className="tabular font-mono text-xs text-primary">
+                          +{item.adventure.xpReward} XP · +{item.adventure.coinReward} coins
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm text-muted-foreground">{item.adventure.description}</p>
+                    </div>
+                    <span className="flex shrink-0 items-center gap-1 font-mono text-[10px] tracking-wide text-success uppercase">
+                      <CheckCircle2 className="size-3.5" />
+                      Approved
+                    </span>
                   </div>
                 ))}
               </StaggerGrid>

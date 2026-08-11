@@ -93,10 +93,10 @@ export const AdventureController = {
   },
 
   async listPending(req: AuthedRequest, res: Response) {
-    const { pending, assigned } = await AdventureService.listPendingFor(req.employeeId!);
+    const { pending, approved, assigned } = await AdventureService.listPendingFor(req.employeeId!);
     return res
       .status(HttpStatus.OK)
-      .json(new ApiResponse(HttpStatus.OK, "Pending approvals fetched", { pending, assigned }));
+      .json(new ApiResponse(HttpStatus.OK, "Pending approvals fetched", { pending, approved, assigned }));
   },
 
   async listAssignedHistory(req: AuthedRequest, res: Response) {
@@ -104,6 +104,13 @@ export const AdventureController = {
     return res
       .status(HttpStatus.OK)
       .json(new ApiResponse(HttpStatus.OK, "Assignment history fetched", { history }));
+  },
+
+  async myHistory(req: AuthedRequest, res: Response) {
+    const { assigned, pending, approved } = await AdventureService.myApprovalsFor(req.employeeId!);
+    return res
+      .status(HttpStatus.OK)
+      .json(new ApiResponse(HttpStatus.OK, "Your history fetched", { assigned, pending, approved }));
   },
 
   async approve(req: AuthedRequest, res: Response) {

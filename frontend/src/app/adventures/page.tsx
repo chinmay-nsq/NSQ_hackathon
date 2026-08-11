@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, Clock, History, Plus, Sparkles, XCircle } from "lucide-react";
 import { api, ApiRequestError } from "@/lib/api";
-import { Adventure, AssignedTaskHistoryItem } from "@/lib/types";
+import { Adventure, AssignedTaskHistoryItem, MyHistoryItem, MyAssignedTask } from "@/lib/types";
 import { useAuthStore } from "@/store/authStore";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
@@ -32,6 +32,12 @@ function historyStatus(item: AssignedTaskHistoryItem): { label: string; classNam
   return { label: "Approved", className: "text-success", icon: CheckCircle2 };
 }
 
+function myHistoryStatus(item: MyHistoryItem): { label: string; className: string; icon: typeof Clock } {
+  if (item.approval === "PENDING") return { label: "Pending review", className: "text-muted-foreground", icon: Clock };
+  if (item.approval === "REJECTED") return { label: "Rejected", className: "text-destructive", icon: XCircle };
+  return { label: "Completed", className: "text-success", icon: CheckCircle2 };
+}
+
 const TYPE_LABEL: Record<string, string> = {
   SOLO: "Solo",
   GUILD: "Team",
@@ -46,6 +52,10 @@ export default function AdventuresPage() {
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<AssignedTaskHistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [myAssigned, setMyAssigned] = useState<MyAssignedTask[]>([]);
+  const [myPending, setMyPending] = useState<MyHistoryItem[]>([]);
+  const [myApproved, setMyApproved] = useState<MyHistoryItem[]>([]);
+  const [myHistoryLoading, setMyHistoryLoading] = useState(true);
 
   const canAssignTasks = employee?.role === "MANAGER" || employee?.role === "ADMIN";
 
@@ -86,6 +96,24 @@ export default function AdventuresPage() {
     // never mounts for a plain employee anyway.
     if (canAssignTasks) void loadHistory();
   }, [canAssignTasks, loadHistory]);
+
+  useEffect(() => {
+    api
+      .get<{ assigned: MyAssignedTask[]; pending: MyHistoryItem[]; approved: MyHistoryItem[] }>(
+        "/adventures/my-history"
+      )
+      .then((data) => {
+        setMyAssigned(data.assigned);
+        setMyPending(data.pending);
+        setMyApproved(data.approved);
+      })
+      .catch(() => {
+        setMyAssigned([]);
+        setMyPending([]);
+        setMyApproved([]);
+      })
+      .finally(() => setMyHistoryLoading(false));
+  }, []);
 
   async function handleGenerate(kind: "solo" | "guild") {
     setGenerating(kind);
@@ -232,13 +260,13 @@ export default function AdventuresPage() {
                   <div key={item.id} className="flex items-start gap-4 py-4">
                     <Avatar className="size-10 shrink-0">
                       <AvatarFallback className="font-display bg-accent text-accent-foreground">
-                        {initials(item.createdBy.name)}
+                        {initials(item.assignee.name)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="font-medium">{item.createdBy.name}</p>
-                        <span className="text-xs text-muted-foreground">{item.createdBy.title}</span>
+                        <p className="font-medium">{item.assignee.name}</p>
+                        <span className="text-xs text-muted-foreground">{item.assignee.title}</span>
                       </div>
                       <div className="mt-1 flex items-center gap-2">
                         <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
@@ -266,6 +294,148 @@ export default function AdventuresPage() {
           )}
         </div>
       )}
+
+      <div className="mt-10">
+        <h2 className="mb-4 flex items-center gap-2 font-display text-xl tracking-wide uppercase">
+          <History className="size-4.5 text-muted-foreground" />
+          Your approvals
+        </h2>
+
+        {myHistoryLoading ? (
+          <div className="space-y-px">
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+          </div>
+        ) : (
+          <div className="space-y-8">
+            <section>
+              <h3 className="mb-3 font-mono text-xs tracking-widest text-muted-foreground uppercase">
+                Assigned to you ({myAssigned.length})
+              </h3>
+              {myAssigned.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nothing assigned to you right now.</p>
+              ) : (
+                <StaggerGrid className="divide-y divide-border/60 border-t border-border/60" deps={[myAssigned.length]}>
+                  {myAssigned.map((task) => (
+                    <div key={task.id} className="flex items-start gap-4 py-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
+                            {task.title}
+                          </Badge>
+                          <span className="tabular font-mono text-xs text-primary">
+                            +{task.xpReward} XP · +{task.coinReward} coins
+                          </span>
+                        </div>
+                        <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{task.description}</p>
+                        {task.assignedBy && (
+                          <p className="mt-1 text-xs text-muted-foreground">Assigned by {task.assignedBy.name}</p>
+                        )}
+                      </div>
+                      <span className="flex shrink-0 items-center gap-1 font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
+                        <Clock className="size-3.5" />
+                        Not started
+                      </span>
+                    </div>
+                  ))}
+                </StaggerGrid>
+              )}
+            </section>
+
+            <section>
+              <h3 className="mb-3 font-mono text-xs tracking-widest text-muted-foreground uppercase">
+                Waiting for review ({myPending.length})
+              </h3>
+              {myPending.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nothing waiting on review right now.</p>
+              ) : (
+                <StaggerGrid className="divide-y divide-border/60 border-t border-border/60" deps={[myPending.length]}>
+                  {myPending.map((item) => {
+                    const status = myHistoryStatus(item);
+                    return (
+                      <div key={item.id} className="flex items-start gap-4 py-4">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
+                              {item.adventure.title}
+                            </Badge>
+                            <span className="tabular font-mono text-xs text-primary">
+                              +{item.adventure.xpReward} XP · +{item.adventure.coinReward} coins
+                            </span>
+                          </div>
+                          <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                            {item.adventure.description}
+                          </p>
+                          {item.adventure.assignedBy && (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Assigned by {item.adventure.assignedBy.name}
+                            </p>
+                          )}
+                        </div>
+                        <span
+                          className={cn(
+                            "flex shrink-0 items-center gap-1 font-mono text-[10px] tracking-wide uppercase",
+                            status.className
+                          )}
+                        >
+                          <status.icon className="size-3.5" />
+                          {status.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </StaggerGrid>
+              )}
+            </section>
+
+            <section>
+              <h3 className="mb-3 font-mono text-xs tracking-widest text-muted-foreground uppercase">
+                Approved ({myApproved.length})
+              </h3>
+              {myApproved.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nothing approved yet.</p>
+              ) : (
+                <StaggerGrid className="divide-y divide-border/60 border-t border-border/60" deps={[myApproved.length]}>
+                  {myApproved.map((item) => {
+                    const status = myHistoryStatus(item);
+                    return (
+                      <div key={item.id} className="flex items-start gap-4 py-4">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
+                              {item.adventure.title}
+                            </Badge>
+                            <span className="tabular font-mono text-xs text-primary">
+                              +{item.adventure.xpReward} XP · +{item.adventure.coinReward} coins
+                            </span>
+                          </div>
+                          <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                            {item.adventure.description}
+                          </p>
+                          {item.adventure.assignedBy && (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Assigned by {item.adventure.assignedBy.name}
+                            </p>
+                          )}
+                        </div>
+                        <span
+                          className={cn(
+                            "flex shrink-0 items-center gap-1 font-mono text-[10px] tracking-wide uppercase",
+                            status.className
+                          )}
+                        >
+                          <status.icon className="size-3.5" />
+                          {status.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </StaggerGrid>
+              )}
+            </section>
+          </div>
+        )}
+      </div>
     </PageIn>
   );
 }

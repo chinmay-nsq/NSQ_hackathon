@@ -17,6 +17,7 @@ import kingdomRouter from "@/routes/kingdom";
 import marketplaceRouter from "@/routes/marketplace";
 import employeeRouter from "@/routes/employees";
 import tradingRouter from "@/routes/trading";
+import notificationRouter from "@/routes/notifications";
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use("/kingdom", kingdomRouter);
 app.use("/marketplace", marketplaceRouter);
 app.use("/employees", employeeRouter);
 app.use("/trading", tradingRouter);
+app.use("/notifications", notificationRouter);
 
 app.use((req, _res, next) => {
   next(new ApiError(HttpStatus.NOT_FOUND, `Route not found: ${req.originalUrl}`, "Not Found"));

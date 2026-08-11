@@ -37,6 +37,7 @@ router.get(
   requireRole(Role.MANAGER, Role.ADMIN),
   asyncHandler(AdventureController.listAssignedHistory)
 );
+router.get("/my-history", requireAuth, asyncHandler(AdventureController.myHistory));
 router.post(
   "/:id/approve/:employeeId",
   requireAuth,

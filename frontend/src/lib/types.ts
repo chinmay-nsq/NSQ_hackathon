@@ -80,7 +80,15 @@ export interface PendingApproval {
   submission: string | null;
   completedAt: string | null;
   adventure: Adventure;
-  employee: { id: string; name: string; title: string; avatarSeed: string; species?: string | null };
+  employee: { id: string; name: string; title: string; avatarSeed: string };
+}
+
+/** Real identity of who a task is assigned to — a manager needs to know exactly who, not just their companion. */
+export interface AssigneeIdentity {
+  id: string;
+  name: string;
+  title: string;
+  avatarSeed: string;
 }
 
 /** A manager-assigned task that hasn't been completed yet — "awaiting completion" in Approvals. */
@@ -91,7 +99,8 @@ export interface AssignedTask {
   xpReward: number;
   coinReward: number;
   createdAt: string;
-  createdBy: { id: string; name: string; title: string; avatarSeed: string; species?: string | null };
+  createdBy: { id: string; name: string; title: string; avatarSeed: string };
+  assignee: AssigneeIdentity;
 }
 
 /** One row in a lead's full "every task I've ever assigned" history, any status. */
@@ -103,8 +112,30 @@ export interface AssignedTaskHistoryItem {
   xpReward: number;
   coinReward: number;
   createdAt: string;
-  createdBy: { id: string; name: string; title: string; avatarSeed: string; species?: string | null };
+  createdBy: { id: string; name: string; title: string; avatarSeed: string };
+  assignee: AssigneeIdentity;
   progress: AdventureProgress[];
+}
+
+/** One row in an employee's own "completed" history — pending review or approved. */
+export interface MyHistoryItem {
+  id: string;
+  completedAt: string | null;
+  submission: string | null;
+  quizCorrectCount: number | null;
+  approval: ApprovalStatus;
+  adventure: Adventure & { assignedBy?: { id: string; name: string; title: string; avatarSeed: string } | null };
+}
+
+/** A task assigned to the current employee that they haven't completed yet. */
+export interface MyAssignedTask {
+  id: string;
+  title: string;
+  description: string;
+  xpReward: number;
+  coinReward: number;
+  createdAt: string;
+  assignedBy: { id: string; name: string; title: string; avatarSeed: string } | null;
 }
 
 export interface CompanyOverview {
@@ -206,4 +237,16 @@ export interface MyListing {
   createdAt: string;
   soldAt?: string | null;
   purchase: Purchase;
+}
+
+export type NotificationType = "REWARD_CLAIMED";
+
+export interface AppNotification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  read: boolean;
+  createdAt: string;
+  actor: { id: string; name: string; title: string; avatarSeed: string } | null;
 }

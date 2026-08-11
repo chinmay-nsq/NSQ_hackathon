@@ -114,13 +114,22 @@ export const AdventureRepository = {
         progress: { none: { completed: true } },
       },
       include: {
-        createdBy: {
-          select: {
-            id: true,
-            name: true,
-            title: true,
-            avatarSeed: true,
-            companion: { select: { name: true, species: true } },
+        // Who assigned it (always the viewing manager themself here, but
+        // kept for completeness/admin view) and — the actually useful
+        // field — who it's assigned TO, via the one AdventureProgress row
+        // a SOLO assignment creates for its assignee.
+        createdBy: { select: { id: true, name: true, title: true, avatarSeed: true } },
+        progress: {
+          include: {
+            employee: {
+              select: {
+                id: true,
+                name: true,
+                title: true,
+                avatarSeed: true,
+                companion: { select: { name: true, species: true } },
+              },
+            },
           },
         },
       },
@@ -138,8 +147,11 @@ export const AdventureRepository = {
         progress: { none: { completed: true } },
       },
       include: {
-        createdBy: {
-          select: { id: true, name: true, title: true, avatarSeed: true },
+        createdBy: { select: { id: true, name: true, title: true, avatarSeed: true } },
+        progress: {
+          include: {
+            employee: { select: { id: true, name: true, title: true, avatarSeed: true } },
+          },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -161,16 +173,20 @@ export const AdventureRepository = {
         guildId: { in: guildIds },
       },
       include: {
-        createdBy: {
-          select: {
-            id: true,
-            name: true,
-            title: true,
-            avatarSeed: true,
-            companion: { select: { name: true, species: true } },
+        createdBy: { select: { id: true, name: true, title: true, avatarSeed: true } },
+        progress: {
+          include: {
+            employee: {
+              select: {
+                id: true,
+                name: true,
+                title: true,
+                avatarSeed: true,
+                companion: { select: { name: true, species: true } },
+              },
+            },
           },
         },
-        progress: true,
       },
       orderBy: { createdAt: "desc" },
     });
@@ -184,44 +200,83 @@ export const AdventureRepository = {
         assignedById: { not: null },
       },
       include: {
-        createdBy: {
-          select: { id: true, name: true, title: true, avatarSeed: true },
+        createdBy: { select: { id: true, name: true, title: true, avatarSeed: true } },
+        progress: {
+          include: {
+            employee: { select: { id: true, name: true, title: true, avatarSeed: true } },
+          },
         },
-        progress: true,
       },
       orderBy: { createdAt: "desc" },
     });
   },
 
-  /** Pending-approval queue for a manager: adventures completed by members of the given guilds. */
-  findPendingForGuilds(guildIds: string[]) {
+  /**
+   * An employee's own full history of completed SOLO tasks — both
+   * self-generated (daily quiz) and manager-assigned ones — every status,
+   * so someone can look back at everything they've finished. Always the
+   * viewer's own identity, so no anonymization applies here at all.
+   */
+  findCompletedHistoryForEmployee(employeeId: string) {
+    return prisma.adventureProgress.findMany({
+      where: { employeeId, completed: true },
+      include: { adventure: { include: { assignedBy: { select: { id: true, name: true, title: true, avatarSeed: true } } } } },
+      orderBy: { completedAt: "desc" },
+    });
+  },
+
+  /**
+   * Tasks assigned TO this employee by a manager that they haven't
+   * completed yet — the employee-side mirror of
+   * findAssignedNotCompletedForGuilds, scoped to one person instead of a
+   * manager's whole team.
+   */
+  findAssignedNotCompletedForEmployee(employeeId: string) {
+    return prisma.adventure.findMany({
+      where: {
+        type: "SOLO",
+        assignedById: { not: null },
+        status: "ACTIVE",
+        progress: { some: { employeeId, completed: false } },
+      },
+      include: {
+        assignedBy: { select: { id: true, name: true, title: true, avatarSeed: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  },
+
+  /**
+   * A manager's review queue for one approval status, scoped to the guilds
+   * they lead — PENDING is "waiting for your review", APPROVED is "you've
+   * already reviewed and accepted this". Shared by listPendingFor's pending
+   * bucket and the new full-history approved bucket, so both stay in sync
+   * on shape (real employee identity, adventure details) instead of
+   * duplicating near-identical queries per status.
+   */
+  findByApprovalStatusForGuilds(approval: ApprovalStatus, guildIds: string[]) {
     return prisma.adventureProgress.findMany({
       where: {
-        approval: "PENDING",
+        approval,
         employee: { guildId: { in: guildIds } },
       },
       include: {
         adventure: true,
-        employee: {
-          select: {
-            id: true,
-            name: true,
-            title: true,
-            avatarSeed: true,
-            companion: { select: { name: true, species: true } },
-          },
-        },
+        employee: { select: { id: true, name: true, title: true, avatarSeed: true } },
       },
-      orderBy: { completedAt: "asc" },
+      orderBy: { completedAt: "desc" },
     });
   },
 
-  /** Company-wide pending-approval queue, for admins. */
-  findAllPending() {
+  /** Same as findByApprovalStatusForGuilds but company-wide, for admins. */
+  findByApprovalStatusAll(approval: ApprovalStatus) {
     return prisma.adventureProgress.findMany({
-      where: { approval: "PENDING" },
-      include: { adventure: true, employee: { select: { id: true, name: true, title: true, avatarSeed: true } } },
-      orderBy: { completedAt: "asc" },
+      where: { approval },
+      include: {
+        adventure: true,
+        employee: { select: { id: true, name: true, title: true, avatarSeed: true } },
+      },
+      orderBy: { completedAt: "desc" },
     });
   },
 
