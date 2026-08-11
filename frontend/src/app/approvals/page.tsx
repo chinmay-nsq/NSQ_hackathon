@@ -124,21 +124,21 @@ export default function ApprovalsPage() {
 
   return (
     <PageIn>
+      <PageHeader
+        title="Approvals"
+        description={
+          employee?.role === "ADMIN"
+            ? "Every assigned and pending submission, company-wide."
+            : "Tasks you've assigned, and submissions waiting on your review."
+        }
+      />
+
       <Tabs defaultValue="assigned">
-        <TabsList>
+        <TabsList className="mb-6">
           <TabsTrigger value="assigned">Assigned ({assigned.length})</TabsTrigger>
           <TabsTrigger value="review">Under Review ({pending.length})</TabsTrigger>
           <TabsTrigger value="completed">Completed ({approved.length})</TabsTrigger>
         </TabsList>
-
-        <PageHeader
-          title="Approvals"
-          description={
-            employee?.role === "ADMIN"
-              ? "Every assigned and pending submission, company-wide."
-              : "Tasks you've assigned, and submissions waiting on your review."
-          }
-        />
 
         {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
 
