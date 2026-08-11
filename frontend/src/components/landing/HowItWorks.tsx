@@ -177,49 +177,51 @@ export function HowItWorks() {
 
   return (
     <section ref={scope} className="relative flex min-h-screen flex-col justify-center px-6 py-24 sm:px-12">
-      <div className="how-head mb-12 max-w-2xl">
-        <p className="font-mono text-xs uppercase tracking-[0.25em] text-white/40">{copy.eyebrow}</p>
-        <h2 className="mt-3 font-display text-[clamp(2rem,6vw,4.2rem)] leading-[0.95] text-white">
-          {copy.heading}
-        </h2>
-        <p className="mt-5 max-w-lg text-base leading-relaxed text-white/50">{copy.sub}</p>
-      </div>
+      <div className="mx-auto w-full max-w-7xl">
+        <div className="how-head mb-12 max-w-2xl">
+          <p className="font-mono text-xs uppercase tracking-[0.25em] text-white/40">{copy.eyebrow}</p>
+          <h2 className="mt-3 font-display text-[clamp(2rem,6vw,4.2rem)] leading-[0.95] text-white">
+            {copy.heading}
+          </h2>
+          <p className="mt-5 max-w-lg text-base leading-relaxed text-white/50">{copy.sub}</p>
+        </div>
 
-      <div className="how-head mb-10 inline-flex w-fit items-center gap-1 rounded-full border border-white/15 bg-white/5 p-1">
-        {(["employee", "lead"] as const).map((p) => (
-          <button
-            key={p}
-            type="button"
-            data-cursor="magnetic"
-            onClick={() => setPersona(p)}
-            className={cn(
-              "rounded-full px-5 py-2 font-mono text-xs tracking-widest uppercase transition-colors",
-              persona === p ? "bg-coral text-white" : "text-white/50 hover:text-white/80"
-            )}
-          >
-            {p === "employee" ? "I'm an employee" : "I'm a team lead"}
-          </button>
-        ))}
-      </div>
+        <div className="how-head mb-10 inline-flex w-fit items-center gap-1 rounded-full border border-white/15 bg-white/5 p-1">
+          {(["employee", "lead"] as const).map((p) => (
+            <button
+              key={p}
+              type="button"
+              data-cursor="magnetic"
+              onClick={() => setPersona(p)}
+              className={cn(
+                "rounded-full px-5 py-2 font-mono text-xs tracking-widest uppercase transition-colors",
+                persona === p ? "bg-coral text-white" : "text-white/50 hover:text-white/80"
+              )}
+            >
+              {p === "employee" ? "I'm an employee" : "I'm a team lead"}
+            </button>
+          ))}
+        </div>
 
-      <div className="relative grid gap-px overflow-hidden rounded-3xl border border-white/10 bg-white/10 sm:grid-cols-2 lg:grid-cols-3">
-        {steps.map((step, i) => (
-          <div key={step.title} className="how-step relative flex flex-col gap-4 bg-(--ink) p-8">
-            <div className="flex items-center justify-between">
-              <step.icon className="size-7 text-coral" strokeWidth={1.5} />
-              <span className="font-mono text-[11px] uppercase tracking-widest text-white/30">
-                {step.kicker}
-              </span>
+        <div className="relative grid gap-px overflow-hidden rounded-3xl border border-white/10 bg-white/10 sm:grid-cols-2 lg:grid-cols-3">
+          {steps.map((step, i) => (
+            <div key={step.title} className="how-step relative flex flex-col gap-4 bg-(--ink) p-8">
+              <div className="flex items-center justify-between">
+                <step.icon className="size-7 text-coral" strokeWidth={1.5} />
+                <span className="font-mono text-[11px] uppercase tracking-widest text-white/30">
+                  {step.kicker}
+                </span>
+              </div>
+              <div>
+                <h3 className="font-display text-2xl leading-tight text-white">{step.title}</h3>
+                <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/55">{step.body}</p>
+              </div>
+              {i < steps.length - 1 && (
+                <span className="pointer-events-none absolute -right-px top-1/2 hidden h-px w-6 -translate-y-1/2 bg-linear-to-r from-coral/60 to-transparent sm:block lg:-right-px" />
+              )}
             </div>
-            <div>
-              <h3 className="font-display text-2xl leading-tight text-white">{step.title}</h3>
-              <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/55">{step.body}</p>
-            </div>
-            {i < steps.length - 1 && (
-              <span className="pointer-events-none absolute -right-px top-1/2 hidden h-px w-6 -translate-y-1/2 bg-linear-to-r from-coral/60 to-transparent sm:block lg:-right-px" />
-            )}
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );

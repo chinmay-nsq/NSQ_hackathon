@@ -60,33 +60,35 @@ export function SolutionSection() {
       ref={scope}
       className="relative flex min-h-screen flex-col justify-center overflow-hidden px-6 sm:px-12"
     >
-      <p className="solution-head font-mono text-xs uppercase tracking-[0.25em] text-coral">The Solution</p>
-      <h2 className="solution-head mt-3 max-w-3xl font-display text-[clamp(2rem,6vw,4.2rem)] leading-[0.95] text-white">
-        One loop. Everybody
-        <br />
-        wins together.
-      </h2>
-      <p className="solution-sub mt-5 max-w-lg text-base leading-relaxed text-white/50">
-        No leaderboards pitting people against each other. Every level someone earns
-        feeds directly into their team — and every team&apos;s progress feeds the company.
-      </p>
+      <div className="mx-auto w-full max-w-7xl">
+        <p className="solution-head font-mono text-xs uppercase tracking-[0.25em] text-coral">The Solution</p>
+        <h2 className="solution-head mt-3 max-w-3xl font-display text-[clamp(2rem,6vw,4.2rem)] leading-[0.95] text-white">
+          One loop. Everybody
+          <br />
+          wins together.
+        </h2>
+        <p className="solution-sub mt-5 max-w-lg text-base leading-relaxed text-white/50">
+          No leaderboards pitting people against each other. Every level someone earns
+          feeds directly into their team — and every team&apos;s progress feeds the company.
+        </p>
 
-      <div className="mt-16 flex flex-col items-start gap-6 sm:mt-20 sm:flex-row sm:items-center sm:gap-4">
-        {LOOP.map((node, i) => (
-          <div key={node.label} className="flex items-center gap-4">
-            <div className="loop-node flex flex-col gap-2 rounded-2xl border border-white/15 bg-white/3 px-7 py-6">
-              <node.icon className="size-5 text-coral" strokeWidth={1.5} />
-              <span className="font-display text-2xl text-white">{node.label}</span>
-              <span className="max-w-[16ch] text-sm text-white/50">{node.detail}</span>
-              <span className="loop-metric font-mono text-[11px] uppercase tracking-widest text-coral/70">
-                {node.metric}
-              </span>
+        <div className="mt-16 flex flex-col items-start gap-6 sm:mt-20 sm:flex-row sm:items-center sm:gap-4">
+          {LOOP.map((node, i) => (
+            <div key={node.label} className="flex items-center gap-4">
+              <div className="loop-node flex flex-col gap-2 rounded-2xl border border-white/15 bg-white/3 px-7 py-6">
+                <node.icon className="size-5 text-coral" strokeWidth={1.5} />
+                <span className="font-display text-2xl text-white">{node.label}</span>
+                <span className="max-w-[16ch] text-sm text-white/50">{node.detail}</span>
+                <span className="loop-metric font-mono text-[11px] uppercase tracking-widest text-coral/70">
+                  {node.metric}
+                </span>
+              </div>
+              {i < LOOP.length - 1 && (
+                <span className="loop-arrow hidden h-px w-16 bg-gradient-to-r from-coral to-white/20 sm:block" />
+              )}
             </div>
-            {i < LOOP.length - 1 && (
-              <span className="loop-arrow hidden h-px w-16 bg-gradient-to-r from-coral to-white/20 sm:block" />
-            )}
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );
