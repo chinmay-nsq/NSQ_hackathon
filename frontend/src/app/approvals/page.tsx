@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, CheckCircle2, Clock, Hourglass, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiRequestError } from "@/lib/api";
 import { AssignedTask, PendingApproval } from "@/lib/types";
@@ -11,12 +11,39 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageIn } from "@/components/motion/PageIn";
-import { StaggerGrid } from "@/components/motion/StaggerGrid";
 import { flyCoinsToBalance } from "@/lib/gsap/coinFly";
 
 function initials(name: string) {
   return name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+}
+
+function EmployeeCell({ name, title }: { name: string; title: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <Avatar className="size-8 shrink-0">
+        <AvatarFallback className="font-display bg-accent text-accent-foreground">
+          {initials(name)}
+        </AvatarFallback>
+      </Avatar>
+      <div className="min-w-0">
+        <p className="truncate font-medium">{name}</p>
+        <p className="truncate text-xs text-muted-foreground">{title}</p>
+      </div>
+    </div>
+  );
+}
+
+function EmptyRow({ colSpan, message }: { colSpan: number; message: string }) {
+  return (
+    <TableRow className="hover:bg-transparent">
+      <TableCell colSpan={colSpan} className="whitespace-normal py-10 text-center text-sm text-muted-foreground">
+        {message}
+      </TableCell>
+    </TableRow>
+  );
 }
 
 export default function ApprovalsPage() {
@@ -97,172 +124,188 @@ export default function ApprovalsPage() {
 
   return (
     <PageIn>
-      <PageHeader
-        title="Approvals"
-        description={
-          employee?.role === "ADMIN"
-            ? "Every assigned and pending submission, company-wide."
-            : "Tasks you've assigned, and submissions waiting on your review."
-        }
-      />
+      <Tabs defaultValue="assigned">
+        <TabsList>
+          <TabsTrigger value="assigned">Assigned ({assigned.length})</TabsTrigger>
+          <TabsTrigger value="review">Under Review ({pending.length})</TabsTrigger>
+          <TabsTrigger value="completed">Completed ({approved.length})</TabsTrigger>
+        </TabsList>
 
-      {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
+        <PageHeader
+          title="Approvals"
+          description={
+            employee?.role === "ADMIN"
+              ? "Every assigned and pending submission, company-wide."
+              : "Tasks you've assigned, and submissions waiting on your review."
+          }
+        />
 
-      {loading ? (
-        <div className="space-y-px">
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
-        </div>
-      ) : (
-        <div className="space-y-10">
-          <section>
-            <h2 className="mb-3 flex items-center gap-2 font-mono text-xs tracking-widest text-muted-foreground uppercase">
-              <Hourglass className="size-3.5" />
-              Awaiting completion ({assigned.length})
-            </h2>
-            {assigned.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nothing assigned right now.</p>
-            ) : (
-              <StaggerGrid className="divide-y divide-border/60 border-t border-border/60" deps={[assigned.length]}>
-                {assigned.map((task) => (
-                  <div key={task.id} className="flex items-start gap-4 py-5">
-                    <Avatar className="size-10 shrink-0">
-                      <AvatarFallback className="font-display bg-accent text-accent-foreground">
-                        {initials(task.assignee.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">{task.assignee.name}</p>
-                        <span className="text-xs text-muted-foreground">{task.assignee.title}</span>
-                      </div>
-                      <div className="mt-1 flex items-center gap-2">
-                        <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
-                          {task.title}
-                        </Badge>
-                        <span className="tabular font-mono text-xs text-primary">
-                          +{task.xpReward} XP · +{task.coinReward} coins
-                        </span>
-                      </div>
-                      <p className="mt-2 text-sm text-muted-foreground">{task.description}</p>
-                    </div>
-                    <span className="flex shrink-0 items-center gap-1 font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
-                      <Clock className="size-3.5" />
-                      Not started
-                    </span>
-                  </div>
-                ))}
-              </StaggerGrid>
-            )}
-          </section>
+        {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
 
-          <section>
-            <h2 className="mb-3 font-mono text-xs tracking-widest text-muted-foreground uppercase">
-              Waiting on your review ({pending.length})
-            </h2>
-            {pending.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-16 text-center text-sm text-muted-foreground">
-                <Clock className="size-6" />
-                Nothing waiting on you right now.
-              </div>
-            ) : (
-              <StaggerGrid className="divide-y divide-border/60 border-t border-border/60" deps={[pending.length]}>
-                {pending.map((item) => (
-                  <div key={item.id} className="flex items-start gap-4 py-5">
-                    <Avatar className="size-10 shrink-0">
-                      <AvatarFallback className="font-display bg-accent text-accent-foreground">
-                        {initials(item.employee.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">{item.employee.name}</p>
-                        <span className="text-xs text-muted-foreground">{item.employee.title}</span>
-                      </div>
-                      <div className="mt-1 flex items-center gap-2">
-                        <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
-                          {item.adventure.title}
-                        </Badge>
-                        <span className="tabular font-mono text-xs text-primary">
-                          +{item.adventure.xpReward} XP · +{item.adventure.coinReward} coins
-                        </span>
-                      </div>
-                      <p className="mt-2 text-sm text-muted-foreground">{item.adventure.description}</p>
-                      {item.submission && (
-                        <p className="mt-2 rounded-lg bg-muted/40 px-3 py-2 text-sm">{item.submission}</p>
-                      )}
-                    </div>
-                    <div className="flex shrink-0 gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                        disabled={actingId === item.id}
-                        onClick={() => handleReject(item)}
-                      >
-                        <X />
-                      </Button>
-                      <Button
-                        ref={(el) => {
-                          rowRefs.current[item.id] = el;
-                        }}
-                        size="sm"
-                        className="glow-primary"
-                        disabled={actingId === item.id}
-                        onClick={() => handleApprove(item)}
-                      >
-                        <Check />
-                        Approve
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </StaggerGrid>
-            )}
-          </section>
+        {loading ? (
+          <div className="space-y-px">
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+          </div>
+        ) : (
+          <>
+            <TabsContent value="assigned">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Assignee</TableHead>
+                    <TableHead>Task</TableHead>
+                    <TableHead>Reward</TableHead>
+                    <TableHead className="whitespace-normal">Description</TableHead>
+                    <TableHead className="text-right">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {assigned.length === 0 ? (
+                    <EmptyRow colSpan={5} message="Nothing assigned right now." />
+                  ) : (
+                    assigned.map((task) => (
+                      <TableRow key={task.id}>
+                        <TableCell>
+                          <EmployeeCell name={task.assignee.name} title={task.assignee.title} />
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
+                            {task.title}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="tabular font-mono text-xs text-primary">
+                            +{task.xpReward} XP · +{task.coinReward} coins
+                          </span>
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate text-sm whitespace-normal text-muted-foreground">
+                          {task.description}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
+                            Not started
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TabsContent>
 
-          <section>
-            <h2 className="mb-3 flex items-center gap-2 font-mono text-xs tracking-widest text-muted-foreground uppercase">
-              <CheckCircle2 className="size-3.5" />
-              Approved ({approved.length})
-            </h2>
-            {approved.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nothing approved yet.</p>
-            ) : (
-              <StaggerGrid className="divide-y divide-border/60 border-t border-border/60" deps={[approved.length]}>
-                {approved.map((item) => (
-                  <div key={item.id} className="flex items-start gap-4 py-5">
-                    <Avatar className="size-10 shrink-0">
-                      <AvatarFallback className="font-display bg-accent text-accent-foreground">
-                        {initials(item.employee.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">{item.employee.name}</p>
-                        <span className="text-xs text-muted-foreground">{item.employee.title}</span>
-                      </div>
-                      <div className="mt-1 flex items-center gap-2">
-                        <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
-                          {item.adventure.title}
-                        </Badge>
-                        <span className="tabular font-mono text-xs text-primary">
-                          +{item.adventure.xpReward} XP · +{item.adventure.coinReward} coins
-                        </span>
-                      </div>
-                      <p className="mt-2 text-sm text-muted-foreground">{item.adventure.description}</p>
-                    </div>
-                    <span className="flex shrink-0 items-center gap-1 font-mono text-[10px] tracking-wide text-success uppercase">
-                      <CheckCircle2 className="size-3.5" />
-                      Approved
-                    </span>
-                  </div>
-                ))}
-              </StaggerGrid>
-            )}
-          </section>
-        </div>
-      )}
+            <TabsContent value="review">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Employee</TableHead>
+                    <TableHead>Task</TableHead>
+                    <TableHead>Reward</TableHead>
+                    <TableHead className="whitespace-normal">Submission</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pending.length === 0 ? (
+                    <EmptyRow colSpan={5} message="Nothing waiting on you right now." />
+                  ) : (
+                    pending.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell>
+                          <EmployeeCell name={item.employee.name} title={item.employee.title} />
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
+                            {item.adventure.title}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="tabular font-mono text-xs text-primary">
+                            +{item.adventure.xpReward} XP · +{item.adventure.coinReward} coins
+                          </span>
+                        </TableCell>
+                        <TableCell className="max-w-xs text-sm whitespace-normal text-muted-foreground">
+                          {item.submission ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              disabled={actingId === item.id}
+                              onClick={() => handleReject(item)}
+                            >
+                              <X />
+                            </Button>
+                            <Button
+                              ref={(el) => {
+                                rowRefs.current[item.id] = el;
+                              }}
+                              size="sm"
+                              className="glow-primary"
+                              disabled={actingId === item.id}
+                              onClick={() => handleApprove(item)}
+                            >
+                              <Check />
+                              Approve
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TabsContent>
+
+            <TabsContent value="completed">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Employee</TableHead>
+                    <TableHead>Task</TableHead>
+                    <TableHead>Reward</TableHead>
+                    <TableHead className="whitespace-normal">Description</TableHead>
+                    <TableHead className="text-right">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {approved.length === 0 ? (
+                    <EmptyRow colSpan={5} message="Nothing approved yet." />
+                  ) : (
+                    approved.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell>
+                          <EmployeeCell name={item.employee.name} title={item.employee.title} />
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
+                            {item.adventure.title}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="tabular font-mono text-xs text-primary">
+                            +{item.adventure.xpReward} XP · +{item.adventure.coinReward} coins
+                          </span>
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate text-sm whitespace-normal text-muted-foreground">
+                          {item.adventure.description}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="font-mono text-[10px] tracking-wide text-success uppercase">
+                            Approved
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TabsContent>
+          </>
+        )}
+      </Tabs>
     </PageIn>
   );
 }
