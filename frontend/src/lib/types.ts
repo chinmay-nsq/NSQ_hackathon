@@ -38,6 +38,16 @@ export interface Companion {
   bondXp: number;
 }
 
+export type ChatRole = "USER" | "COMPANION";
+
+export interface ChatMessage {
+  id: string;
+  companionId: string;
+  role: ChatRole;
+  content: string;
+  createdAt: string;
+}
+
 export type AdventureType = "SOLO" | "GUILD" | "CROSS_GUILD";
 export type AdventureStatus = "ACTIVE" | "COMPLETED" | "EXPIRED";
 export type ApprovalStatus = "NONE" | "PENDING" | "APPROVED" | "REJECTED";

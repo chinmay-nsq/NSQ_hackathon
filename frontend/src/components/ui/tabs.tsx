@@ -15,7 +15,7 @@ function Tabs({
       data-slot="tabs"
       data-orientation={orientation}
       className={cn(
-        "group/tabs flex gap-2 data-[orientation=horizontal]:flex-col",
+        "group/tabs flex min-w-0 gap-2 data-[orientation=horizontal]:flex-col",
         className
       )}
       {...props}
@@ -47,7 +47,7 @@ function TabsList({
     <TabsPrimitive.List
       data-slot="tabs-list"
       data-variant={variant}
-      className={cn(tabsListVariants({ variant }), className)}
+      className={cn(tabsListVariants({ variant }), "max-w-full overflow-x-auto", className)}
       {...props}
     />
   )

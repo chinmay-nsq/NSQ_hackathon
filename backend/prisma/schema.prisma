@@ -90,7 +90,8 @@ model Companion {
   lastDialogueAt DateTime?
   createdAt      DateTime  @default(now())
 
-  memories CompanionMemory[]
+  memories     CompanionMemory[]
+  chatMessages ChatMessage[]
 }
 
 // Rolling short-term memory the AI companion draws on so dialogue
@@ -104,6 +105,29 @@ model CompanionMemory {
   eventType String
   summary   String   @db.Text
   createdAt DateTime @default(now())
+}
+
+enum ChatRole {
+  USER
+  COMPANION
+}
+
+// A real, persisted two-way conversation with the companion — distinct from
+// CompanionMemory (a rolling summary log used for prompt context) and from
+// the one-off generated dialogue lines shown on the dashboard. Scoped to the
+// companion, not the employee, since a companion only ever belongs to one
+// employee anyway and this keeps the relation symmetric with memories.
+model ChatMessage {
+  id          String   @id @default(cuid())
+  companionId String
+  companion   Companion @relation(fields: [companionId], references: [id])
+
+  role    ChatRole
+  content String   @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([companionId, createdAt])
 }
 
 // ---------- Guilds (teams) ----------

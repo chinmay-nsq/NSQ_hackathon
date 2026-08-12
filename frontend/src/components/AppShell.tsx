@@ -6,6 +6,7 @@ import { useAuthStore } from "@/store/authStore";
 import { AppSidebar } from "@/components/AppSidebar";
 import { CoinDisplay } from "@/components/CoinDisplay";
 import { NotificationBell } from "@/components/NotificationBell";
+import { CompanionChatBubble } from "@/components/CompanionChatBubble";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -94,6 +95,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="mx-auto w-full min-w-0 max-w-6xl">{children}</div>
         </main>
       </SidebarInset>
+      <CompanionChatBubble />
     </SidebarProvider>
   );
 }

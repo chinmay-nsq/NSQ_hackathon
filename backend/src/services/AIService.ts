@@ -1,4 +1,4 @@
-import { getAIProvider } from "@/factories/AIProviderFactory";
+import { getAIProvider, ChatTurn } from "@/factories/AIProviderFactory";
 import { GeneratedAdventureContent } from "@/factories/AdventureFactory";
 import { encodeAnswer } from "@/utils/quizCipher";
 
@@ -339,6 +339,44 @@ Respond ONLY with JSON matching: { "title": string, "description": string, "xpRe
       return await getAIProvider().completeJSON<GeneratedAdventureContent>(system, user);
     } catch {
       return FALLBACK_WELCOME_QUEST;
+    }
+  }
+
+  /**
+   * The real, multi-turn companion chat — distinct from
+   * generateCompanionDialogue (one-shot dashboard greeting, no memory of
+   * being replied to). Grounded in the employee's actual current state so
+   * it can answer real questions ("how many coins do I have", "what's
+   * pending") instead of only ever narrating at them. Never invents
+   * numbers not given in context.
+   */
+  async chat(
+    context: {
+      companionName: string;
+      species: string;
+      employeeName: string;
+      level: number;
+      xp: number;
+      coins: number;
+      guildName?: string;
+      pendingAdventureTitles: string[];
+      dailyQuizStatus: "not_generated" | "pending" | "completed";
+    },
+    history: ChatTurn[]
+  ): Promise<string> {
+    const system = `You are ${context.companionName}, a ${context.species} AI companion in Skibidi-Sprint, a workplace gamification app. You live in a chat panel and are having a real back-and-forth conversation with ${context.employeeName}, not delivering a one-off greeting.
+Be warm, encouraging, a little playful — like a coach and friend. Speak in first person, keep replies conversational and SHORT (1-4 sentences unless genuinely asked for more detail), no markdown.
+Here is ${context.employeeName}'s real current state — use it to answer questions accurately, and NEVER invent numbers or facts not given here:
+- Level ${context.level}, ${context.xp} total XP, ${context.coins} coins.
+- Guild: ${context.guildName ?? "not in a guild yet"}.
+- Pending adventures: ${context.pendingAdventureTitles.length > 0 ? context.pendingAdventureTitles.join(", ") : "none"}.
+- Daily skill quiz: ${context.dailyQuizStatus === "pending" ? "generated, not yet answered" : context.dailyQuizStatus === "completed" ? "already completed today" : "not generated yet today"}.
+If asked about anything outside this app (unrelated general knowledge, code help, etc.), gently redirect back to being their companion — you're not a general assistant.`;
+
+    try {
+      return await getAIProvider().completeChat(system, history);
+    } catch {
+      return `Hmm, I'm having trouble thinking clearly right now — mind trying that again in a moment, ${context.employeeName}?`;
     }
   }
 }

@@ -11,6 +11,10 @@ const createSchema = z.object({
   name: z.string().min(1).max(30),
 });
 
+const sendMessageSchema = z.object({
+  content: z.string().min(1).max(1000),
+});
+
 export const CompanionController = {
   listSpecies(_req: Request, res: Response) {
     return res
@@ -41,5 +45,16 @@ export const CompanionController = {
   async dialogue(req: AuthedRequest, res: Response) {
     const dialogue = await CompanionService.getDialogue(req.employeeId!);
     return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Dialogue generated", { dialogue }));
+  },
+
+  async chatHistory(req: AuthedRequest, res: Response) {
+    const messages = await CompanionService.getChatHistory(req.employeeId!);
+    return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Chat history fetched", { messages }));
+  },
+
+  async sendMessage(req: AuthedRequest, res: Response) {
+    const parsed = sendMessageSchema.parse(req.body ?? {});
+    const message = await CompanionService.sendMessage(req.employeeId!, parsed.content);
+    return res.status(HttpStatus.CREATED).json(new ApiResponse(HttpStatus.CREATED, "Message sent", { message }));
   },
 };

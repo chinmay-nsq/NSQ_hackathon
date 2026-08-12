@@ -2,12 +2,18 @@ import { Prisma } from "@prisma/client";
 import { CompanionRepository } from "@/repositories/CompanionRepository";
 import { EmployeeRepository } from "@/repositories/EmployeeRepository";
 import { AdventureRepository } from "@/repositories/AdventureRepository";
+import { ChatRepository } from "@/repositories/ChatRepository";
 import { CompanionFactory } from "@/factories/CompanionFactory";
 import { AIService } from "./AIService";
 import { CompanionSpecies, RESOURCE_TYPES } from "@/config/constants";
 import { prisma } from "@/config/db";
 import { ApiError } from "@/utils/apiError";
 import { HttpStatus } from "@/utils/httpStatus";
+
+// A generous but real ceiling — protects against one runaway chat spamming
+// the AI provider (cost) while still allowing a genuinely long conversation.
+const MAX_MESSAGE_LENGTH = 1000;
+const CHAT_HISTORY_PAGE_SIZE = 50;
 
 function startOfToday(): Date {
   const d = new Date();
@@ -109,6 +115,79 @@ class CompanionServiceImpl {
       "completed_adventure",
       `${employeeName} completed "${adventureTitle}"`
     );
+  }
+
+  /** Most recent messages, oldest first — ready to render directly as a conversation. */
+  async getChatHistory(employeeId: string) {
+    const companion = await CompanionRepository.findByEmployeeId(employeeId);
+    if (!companion) throw new ApiError(HttpStatus.NOT_FOUND, "No companion yet", "Not Found");
+
+    const messages = await ChatRepository.findRecentForCompanion(companion.id, CHAT_HISTORY_PAGE_SIZE);
+    return messages.reverse();
+  }
+
+  /**
+   * Sends a real chat message and gets the companion's reply — both are
+   * persisted. Grounded in the employee's actual current state (level, XP,
+   * coins, guild, pending adventures, quiz status) via the same lookups
+   * getDialogue uses, so the companion can answer real questions instead of
+   * only narrating at them.
+   */
+  async sendMessage(employeeId: string, content: string) {
+    const trimmed = content.trim();
+    if (!trimmed) throw new ApiError(HttpStatus.BAD_REQUEST, "Message can't be empty", "Bad Request");
+    if (trimmed.length > MAX_MESSAGE_LENGTH) {
+      throw new ApiError(HttpStatus.BAD_REQUEST, "Message is too long", "Bad Request");
+    }
+
+    const employee = await EmployeeRepository.findByIdWithRelations(employeeId);
+    if (!employee) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
+    if (!employee.companion) throw new ApiError(HttpStatus.NOT_FOUND, "No companion yet", "Not Found");
+
+    const pendingAdventures = await AdventureRepository.findActiveForEmployee(
+      employeeId,
+      employee.guildId,
+      startOfToday()
+    );
+    const pendingAdventureTitles = pendingAdventures
+      .filter((a) => !a.progress?.[0]?.completed)
+      .map((a) => a.title);
+
+    const todaysSolo = await AdventureRepository.findTodaysSoloAdventure(employeeId, startOfToday());
+    const dailyQuizStatus: "not_generated" | "pending" | "completed" =
+      !todaysSolo || todaysSolo.quiz === null
+        ? "not_generated"
+        : todaysSolo.status === "COMPLETED"
+          ? "completed"
+          : "pending";
+
+    // Save the user's turn first so it's never lost even if the AI call
+    // below fails — the conversation history is the source of truth, not
+    // just the response to this one request.
+    await ChatRepository.create(employee.companion.id, "USER", trimmed);
+
+    const priorMessages = await ChatRepository.findRecentForCompanion(employee.companion.id);
+    const history = priorMessages
+      .reverse()
+      .map((m) => ({ role: m.role === "USER" ? ("user" as const) : ("assistant" as const), content: m.content }));
+
+    const reply = await AIService.chat(
+      {
+        companionName: employee.companion.name,
+        species: employee.companion.species,
+        employeeName: employee.name,
+        level: employee.level,
+        xp: employee.xp,
+        coins: employee.coins,
+        guildName: employee.guild?.name,
+        pendingAdventureTitles,
+        dailyQuizStatus,
+      },
+      history
+    );
+
+    const saved = await ChatRepository.create(employee.companion.id, "COMPANION", reply);
+    return saved;
   }
 }
 

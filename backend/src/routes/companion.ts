@@ -10,5 +10,7 @@ router.get("/check-name", requireAuth, asyncHandler(CompanionController.checkNam
 router.post("/", requireAuth, asyncHandler(CompanionController.create));
 router.get("/me", requireAuth, asyncHandler(CompanionController.me));
 router.get("/dialogue", requireAuth, asyncHandler(CompanionController.dialogue));
+router.get("/chat", requireAuth, asyncHandler(CompanionController.chatHistory));
+router.post("/chat", requireAuth, asyncHandler(CompanionController.sendMessage));
 
 export default router;
