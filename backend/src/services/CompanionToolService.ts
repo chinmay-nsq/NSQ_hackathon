@@ -26,7 +26,7 @@ export const CHAT_TOOLS: ToolDefinition[] = [
   {
     name: "create_task",
     description:
-      "Creates a small solo task for the current employee themself, based on what they described. Use this when they ask you to create/add/make a task, todo, or reminder for themselves.",
+      "Creates a real, immediate task for the current employee, using the exact title/description they gave you. ONLY call this when they explicitly ask you to create/add/make a task RIGHT NOW and have described what it is. NEVER call this for questions about tasks (e.g. 'what tasks can you create', 'what kinds of tasks', 'how does this work') — those are questions to answer in words, not requests to act on. NEVER invent a task's content yourself — if they say 'create a task for me' with no detail about what it should be, ask them what before calling this.",
     parameters: {
       type: "object",
       properties: {
@@ -39,7 +39,7 @@ export const CHAT_TOOLS: ToolDefinition[] = [
   {
     name: "assign_task",
     description:
-      "Manager/admin only: assigns a small task to a named teammate on the manager's own team. Use this when a manager asks you to assign/give a task to someone by name. If you don't know who's on their team, call list_team_members first.",
+      "Manager/admin only: assigns a real, immediate task to a named teammate, using the exact title/description given. ONLY call this when the manager explicitly asks you to assign/give a task to someone RIGHT NOW and has described the task. NEVER call this for questions (e.g. 'what can you assign', 'how does assigning work'). If you don't know who's on their team, call list_team_members first.",
     parameters: {
       type: "object",
       properties: {

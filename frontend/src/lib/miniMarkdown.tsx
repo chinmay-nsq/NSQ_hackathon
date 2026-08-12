@@ -1,4 +1,5 @@
 import { Fragment, type ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 /**
  * Small, purpose-built markdown renderer for companion chat replies — never
@@ -8,7 +9,7 @@ import { Fragment, type ReactNode } from "react";
  * left as plain text rather than half-parsed.
  */
 export function renderMiniMarkdown(text: string): ReactNode {
-  const blocks = text.split(/\n{2,}/);
+  const blocks = normalizeInlineBullets(text).split(/\n{2,}/);
   return (
     <>
       {blocks.map((block, i) => (
@@ -16,6 +17,20 @@ export function renderMiniMarkdown(text: string): ReactNode {
       ))}
     </>
   );
+}
+
+/**
+ * Fallback for a model slip we've actually seen: writing a list inline in
+ * one sentence separated by " * " instead of real line breaks (e.g. "I can:
+ * * do X * do Y * do Z"). Requires 2+ occurrences of " * " so a single
+ * legitimate mid-sentence asterisk (rare, but possible) isn't mistaken for a
+ * list start.
+ */
+function normalizeInlineBullets(text: string): string {
+  const marker = / \* /g;
+  const matches = text.match(marker);
+  if (!matches || matches.length < 2) return text;
+  return text.replace(marker, "\n- ");
 }
 
 function renderBlock(block: string): ReactNode {
@@ -29,30 +44,43 @@ function renderBlock(block: string): ReactNode {
   }
 
   const lines = block.split("\n").filter((l) => l.trim().length > 0);
-  const isBulletList = lines.length > 0 && lines.every((l) => /^[-*]\s+/.test(l.trim()));
-  const isNumberedList = lines.length > 0 && lines.every((l) => /^\d+[.)]\s+/.test(l.trim()));
+  const isBulletLine = (l: string) => /^[-*]\s+/.test(l.trim());
+  const isNumberedLine = (l: string) => /^\d+[.)]\s+/.test(l.trim());
 
-  if (isBulletList) {
-    return (
-      <ul className="my-1 list-disc space-y-0.5 pl-4">
-        {lines.map((l, i) => (
-          <li key={i}>{renderInline(l.trim().replace(/^[-*]\s+/, ""))}</li>
-        ))}
-      </ul>
-    );
+  // A block can be a plain intro line followed by a list (common when a
+  // reply says "Here's what I can do:" then enumerates) — not just a block
+  // that's a list top to bottom. Find where the list actually starts.
+  const listStart = lines.findIndex((l) => isBulletLine(l) || isNumberedLine(l));
+  if (listStart === -1) {
+    return <p className="[&:not(:first-child)]:mt-1.5">{renderInline(block)}</p>;
   }
 
-  if (isNumberedList) {
-    return (
-      <ol className="my-1 list-decimal space-y-0.5 pl-4">
-        {lines.map((l, i) => (
-          <li key={i}>{renderInline(l.trim().replace(/^\d+[.)]\s+/, ""))}</li>
-        ))}
-      </ol>
-    );
+  const intro = lines.slice(0, listStart);
+  const listLines = lines.slice(listStart);
+  const isNumbered = isNumberedLine(listLines[0]);
+  const allListed = listLines.every((l) => (isNumbered ? isNumberedLine(l) : isBulletLine(l)));
+
+  if (!allListed) {
+    // Mixed content the simple parser can't cleanly separate — render as
+    // plain text rather than mangling it.
+    return <p className="[&:not(:first-child)]:mt-1.5">{renderInline(block)}</p>;
   }
 
-  return <p className="[&:not(:first-child)]:mt-1.5">{renderInline(block)}</p>;
+  const ListTag = isNumbered ? "ol" : "ul";
+  const stripPattern = isNumbered ? /^\d+[.)]\s+/ : /^[-*]\s+/;
+
+  return (
+    <>
+      {intro.length > 0 && (
+        <p className="[&:not(:first-child)]:mt-1.5">{renderInline(intro.join(" "))}</p>
+      )}
+      <ListTag className={cn("my-1 space-y-0.5 pl-4", isNumbered ? "list-decimal" : "list-disc")}>
+        {listLines.map((l, i) => (
+          <li key={i}>{renderInline(l.trim().replace(stripPattern, ""))}</li>
+        ))}
+      </ListTag>
+    </>
+  );
 }
 
 function renderInline(text: string): ReactNode {
