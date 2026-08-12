@@ -119,7 +119,7 @@ export function ThemeToggle() {
       scale: 0.2,
       opacity: 0,
       filter: "blur(4px)",
-      duration: 0.75,
+      duration: 0.4,
       ease: "power2.in",
     });
     gsap.fromTo(
@@ -130,8 +130,8 @@ export function ThemeToggle() {
         scale: 1,
         opacity: 1,
         filter: "blur(0px)",
-        duration: 1.1,
-        delay: 0.35,
+        duration: 0.6,
+        delay: 0.2,
         ease: "back.out(2.4)",
       }
     );
@@ -187,7 +187,7 @@ export function ThemeToggle() {
             { clipPath: `circle(${maxRadius}px at ${origin.x}px ${origin.y}px)`, offset: 1 },
           ],
           {
-            duration: 2200,
+            duration: 900,
             easing: "cubic-bezier(0.65, 0, 0.35, 1)",
             pseudoElement: "::view-transition-new(root)",
           }

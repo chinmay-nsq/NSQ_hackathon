@@ -1,5 +1,5 @@
 import Groq from "groq-sdk";
-import { getGroqClient, GROQ_MODEL } from "@/config/groqClient";
+import { withGroqRetry, GROQ_MODEL } from "@/config/groqClient";
 
 export interface ChatTurn {
   role: "user" | "assistant";
@@ -48,40 +48,43 @@ export interface AIProvider {
 
 class GroqProvider implements AIProvider {
   async completeJSON<T>(system: string, user: string): Promise<T> {
-    const groq = getGroqClient();
-    const completion = await groq.chat.completions.create({
-      model: GROQ_MODEL,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.9,
-    });
+    const completion = await withGroqRetry((groq) =>
+      groq.chat.completions.create({
+        model: GROQ_MODEL,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.9,
+      })
+    );
     const raw = completion.choices[0]?.message?.content ?? "{}";
     return JSON.parse(raw) as T;
   }
 
   async completeText(system: string, user: string): Promise<string> {
-    const groq = getGroqClient();
-    const completion = await groq.chat.completions.create({
-      model: GROQ_MODEL,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-      temperature: 0.8,
-    });
+    const completion = await withGroqRetry((groq) =>
+      groq.chat.completions.create({
+        model: GROQ_MODEL,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+        temperature: 0.8,
+      })
+    );
     return completion.choices[0]?.message?.content ?? "";
   }
 
   async completeChat(system: string, history: ChatTurn[]): Promise<string> {
-    const groq = getGroqClient();
-    const completion = await groq.chat.completions.create({
-      model: GROQ_MODEL,
-      messages: [{ role: "system", content: system }, ...history],
-      temperature: 0.85,
-    });
+    const completion = await withGroqRetry((groq) =>
+      groq.chat.completions.create({
+        model: GROQ_MODEL,
+        messages: [{ role: "system", content: system }, ...history],
+        temperature: 0.85,
+      })
+    );
     return completion.choices[0]?.message?.content ?? "";
   }
 
@@ -90,17 +93,18 @@ class GroqProvider implements AIProvider {
     history: ChatTurn[],
     tools: ToolDefinition[]
   ): Promise<ChatWithToolsResult> {
-    const groq = getGroqClient();
     try {
-      const completion = await groq.chat.completions.create({
-        model: GROQ_MODEL,
-        messages: [{ role: "system", content: system }, ...history],
-        temperature: 0.7,
-        tools: tools.map((t) => ({
-          type: "function" as const,
-          function: { name: t.name, description: t.description, parameters: t.parameters },
-        })),
-      });
+      const completion = await withGroqRetry((groq) =>
+        groq.chat.completions.create({
+          model: GROQ_MODEL,
+          messages: [{ role: "system", content: system }, ...history],
+          temperature: 0.7,
+          tools: tools.map((t) => ({
+            type: "function" as const,
+            function: { name: t.name, description: t.description, parameters: t.parameters },
+          })),
+        })
+      );
 
       const message = completion.choices[0]?.message;
       if (message?.tool_calls && message.tool_calls.length > 0) {
@@ -138,29 +142,30 @@ class GroqProvider implements AIProvider {
     calls: ToolCallRequest[],
     results: ToolCallResult[]
   ): Promise<string> {
-    const groq = getGroqClient();
-    const completion = await groq.chat.completions.create({
-      model: GROQ_MODEL,
-      messages: [
-        { role: "system", content: system },
-        ...history,
-        {
-          role: "assistant",
-          content: null,
-          tool_calls: calls.map((c) => ({
-            id: c.id,
-            type: "function" as const,
-            function: { name: c.name, arguments: JSON.stringify(c.arguments) },
+    const completion = await withGroqRetry((groq) =>
+      groq.chat.completions.create({
+        model: GROQ_MODEL,
+        messages: [
+          { role: "system", content: system },
+          ...history,
+          {
+            role: "assistant",
+            content: null,
+            tool_calls: calls.map((c) => ({
+              id: c.id,
+              type: "function" as const,
+              function: { name: c.name, arguments: JSON.stringify(c.arguments) },
+            })),
+          },
+          ...results.map((r) => ({
+            role: "tool" as const,
+            tool_call_id: r.toolCallId,
+            content: r.content,
           })),
-        },
-        ...results.map((r) => ({
-          role: "tool" as const,
-          tool_call_id: r.toolCallId,
-          content: r.content,
-        })),
-      ],
-      temperature: 0.8,
-    });
+        ],
+        temperature: 0.8,
+      })
+    );
     return completion.choices[0]?.message?.content ?? "";
   }
 }
