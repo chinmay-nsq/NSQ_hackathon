@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { CompanionRepository } from "@/repositories/CompanionRepository";
 import { EmployeeRepository } from "@/repositories/EmployeeRepository";
 import { AdventureRepository } from "@/repositories/AdventureRepository";
+import { GuildRepository } from "@/repositories/GuildRepository";
 import { ChatRepository } from "@/repositories/ChatRepository";
 import { CompanionFactory } from "@/factories/CompanionFactory";
 import { AIService, ChatContext } from "./AIService";
@@ -129,6 +130,17 @@ class CompanionServiceImpl {
   }
 
   /**
+   * Wipes the chat conversation on logout — history persists only for the
+   * duration of a login session, not indefinitely. Quiet no-op if the
+   * employee never had a companion (nothing to clear).
+   */
+  async clearChatHistory(employeeId: string) {
+    const companion = await CompanionRepository.findByEmployeeId(employeeId);
+    if (!companion) return;
+    await ChatRepository.deleteAllForCompanion(companion.id);
+  }
+
+  /**
    * Sends a real chat message and gets the companion's reply — both are
    * persisted. Grounded in the employee's actual current state (level, XP,
    * coins, guild, pending adventures, quiz status) via the same lookups
@@ -165,6 +177,15 @@ class CompanionServiceImpl {
           ? "completed"
           : "pending";
 
+    // A manager can lead a guild without being a member of it (guildName
+    // above reflects membership only) — fetched separately so the
+    // companion knows the difference and never tells a manager they have
+    // no team just because they're not personally in the roster.
+    const managedGuildNames =
+      employee.role === "EMPLOYEE"
+        ? []
+        : (await GuildRepository.findNamesManagedBy(employeeId)).map((g) => g.name);
+
     const chatContext: ChatContext = {
       companionName: employee.companion.name,
       species: employee.companion.species,
@@ -174,6 +195,7 @@ class CompanionServiceImpl {
       xp: employee.xp,
       coins: employee.coins,
       guildName: employee.guild?.name,
+      managedGuildNames,
       pendingAdventureTitles,
       dailyQuizStatus,
     };

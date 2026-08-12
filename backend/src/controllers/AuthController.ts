@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { z } from "zod";
 import { AuthService } from "@/services/AuthService";
+import { CompanionService } from "@/services/CompanionService";
 import { env } from "@/config/env";
 import { COOKIE_MAX_AGE_MS } from "@/config/constants";
 import { AuthedRequest } from "@/middleware/requireAuth";
@@ -75,7 +76,26 @@ export const AuthController = {
     );
   },
 
-  logout(_req: Request, res: Response) {
+  async logout(req: Request, res: Response) {
+    // Best-effort: chat history is only kept for the duration of a login
+    // session, so clear it here — but logout must always succeed even with
+    // a missing/expired/invalid token (unlike requireAuth, which would
+    // reject the request outright), since "log me out" should work no
+    // matter what state the session is in.
+    const bearer = req.headers.authorization?.startsWith("Bearer ")
+      ? req.headers.authorization.slice(7)
+      : undefined;
+    const token = bearer ?? req.cookies?.[env.cookieName];
+    if (token) {
+      try {
+        const { employeeId } = AuthService.verifyToken(token);
+        await CompanionService.clearChatHistory(employeeId);
+      } catch {
+        // Expired/invalid token, or the clear itself failed — either way,
+        // logout still proceeds below.
+      }
+    }
+
     const isProduction = env.nodeEnv === "production";
     // clearCookie must be called with the same attributes the cookie was set
     // with (sameSite/secure) or some browsers won't actually remove it.

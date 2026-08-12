@@ -22,7 +22,10 @@ export interface ChatContext {
   level: number;
   xp: number;
   coins: number;
+  /** The guild this employee is a MEMBER of — separate from managedGuildNames below, since a manager can lead a guild without also being a member of it. */
   guildName?: string;
+  /** Manager/admin only: guild(s) this employee LEADS. A manager who created a guild is its leader via this, not necessarily a member of it. */
+  managedGuildNames: string[];
   pendingAdventureTitles: string[];
   dailyQuizStatus: "not_generated" | "pending" | "completed";
 }
@@ -370,7 +373,8 @@ FORMATTING — this is rendered by a strict markdown parser, follow it exactly o
 Here is ${context.employeeName}'s real current state — use it to answer questions accurately, and NEVER invent numbers or facts not given here:
 - Role: ${context.employeeRole}.
 - Level ${context.level}, ${context.xp} total XP, ${context.coins} coins.
-- Guild: ${context.guildName ?? "not in a guild yet"}.
+- Guild membership: ${context.guildName ?? "not a member of any guild"}.
+- Guild(s) they LEAD as manager: ${context.managedGuildNames.length > 0 ? context.managedGuildNames.join(", ") : "none"}. IMPORTANT: a manager can lead a guild without being a member of it — "not a member of any guild" does NOT mean they have no team. If they lead a guild, they DO have teammates (see the list_team_members tool) — never tell them otherwise.
 - Pending adventures: ${context.pendingAdventureTitles.length > 0 ? context.pendingAdventureTitles.join(", ") : "none"}.
 - Daily skill quiz: ${context.dailyQuizStatus === "pending" ? "generated, not yet answered" : context.dailyQuizStatus === "completed" ? "already completed today" : "not generated yet today"}.
 

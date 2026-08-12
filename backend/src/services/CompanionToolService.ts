@@ -96,7 +96,15 @@ export async function executeCompanionTool(
         const guilds = await GuildRepository.findManagedByWithMembers(ctx.employeeId);
         const names = guilds.flatMap((g) => g.members.map((m) => m.name));
         if (names.length === 0) return { content: "They don't manage any guild with members yet." };
-        return { content: `Team members: ${names.join(", ")}.` };
+        // Pre-formatted as real markdown bullets, one per line — passed
+        // through to the model as the tool result, so its reply just needs
+        // to present this list rather than invent formatting for a
+        // comma-joined string (which is what produced broken "1. name"
+        // inline pseudo-lists before).
+        const bulletList = names.map((n) => `- ${n}`).join("\n");
+        return {
+          content: `Team members (present this as a markdown bullet list, one per line, exactly like this):\n${bulletList}`,
+        };
       }
 
       case "assign_task": {

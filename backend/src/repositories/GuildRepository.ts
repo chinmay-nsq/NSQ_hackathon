@@ -48,6 +48,10 @@ export const GuildRepository = {
     return prisma.guild.findMany({ where: { managerId }, select: { id: true } });
   },
 
+  findNamesManagedBy(managerId: string): Promise<{ name: string }[]> {
+    return prisma.guild.findMany({ where: { managerId }, select: { name: true } });
+  },
+
   findManagedByWithMembers(managerId: string) {
     return prisma.guild.findMany({
       where: { managerId },

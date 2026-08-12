@@ -18,4 +18,8 @@ export const ChatRepository = {
   create(companionId: string, role: ChatRole, content: string) {
     return prisma.chatMessage.create({ data: { companionId, role, content } });
   },
+
+  deleteAllForCompanion(companionId: string) {
+    return prisma.chatMessage.deleteMany({ where: { companionId } });
+  },
 };
