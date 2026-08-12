@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Send, X } from "lucide-react";
 import { api, ApiRequestError } from "@/lib/api";
 import { ChatMessage } from "@/lib/types";
 import { useAuthStore } from "@/store/authStore";
 import { cn } from "@/lib/utils";
+import { renderMiniMarkdown } from "@/lib/miniMarkdown";
 import { CompanionViewer } from "@/components/companion3d/CompanionViewer";
 import { Button } from "@/components/ui/button";
 
@@ -17,6 +19,7 @@ import { Button } from "@/components/ui/button";
  */
 export function CompanionChatBubble() {
   const { employee } = useAuthStore();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -59,8 +62,15 @@ export function CompanionChatBubble() {
     setSending(true);
 
     try {
-      const data = await api.post<{ message: ChatMessage }>("/companion/chat", { content });
+      const data = await api.post<{ message: ChatMessage; navigateTo: string | null }>("/companion/chat", {
+        content,
+      });
       setMessages((prev) => [...prev, data.message]);
+      // A short delay so the employee actually sees the companion's reply
+      // land before the page changes out from under them.
+      if (data.navigateTo) {
+        setTimeout(() => router.push(data.navigateTo!), 600);
+      }
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : "Couldn't send that — try again.");
     } finally {
@@ -110,7 +120,7 @@ export function CompanionChatBubble() {
                         : "rounded-bl-sm bg-muted"
                     )}
                   >
-                    {m.content}
+                    {m.role === "COMPANION" ? renderMiniMarkdown(m.content) : m.content}
                   </div>
                 </div>
               ))

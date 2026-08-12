@@ -28,6 +28,18 @@
   }
 }
 
+/* Horizontally-scrollable rows (e.g. TabsList on narrow screens) that
+   should still scroll on overflow but never show a visible scrollbar track —
+   the content itself already signals it's scrollable. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /*
   Skibidi-Sprint — cinematic game-UI dashboard, matching the landing page's
   dark ink + coral identity. Light and dark both lean bolder/higher-contrast

@@ -5,11 +5,44 @@ export interface ChatTurn {
   content: string;
 }
 
+export interface ToolDefinition {
+  name: string;
+  description: string;
+  /** JSON Schema for the tool's arguments object. */
+  parameters: Record<string, unknown>;
+}
+
+export interface ToolCallRequest {
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
+export interface ToolCallResult {
+  toolCallId: string;
+  /** Serialized (usually JSON.stringify'd) result the model gets back as this tool's output. */
+  content: string;
+}
+
+/** Either the model produced a final reply, or it wants one or more tools invoked before replying. */
+export type ChatWithToolsResult =
+  | { kind: "reply"; text: string }
+  | { kind: "tool_calls"; calls: ToolCallRequest[] };
+
 export interface AIProvider {
   completeJSON<T>(system: string, user: string): Promise<T>;
   completeText(system: string, user: string): Promise<string>;
   /** Multi-turn: system prompt + prior conversation history, returns the next assistant reply. */
   completeChat(system: string, history: ChatTurn[]): Promise<string>;
+  /** Multi-turn with tool-calling: model may ask for tools instead of replying directly. */
+  completeChatWithTools(system: string, history: ChatTurn[], tools: ToolDefinition[]): Promise<ChatWithToolsResult>;
+  /** Continues after tool results are fed back — returns the model's final natural-language reply. */
+  completeChatToolReply(
+    system: string,
+    history: ChatTurn[],
+    calls: ToolCallRequest[],
+    results: ToolCallResult[]
+  ): Promise<string>;
 }
 
 class GroqProvider implements AIProvider {
@@ -49,6 +82,80 @@ class GroqProvider implements AIProvider {
       temperature: 0.85,
     });
     return completion.choices[0]?.message?.content ?? "";
+  }
+
+  async completeChatWithTools(
+    system: string,
+    history: ChatTurn[],
+    tools: ToolDefinition[]
+  ): Promise<ChatWithToolsResult> {
+    const groq = getGroqClient();
+    const completion = await groq.chat.completions.create({
+      model: GROQ_MODEL,
+      messages: [{ role: "system", content: system }, ...history],
+      temperature: 0.7,
+      tools: tools.map((t) => ({
+        type: "function" as const,
+        function: { name: t.name, description: t.description, parameters: t.parameters },
+      })),
+    });
+
+    const message = completion.choices[0]?.message;
+    if (message?.tool_calls && message.tool_calls.length > 0) {
+      return {
+        kind: "tool_calls",
+        calls: message.tool_calls.map((c) => ({
+          id: c.id,
+          name: c.function.name,
+          // Model-generated JSON — malformed args fail closed as {} rather
+          // than crashing the whole chat turn.
+          arguments: safeParseJSON(c.function.arguments),
+        })),
+      };
+    }
+
+    return { kind: "reply", text: message?.content ?? "" };
+  }
+
+  async completeChatToolReply(
+    system: string,
+    history: ChatTurn[],
+    calls: ToolCallRequest[],
+    results: ToolCallResult[]
+  ): Promise<string> {
+    const groq = getGroqClient();
+    const completion = await groq.chat.completions.create({
+      model: GROQ_MODEL,
+      messages: [
+        { role: "system", content: system },
+        ...history,
+        {
+          role: "assistant",
+          content: null,
+          tool_calls: calls.map((c) => ({
+            id: c.id,
+            type: "function" as const,
+            function: { name: c.name, arguments: JSON.stringify(c.arguments) },
+          })),
+        },
+        ...results.map((r) => ({
+          role: "tool" as const,
+          tool_call_id: r.toolCallId,
+          content: r.content,
+        })),
+      ],
+      temperature: 0.8,
+    });
+    return completion.choices[0]?.message?.content ?? "";
+  }
+}
+
+function safeParseJSON(raw: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(raw);
+    return typeof parsed === "object" && parsed !== null ? parsed : {};
+  } catch {
+    return {};
   }
 }
 

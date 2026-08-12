@@ -1,4 +1,4 @@
-import { getAIProvider, ChatTurn } from "@/factories/AIProviderFactory";
+import { getAIProvider, ChatTurn, ToolDefinition, ToolCallRequest, ToolCallResult } from "@/factories/AIProviderFactory";
 import { GeneratedAdventureContent } from "@/factories/AdventureFactory";
 import { encodeAnswer } from "@/utils/quizCipher";
 
@@ -12,6 +12,19 @@ export interface QuizQuestionContent {
 export interface ProfileSuggestion {
   seniority: "JUNIOR" | "MID" | "SENIOR" | "LEAD";
   skills: string[];
+}
+
+export interface ChatContext {
+  companionName: string;
+  species: string;
+  employeeName: string;
+  employeeRole: string;
+  level: number;
+  xp: number;
+  coins: number;
+  guildName?: string;
+  pendingAdventureTitles: string[];
+  dailyQuizStatus: "not_generated" | "pending" | "completed";
 }
 
 interface RawQuizQuestion {
@@ -342,42 +355,58 @@ Respond ONLY with JSON matching: { "title": string, "description": string, "xpRe
     }
   }
 
+  /** Shared system prompt builder for both the plain and tool-enabled chat paths — kept identical so behavior doesn't drift between them. */
+  buildChatSystemPrompt(context: ChatContext): string {
+    return `You are ${context.companionName}, a ${context.species} AI companion in Skibidi-Sprint, a workplace gamification app. You live in a chat panel and are having a real back-and-forth conversation with ${context.employeeName}, not delivering a one-off greeting.
+Be warm, encouraging, a little playful — like a coach and friend. Speak in first person, keep replies conversational and SHORT (1-4 sentences) UNLESS the situation calls for structure — use markdown (bold, bullet lists, numbered steps, \`inline code\`, or fenced code blocks) whenever it makes the answer clearer, e.g. explaining multiple features, giving steps, or showing something list-like.
+
+Here is ${context.employeeName}'s real current state — use it to answer questions accurately, and NEVER invent numbers or facts not given here:
+- Role: ${context.employeeRole}.
+- Level ${context.level}, ${context.xp} total XP, ${context.coins} coins.
+- Guild: ${context.guildName ?? "not in a guild yet"}.
+- Pending adventures: ${context.pendingAdventureTitles.length > 0 ? context.pendingAdventureTitles.join(", ") : "none"}.
+- Daily skill quiz: ${context.dailyQuizStatus === "pending" ? "generated, not yet answered" : context.dailyQuizStatus === "completed" ? "already completed today" : "not generated yet today"}.
+
+If asked what Skibidi-Sprint is or what you (the companion) can help with, explain using ONLY real features: Adventures (daily AI skill quiz + solo/team tasks that earn XP and coins), Rewards (spend coins on real perks), Trading Post (resell redeemed rewards to teammates), Teams/guilds (shared team progress and resources), and for managers: Approvals (review submitted tasks) and assigning tasks to teammates. Mention you can also create tasks and jump them to pages directly from this chat.
+
+You have tools available: creating a task for the employee themself, and — managers/admins only — listing team members and assigning a task to a named teammate, plus a navigate tool to jump the employee to a real page in the app. Use a tool when the request clearly calls for the action it performs; don't use a tool just to answer an informational question. If a manager tool is requested by a plain employee, explain you can't do that for them, don't call the tool.
+
+If asked about anything outside this app (unrelated general knowledge, code help, etc.), gently redirect back to being their companion — you're not a general assistant.`;
+  }
+
   /**
    * The real, multi-turn companion chat — distinct from
    * generateCompanionDialogue (one-shot dashboard greeting, no memory of
    * being replied to). Grounded in the employee's actual current state so
    * it can answer real questions ("how many coins do I have", "what's
    * pending") instead of only ever narrating at them. Never invents
-   * numbers not given in context.
+   * numbers not given in context. No tools — used only as the error-path
+   * fallback when the tool-enabled path can't be used.
    */
-  async chat(
-    context: {
-      companionName: string;
-      species: string;
-      employeeName: string;
-      level: number;
-      xp: number;
-      coins: number;
-      guildName?: string;
-      pendingAdventureTitles: string[];
-      dailyQuizStatus: "not_generated" | "pending" | "completed";
-    },
-    history: ChatTurn[]
-  ): Promise<string> {
-    const system = `You are ${context.companionName}, a ${context.species} AI companion in Skibidi-Sprint, a workplace gamification app. You live in a chat panel and are having a real back-and-forth conversation with ${context.employeeName}, not delivering a one-off greeting.
-Be warm, encouraging, a little playful — like a coach and friend. Speak in first person, keep replies conversational and SHORT (1-4 sentences unless genuinely asked for more detail), no markdown.
-Here is ${context.employeeName}'s real current state — use it to answer questions accurately, and NEVER invent numbers or facts not given here:
-- Level ${context.level}, ${context.xp} total XP, ${context.coins} coins.
-- Guild: ${context.guildName ?? "not in a guild yet"}.
-- Pending adventures: ${context.pendingAdventureTitles.length > 0 ? context.pendingAdventureTitles.join(", ") : "none"}.
-- Daily skill quiz: ${context.dailyQuizStatus === "pending" ? "generated, not yet answered" : context.dailyQuizStatus === "completed" ? "already completed today" : "not generated yet today"}.
-If asked about anything outside this app (unrelated general knowledge, code help, etc.), gently redirect back to being their companion — you're not a general assistant.`;
-
+  async chat(context: ChatContext, history: ChatTurn[]): Promise<string> {
+    const system = this.buildChatSystemPrompt(context);
     try {
       return await getAIProvider().completeChat(system, history);
     } catch {
       return `Hmm, I'm having trouble thinking clearly right now — mind trying that again in a moment, ${context.employeeName}?`;
     }
+  }
+
+  /** Same as chat(), but lets the model request tools (create/assign a task, navigate) instead of just replying. */
+  chatWithTools(context: ChatContext, history: ChatTurn[], tools: ToolDefinition[]) {
+    const system = this.buildChatSystemPrompt(context);
+    return getAIProvider().completeChatWithTools(system, history, tools);
+  }
+
+  /** Continues a tool-calling turn after the tool(s) have actually run — returns the model's final natural-language reply. */
+  chatToolReply(
+    context: ChatContext,
+    history: ChatTurn[],
+    calls: ToolCallRequest[],
+    results: ToolCallResult[]
+  ) {
+    const system = this.buildChatSystemPrompt(context);
+    return getAIProvider().completeChatToolReply(system, history, calls, results);
   }
 }
 

@@ -4,7 +4,9 @@ import { EmployeeRepository } from "@/repositories/EmployeeRepository";
 import { AdventureRepository } from "@/repositories/AdventureRepository";
 import { ChatRepository } from "@/repositories/ChatRepository";
 import { CompanionFactory } from "@/factories/CompanionFactory";
-import { AIService } from "./AIService";
+import { AIService, ChatContext } from "./AIService";
+import { CHAT_TOOLS, executeCompanionTool } from "./CompanionToolService";
+import { ToolCallResult } from "@/factories/AIProviderFactory";
 import { CompanionSpecies, RESOURCE_TYPES } from "@/config/constants";
 import { prisma } from "@/config/db";
 import { ApiError } from "@/utils/apiError";
@@ -131,7 +133,9 @@ class CompanionServiceImpl {
    * persisted. Grounded in the employee's actual current state (level, XP,
    * coins, guild, pending adventures, quiz status) via the same lookups
    * getDialogue uses, so the companion can answer real questions instead of
-   * only narrating at them.
+   * only narrating at them. The model may request a tool (create/assign a
+   * task, navigate) instead of replying directly — if so, the tool actually
+   * runs server-side and its result is fed back for a final reply.
    */
   async sendMessage(employeeId: string, content: string) {
     const trimmed = content.trim();
@@ -161,6 +165,19 @@ class CompanionServiceImpl {
           ? "completed"
           : "pending";
 
+    const chatContext: ChatContext = {
+      companionName: employee.companion.name,
+      species: employee.companion.species,
+      employeeName: employee.name,
+      employeeRole: employee.role,
+      level: employee.level,
+      xp: employee.xp,
+      coins: employee.coins,
+      guildName: employee.guild?.name,
+      pendingAdventureTitles,
+      dailyQuizStatus,
+    };
+
     // Save the user's turn first so it's never lost even if the AI call
     // below fails — the conversation history is the source of truth, not
     // just the response to this one request.
@@ -171,23 +188,31 @@ class CompanionServiceImpl {
       .reverse()
       .map((m) => ({ role: m.role === "USER" ? ("user" as const) : ("assistant" as const), content: m.content }));
 
-    const reply = await AIService.chat(
-      {
-        companionName: employee.companion.name,
-        species: employee.companion.species,
-        employeeName: employee.name,
-        level: employee.level,
-        xp: employee.xp,
-        coins: employee.coins,
-        guildName: employee.guild?.name,
-        pendingAdventureTitles,
-        dailyQuizStatus,
-      },
-      history
-    );
+    const result = await AIService.chatWithTools(chatContext, history, CHAT_TOOLS);
 
-    const saved = await ChatRepository.create(employee.companion.id, "COMPANION", reply);
-    return saved;
+    if (result.kind === "reply") {
+      const saved = await ChatRepository.create(employee.companion.id, "COMPANION", result.text);
+      return { ...saved, navigateTo: undefined as string | undefined };
+    }
+
+    // Tool path: actually run every requested tool, feed the real results
+    // back to the model, and only persist its final natural-language reply
+    // — the raw tool-call/result exchange is never shown to the employee.
+    const toolResults: ToolCallResult[] = [];
+    let navigateTo: string | undefined;
+    for (const call of result.calls) {
+      const outcome = await executeCompanionTool(call.name, call.arguments, {
+        employeeId,
+        employeeRole: employee.role,
+      });
+      if (outcome.navigateTo) navigateTo = outcome.navigateTo;
+      toolResults.push({ toolCallId: call.id, content: outcome.content });
+    }
+
+    const finalReply = await AIService.chatToolReply(chatContext, history, result.calls, toolResults);
+
+    const saved = await ChatRepository.create(employee.companion.id, "COMPANION", finalReply);
+    return { ...saved, navigateTo };
   }
 }
 

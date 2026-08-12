@@ -54,7 +54,9 @@ export const CompanionController = {
 
   async sendMessage(req: AuthedRequest, res: Response) {
     const parsed = sendMessageSchema.parse(req.body ?? {});
-    const message = await CompanionService.sendMessage(req.employeeId!, parsed.content);
-    return res.status(HttpStatus.CREATED).json(new ApiResponse(HttpStatus.CREATED, "Message sent", { message }));
+    const { navigateTo, ...message } = await CompanionService.sendMessage(req.employeeId!, parsed.content);
+    return res
+      .status(HttpStatus.CREATED)
+      .json(new ApiResponse(HttpStatus.CREATED, "Message sent", { message, navigateTo: navigateTo ?? null }));
   },
 };
