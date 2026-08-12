@@ -11,6 +11,20 @@ import { renderMiniMarkdown } from "@/lib/miniMarkdown";
 import { CompanionViewer } from "@/components/companion3d/CompanionViewer";
 import { Button } from "@/components/ui/button";
 
+const EMPLOYEE_SUGGESTIONS = [
+  "What can you help me with?",
+  "What's my daily quiz status?",
+  "Create a task for me",
+  "Take me to Rewards",
+];
+
+const MANAGER_SUGGESTIONS = [
+  "What can you help me with?",
+  "List my team members",
+  "Take me to Approvals",
+  "Create a task for me",
+];
+
 /**
  * Floating chat bubble, always reachable — the companion's real two-way
  * conversation surface, distinct from the one-shot dashboard greeting.
@@ -27,6 +41,10 @@ export function CompanionChatBubble() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Monotonic counter for optimistic message ids — avoids calling the
+  // impure Date.now() from inside a plain (non-event-bound, per the
+  // compiler's analysis) helper function.
+  const pendingIdRef = useRef(0);
 
   useEffect(() => {
     if (!open || loaded) return;
@@ -42,21 +60,20 @@ export function CompanionChatBubble() {
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, sending]);
 
-  async function handleSend(e: React.FormEvent) {
-    e.preventDefault();
-    const content = draft.trim();
+  async function sendMessage(content: string) {
     if (!content || sending) return;
 
     setError(null);
     setDraft("");
     // Optimistic: show the user's own message immediately, before the
     // round trip — the companion's reply lands separately once it arrives.
+    pendingIdRef.current += 1;
     const optimistic: ChatMessage = {
-      id: `pending-${Date.now()}`,
+      id: `pending-${pendingIdRef.current}`,
       companionId: "",
       role: "USER",
       content,
-      createdAt: new Date().toISOString(),
+      createdAt: "",
     };
     setMessages((prev) => [...prev, optimistic]);
     setSending(true);
@@ -78,7 +95,14 @@ export function CompanionChatBubble() {
     }
   }
 
+  function handleSend(e: React.FormEvent) {
+    e.preventDefault();
+    void sendMessage(draft.trim());
+  }
+
   if (!employee?.companion) return null;
+
+  const suggestions = employee.role === "MANAGER" || employee.role === "ADMIN" ? MANAGER_SUGGESTIONS : EMPLOYEE_SUGGESTIONS;
 
   return (
     <div className="fixed right-6 bottom-6 z-40 flex flex-col items-end gap-3">
@@ -106,9 +130,23 @@ export function CompanionChatBubble() {
             {!loaded ? (
               <p className="text-center text-xs text-muted-foreground">Loading…</p>
             ) : messages.length === 0 ? (
-              <p className="text-center text-sm text-muted-foreground">
-                Say hi to {employee.companion.name} — ask about your progress, your guild, anything.
-              </p>
+              <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Say hi to {employee.companion.name} — ask about your progress, your guild, anything.
+                </p>
+                <div className="flex flex-wrap justify-center gap-1.5">
+                  {suggestions.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => sendMessage(s)}
+                      className="rounded-full border border-border bg-background px-3 py-1.5 text-xs text-foreground/80 transition-colors hover:border-primary hover:text-primary"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ) : (
               messages.map((m) => (
                 <div key={m.id} className={cn("flex", m.role === "USER" ? "justify-end" : "justify-start")}>

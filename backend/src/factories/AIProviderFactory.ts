@@ -1,4 +1,3 @@
-import Groq from "groq-sdk";
 import { withGroqRetry, GROQ_MODEL } from "@/config/groqClient";
 
 export interface ChatTurn {
@@ -120,7 +119,16 @@ class GroqProvider implements AIProvider {
         };
       }
 
-      return { kind: "reply", text: message?.content ?? "" };
+      // Groq doesn't always reject a malformed pseudo-tool-call as a 400 —
+      // sometimes it comes back as a normal successful completion with the
+      // `<function=...>` text just sitting inside message.content alongside
+      // (or instead of) the real reply. Since the model clearly intended a
+      // tool call here, actually recover and run it rather than showing the
+      // raw leaked syntax to the user.
+      const leaked = extractLeakedToolCall(message?.content ?? "");
+      if (leaked) return { kind: "tool_calls", calls: [leaked] };
+
+      return { kind: "reply", text: stripLeakedToolCallSyntax(message?.content ?? "") };
     } catch (err) {
       // Llama 3.3 on Groq occasionally emits a tool call in its own
       // pseudo-XML text format instead of a real structured tool call
@@ -166,7 +174,10 @@ class GroqProvider implements AIProvider {
         temperature: 0.8,
       })
     );
-    return completion.choices[0]?.message?.content ?? "";
+    // Safety net only, no recovery loop — this is already the reply that
+    // follows a tool's real result, so another tool call here would be a
+    // model hallucination rather than a genuine second intent.
+    return stripLeakedToolCallSyntax(completion.choices[0]?.message?.content ?? "");
   }
 }
 
@@ -179,22 +190,50 @@ function safeParseJSON(raw: string): Record<string, unknown> {
   }
 }
 
-// Matches Groq/Llama's malformed pseudo-tool-call text, e.g.
+// Matches Llama-on-Groq's malformed pseudo-tool-call text, e.g.
 // `<function=navigate{"destination": "rewards"}</function>` — captures the
-// function name and the raw JSON arguments blob separately.
-const MALFORMED_TOOL_CALL_PATTERN = /<function=([\w-]+)(\{[\s\S]*\})<\/function>/;
+// function name and the raw JSON arguments blob separately. Two places see
+// this: Groq sometimes rejects the whole generation outright as a 400
+// tool_use_failed (see tryRecoverMalformedToolCall), and sometimes it comes
+// back as a normal 200 with this text just sitting inside message.content
+// (see extractLeakedToolCall/stripLeakedToolCallSyntax) — same underlying
+// model slip, two different ways the API can surface it.
+const MALFORMED_TOOL_CALL_PATTERN = /<function=([\w-]+)(\{[\s\S]*?\})\s*<\/function>/;
 
-/** Best-effort recovery from Groq's tool_use_failed 400 — returns null if the error isn't this specific, recoverable shape. */
-function tryRecoverMalformedToolCall(err: unknown): ToolCallRequest | null {
-  if (!(err instanceof Groq.APIError)) return null;
-  const body = err.error as { code?: string; failed_generation?: string } | undefined;
-  if (body?.code !== "tool_use_failed" || typeof body.failed_generation !== "string") return null;
-
-  const match = body.failed_generation.match(MALFORMED_TOOL_CALL_PATTERN);
+function parseLeakedFunctionSyntax(text: string): ToolCallRequest | null {
+  const match = text.match(MALFORMED_TOOL_CALL_PATTERN);
   if (!match) return null;
-
   const [, name, argsJSON] = match;
   return { id: `recovered-${Date.now()}`, name, arguments: safeParseJSON(argsJSON) };
+}
+
+/**
+ * Best-effort recovery from Groq's tool_use_failed 400 — returns null if the
+ * error isn't this specific, recoverable shape. Checked structurally
+ * (duck-typed fields) rather than via `instanceof Groq.APIError`: in
+ * practice that check has failed to match even genuine Groq errors here
+ * (observed both compiled and under tsx), almost certainly a module
+ * identity mismatch between however groq-sdk got loaded for the thrown
+ * error vs. this file's own import — safer to not depend on class identity
+ * matching at all.
+ */
+function tryRecoverMalformedToolCall(err: unknown): ToolCallRequest | null {
+  if (typeof err !== "object" || err === null) return null;
+  const body = (err as { error?: unknown }).error as
+    | { code?: string; failed_generation?: string }
+    | undefined;
+  if (body?.code !== "tool_use_failed" || typeof body.failed_generation !== "string") return null;
+  return parseLeakedFunctionSyntax(body.failed_generation);
+}
+
+/** Same recovery, but for when the malformed syntax leaked into a normal (200) message.content instead of triggering Groq's own validation error. */
+function extractLeakedToolCall(content: string): ToolCallRequest | null {
+  return parseLeakedFunctionSyntax(content);
+}
+
+/** Safety net: strips any leaked `<function=...>` syntax out of a reply that's shown to the user, in case it couldn't be parsed into a real recovered call. */
+function stripLeakedToolCallSyntax(text: string): string {
+  return text.replace(MALFORMED_TOOL_CALL_PATTERN, "").trim();
 }
 
 let cachedProvider: AIProvider | null = null;
