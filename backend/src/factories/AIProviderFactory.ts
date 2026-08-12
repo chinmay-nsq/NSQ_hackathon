@@ -1,3 +1,4 @@
+import Groq from "groq-sdk";
 import { getGroqClient, GROQ_MODEL } from "@/config/groqClient";
 
 export interface ChatTurn {
@@ -90,31 +91,45 @@ class GroqProvider implements AIProvider {
     tools: ToolDefinition[]
   ): Promise<ChatWithToolsResult> {
     const groq = getGroqClient();
-    const completion = await groq.chat.completions.create({
-      model: GROQ_MODEL,
-      messages: [{ role: "system", content: system }, ...history],
-      temperature: 0.7,
-      tools: tools.map((t) => ({
-        type: "function" as const,
-        function: { name: t.name, description: t.description, parameters: t.parameters },
-      })),
-    });
-
-    const message = completion.choices[0]?.message;
-    if (message?.tool_calls && message.tool_calls.length > 0) {
-      return {
-        kind: "tool_calls",
-        calls: message.tool_calls.map((c) => ({
-          id: c.id,
-          name: c.function.name,
-          // Model-generated JSON — malformed args fail closed as {} rather
-          // than crashing the whole chat turn.
-          arguments: safeParseJSON(c.function.arguments),
+    try {
+      const completion = await groq.chat.completions.create({
+        model: GROQ_MODEL,
+        messages: [{ role: "system", content: system }, ...history],
+        temperature: 0.7,
+        tools: tools.map((t) => ({
+          type: "function" as const,
+          function: { name: t.name, description: t.description, parameters: t.parameters },
         })),
-      };
-    }
+      });
 
-    return { kind: "reply", text: message?.content ?? "" };
+      const message = completion.choices[0]?.message;
+      if (message?.tool_calls && message.tool_calls.length > 0) {
+        return {
+          kind: "tool_calls",
+          calls: message.tool_calls.map((c) => ({
+            id: c.id,
+            name: c.function.name,
+            // Model-generated JSON — malformed args fail closed as {} rather
+            // than crashing the whole chat turn.
+            arguments: safeParseJSON(c.function.arguments),
+          })),
+        };
+      }
+
+      return { kind: "reply", text: message?.content ?? "" };
+    } catch (err) {
+      // Llama 3.3 on Groq occasionally emits a tool call in its own
+      // pseudo-XML text format instead of a real structured tool call
+      // (e.g. `<function=navigate{"destination": "rewards"}</function>`) —
+      // Groq's API rejects that generation outright as a 400
+      // "tool_use_failed" instead of returning it as a normal tool call.
+      // The malformed text is still recoverable from the error body, so
+      // parse it out and treat it as the intended tool call rather than
+      // losing the user's request to a hard error.
+      const recovered = tryRecoverMalformedToolCall(err);
+      if (recovered) return { kind: "tool_calls", calls: [recovered] };
+      throw err;
+    }
   }
 
   async completeChatToolReply(
@@ -157,6 +172,24 @@ function safeParseJSON(raw: string): Record<string, unknown> {
   } catch {
     return {};
   }
+}
+
+// Matches Groq/Llama's malformed pseudo-tool-call text, e.g.
+// `<function=navigate{"destination": "rewards"}</function>` — captures the
+// function name and the raw JSON arguments blob separately.
+const MALFORMED_TOOL_CALL_PATTERN = /<function=([\w-]+)(\{[\s\S]*\})<\/function>/;
+
+/** Best-effort recovery from Groq's tool_use_failed 400 — returns null if the error isn't this specific, recoverable shape. */
+function tryRecoverMalformedToolCall(err: unknown): ToolCallRequest | null {
+  if (!(err instanceof Groq.APIError)) return null;
+  const body = err.error as { code?: string; failed_generation?: string } | undefined;
+  if (body?.code !== "tool_use_failed" || typeof body.failed_generation !== "string") return null;
+
+  const match = body.failed_generation.match(MALFORMED_TOOL_CALL_PATTERN);
+  if (!match) return null;
+
+  const [, name, argsJSON] = match;
+  return { id: `recovered-${Date.now()}`, name, arguments: safeParseJSON(argsJSON) };
 }
 
 let cachedProvider: AIProvider | null = null;
