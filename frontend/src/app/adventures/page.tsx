@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageIn } from "@/components/motion/PageIn";
 import { StaggerGrid } from "@/components/motion/StaggerGrid";
 import { HoverLift } from "@/components/motion/HoverLift";
@@ -22,6 +24,32 @@ import { ensureDailyQuiz } from "@/lib/ensureDailyQuiz";
 
 function initials(name: string) {
   return name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+}
+
+function EmployeeCell({ name, title }: { name: string; title: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <Avatar className="size-8 shrink-0">
+        <AvatarFallback className="font-display bg-accent text-accent-foreground">
+          {initials(name)}
+        </AvatarFallback>
+      </Avatar>
+      <div className="min-w-0">
+        <p className="truncate font-medium">{name}</p>
+        <p className="truncate text-xs text-muted-foreground">{title}</p>
+      </div>
+    </div>
+  );
+}
+
+function EmptyRow({ colSpan, message }: { colSpan: number; message: string }) {
+  return (
+    <TableRow className="hover:bg-transparent">
+      <TableCell colSpan={colSpan} className="whitespace-normal py-10 text-center text-sm text-muted-foreground">
+        {message}
+      </TableCell>
+    </TableRow>
+  );
 }
 
 function historyStatus(item: AssignedTaskHistoryItem): { label: string; className: string; icon: typeof Clock } {
@@ -250,47 +278,58 @@ export default function AdventuresPage() {
               <Skeleton className="h-20" />
               <Skeleton className="h-20" />
             </div>
-          ) : history.length === 0 ? (
-            <p className="text-sm text-muted-foreground">You haven&apos;t assigned any tasks yet.</p>
           ) : (
-            <StaggerGrid className="divide-y divide-border/60 border-t border-border/60" deps={[history.length]}>
-              {history.map((item) => {
-                const status = historyStatus(item);
-                return (
-                  <div key={item.id} className="flex items-start gap-4 py-4">
-                    <Avatar className="size-10 shrink-0">
-                      <AvatarFallback className="font-display bg-accent text-accent-foreground">
-                        {initials(item.assignee.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">{item.assignee.name}</p>
-                        <span className="text-xs text-muted-foreground">{item.assignee.title}</span>
-                      </div>
-                      <div className="mt-1 flex items-center gap-2">
-                        <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
-                          {item.title}
-                        </Badge>
-                        <span className="tabular font-mono text-xs text-primary">
-                          +{item.xpReward} XP · +{item.coinReward} coins
-                        </span>
-                      </div>
-                      <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
-                    </div>
-                    <span
-                      className={cn(
-                        "flex shrink-0 items-center gap-1 font-mono text-[10px] tracking-wide uppercase",
-                        status.className
-                      )}
-                    >
-                      <status.icon className="size-3.5" />
-                      {status.label}
-                    </span>
-                  </div>
-                );
-              })}
-            </StaggerGrid>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Assignee</TableHead>
+                  <TableHead>Task</TableHead>
+                  <TableHead>Reward</TableHead>
+                  <TableHead className="whitespace-normal">Description</TableHead>
+                  <TableHead className="text-right">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {history.length === 0 ? (
+                  <EmptyRow colSpan={5} message="You haven't assigned any tasks yet." />
+                ) : (
+                  history.map((item) => {
+                    const status = historyStatus(item);
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell>
+                          <EmployeeCell name={item.assignee.name} title={item.assignee.title} />
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
+                            {item.title}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="tabular font-mono text-xs text-primary">
+                            +{item.xpReward} XP · +{item.coinReward} coins
+                          </span>
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate text-sm whitespace-normal text-muted-foreground">
+                          {item.description}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span
+                            className={cn(
+                              "flex items-center justify-end gap-1 font-mono text-[10px] tracking-wide uppercase",
+                              status.className
+                            )}
+                          >
+                            <status.icon className="size-3.5" />
+                            {status.label}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
           )}
         </div>
       )}
@@ -307,133 +346,167 @@ export default function AdventuresPage() {
             <Skeleton className="h-20" />
           </div>
         ) : (
-          <div className="space-y-8">
-            <section>
-              <h3 className="mb-3 font-mono text-xs tracking-widest text-muted-foreground uppercase">
-                Assigned to you ({myAssigned.length})
-              </h3>
-              {myAssigned.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nothing assigned to you right now.</p>
-              ) : (
-                <StaggerGrid className="divide-y divide-border/60 border-t border-border/60" deps={[myAssigned.length]}>
-                  {myAssigned.map((task) => (
-                    <div key={task.id} className="flex items-start gap-4 py-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+          <Tabs defaultValue="assigned">
+            <TabsList className="mb-6">
+              <TabsTrigger value="assigned">Assigned ({myAssigned.length})</TabsTrigger>
+              <TabsTrigger value="review">Waiting for review ({myPending.length})</TabsTrigger>
+              <TabsTrigger value="approved">Approved ({myApproved.length})</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="assigned">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Task</TableHead>
+                    <TableHead>Reward</TableHead>
+                    <TableHead className="whitespace-normal">Description</TableHead>
+                    <TableHead>Assigned by</TableHead>
+                    <TableHead className="text-right">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {myAssigned.length === 0 ? (
+                    <EmptyRow colSpan={5} message="Nothing assigned to you right now." />
+                  ) : (
+                    myAssigned.map((task) => (
+                      <TableRow key={task.id}>
+                        <TableCell>
                           <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
                             {task.title}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
                           <span className="tabular font-mono text-xs text-primary">
                             +{task.xpReward} XP · +{task.coinReward} coins
                           </span>
-                        </div>
-                        <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{task.description}</p>
-                        {task.assignedBy && (
-                          <p className="mt-1 text-xs text-muted-foreground">Assigned by {task.assignedBy.name}</p>
-                        )}
-                      </div>
-                      <span className="flex shrink-0 items-center gap-1 font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
-                        <Clock className="size-3.5" />
-                        Not started
-                      </span>
-                    </div>
-                  ))}
-                </StaggerGrid>
-              )}
-            </section>
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate text-sm whitespace-normal text-muted-foreground">
+                          {task.description}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {task.assignedBy?.name ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="flex items-center justify-end gap-1 font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
+                            <Clock className="size-3.5" />
+                            Not started
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TabsContent>
 
-            <section>
-              <h3 className="mb-3 font-mono text-xs tracking-widest text-muted-foreground uppercase">
-                Waiting for review ({myPending.length})
-              </h3>
-              {myPending.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nothing waiting on review right now.</p>
-              ) : (
-                <StaggerGrid className="divide-y divide-border/60 border-t border-border/60" deps={[myPending.length]}>
-                  {myPending.map((item) => {
-                    const status = myHistoryStatus(item);
-                    return (
-                      <div key={item.id} className="flex items-start gap-4 py-4">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
+            <TabsContent value="review">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Task</TableHead>
+                    <TableHead>Reward</TableHead>
+                    <TableHead className="whitespace-normal">Description</TableHead>
+                    <TableHead>Assigned by</TableHead>
+                    <TableHead className="text-right">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {myPending.length === 0 ? (
+                    <EmptyRow colSpan={5} message="Nothing waiting on review right now." />
+                  ) : (
+                    myPending.map((item) => {
+                      const status = myHistoryStatus(item);
+                      return (
+                        <TableRow key={item.id}>
+                          <TableCell>
                             <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
                               {item.adventure.title}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
                             <span className="tabular font-mono text-xs text-primary">
                               +{item.adventure.xpReward} XP · +{item.adventure.coinReward} coins
                             </span>
-                          </div>
-                          <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                          </TableCell>
+                          <TableCell className="max-w-xs truncate text-sm whitespace-normal text-muted-foreground">
                             {item.adventure.description}
-                          </p>
-                          {item.adventure.assignedBy && (
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              Assigned by {item.adventure.assignedBy.name}
-                            </p>
-                          )}
-                        </div>
-                        <span
-                          className={cn(
-                            "flex shrink-0 items-center gap-1 font-mono text-[10px] tracking-wide uppercase",
-                            status.className
-                          )}
-                        >
-                          <status.icon className="size-3.5" />
-                          {status.label}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </StaggerGrid>
-              )}
-            </section>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {item.adventure.assignedBy?.name ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <span
+                              className={cn(
+                                "flex items-center justify-end gap-1 font-mono text-[10px] tracking-wide uppercase",
+                                status.className
+                              )}
+                            >
+                              <status.icon className="size-3.5" />
+                              {status.label}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </TabsContent>
 
-            <section>
-              <h3 className="mb-3 font-mono text-xs tracking-widest text-muted-foreground uppercase">
-                Approved ({myApproved.length})
-              </h3>
-              {myApproved.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nothing approved yet.</p>
-              ) : (
-                <StaggerGrid className="divide-y divide-border/60 border-t border-border/60" deps={[myApproved.length]}>
-                  {myApproved.map((item) => {
-                    const status = myHistoryStatus(item);
-                    return (
-                      <div key={item.id} className="flex items-start gap-4 py-4">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
+            <TabsContent value="approved">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Task</TableHead>
+                    <TableHead>Reward</TableHead>
+                    <TableHead className="whitespace-normal">Description</TableHead>
+                    <TableHead>Assigned by</TableHead>
+                    <TableHead className="text-right">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {myApproved.length === 0 ? (
+                    <EmptyRow colSpan={5} message="Nothing approved yet." />
+                  ) : (
+                    myApproved.map((item) => {
+                      const status = myHistoryStatus(item);
+                      return (
+                        <TableRow key={item.id}>
+                          <TableCell>
                             <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
                               {item.adventure.title}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
                             <span className="tabular font-mono text-xs text-primary">
                               +{item.adventure.xpReward} XP · +{item.adventure.coinReward} coins
                             </span>
-                          </div>
-                          <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                          </TableCell>
+                          <TableCell className="max-w-xs truncate text-sm whitespace-normal text-muted-foreground">
                             {item.adventure.description}
-                          </p>
-                          {item.adventure.assignedBy && (
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              Assigned by {item.adventure.assignedBy.name}
-                            </p>
-                          )}
-                        </div>
-                        <span
-                          className={cn(
-                            "flex shrink-0 items-center gap-1 font-mono text-[10px] tracking-wide uppercase",
-                            status.className
-                          )}
-                        >
-                          <status.icon className="size-3.5" />
-                          {status.label}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </StaggerGrid>
-              )}
-            </section>
-          </div>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {item.adventure.assignedBy?.name ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <span
+                              className={cn(
+                                "flex items-center justify-end gap-1 font-mono text-[10px] tracking-wide uppercase",
+                                status.className
+                              )}
+                            >
+                              <status.icon className="size-3.5" />
+                              {status.label}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     </PageIn>
