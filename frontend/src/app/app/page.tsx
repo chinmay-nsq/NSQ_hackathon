@@ -132,7 +132,7 @@ export default function DashboardPage() {
               Your companion
             </CardTitle>
           </CardHeader>
-          <CardContent className="relative flex items-center gap-4 px-4">
+          <CardContent className="relative flex flex-col items-center gap-4 px-4 text-center sm:flex-row sm:items-center sm:text-left">
             {employee?.companion && (
               <CompanionViewer
                 species={employee.companion.species}
@@ -140,7 +140,7 @@ export default function DashboardPage() {
                 interactive={false}
               />
             )}
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               {dialogueLoading ? (
                 <div className="space-y-2">
                   <Skeleton className="h-4 w-full" />
