@@ -233,6 +233,48 @@
   box-shadow: 0 0 0 1px var(--glow-strong), 0 12px 40px -6px var(--glow-strong);
 }
 
+/* Drifting ember field — the login page's ambient texture, same drift
+   pattern as the landing page's particles but themed to the app's --primary
+   token so it stays correct in both light and dark mode. */
+.ember-particle {
+  position: absolute;
+  bottom: -5%;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 12px 3px var(--glow-strong);
+  opacity: 0;
+  animation-name: ember-drift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes ember-drift {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.5;
+  }
+  92% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: translate(var(--drift), -110vh);
+    opacity: 0;
+  }
+}
+
+/* Login page's magnetic cursor (see MagneticCursor component) hides the
+   real system cursor while it's active — same html.has-custom-cursor
+   pattern the landing page uses, scoped to .login-page so it never affects
+   the rest of the authenticated app. */
+html.has-custom-cursor .login-page,
+html.has-custom-cursor .login-page * {
+  cursor: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

@@ -5,6 +5,7 @@ import { useGSAP } from "@gsap/react";
 import { gsap } from "@/lib/gsap/registerPlugins";
 import { MagneticButton } from "./MagneticButton";
 import { HeroCrystal } from "./HeroCrystal";
+import { LightningWire } from "./LightningWire";
 
 export function HeroSection({ onEnter }: { onEnter: () => void }) {
   const scope = useRef<HTMLDivElement>(null);
@@ -118,13 +119,15 @@ export function HeroSection({ onEnter }: { onEnter: () => void }) {
             >
               Start your first quest
             </MagneticButton>
-            <a
-              href="#solution"
-              data-cursor="magnetic"
-              className="font-mono text-sm uppercase tracking-widest text-white/50 transition-colors hover:text-white"
-            >
-              See how it works
-            </a>
+            <LightningWire autoStrikeDelay={2.3}>
+              <a
+                href="#solution"
+                data-cursor="magnetic"
+                className="font-mono text-sm uppercase tracking-widest text-white/50 transition-colors hover:text-white"
+              >
+                See how it works
+              </a>
+            </LightningWire>
           </div>
         </div>
 
