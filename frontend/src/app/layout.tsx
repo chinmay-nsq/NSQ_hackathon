@@ -33,7 +33,7 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
-const SITE_URL = "https://weatherliner.vercel.app";
+const SITE_URL = "https://skibidi-sprint.vercel.app";
 const TITLE = "Skibidi-Sprint — Team Engagement, Reinvented";
 const DESCRIPTION =
   "Every task becomes a quest. Every team, a party. Every company, a world worth showing up for — powered by an AI that actually pays attention.";
