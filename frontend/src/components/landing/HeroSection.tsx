@@ -1,14 +1,28 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useGSAP } from "@gsap/react";
 import { gsap } from "@/lib/gsap/registerPlugins";
 import { MagneticButton } from "./MagneticButton";
 import { HeroCrystal } from "./HeroCrystal";
-import { LightningWire } from "./LightningWire";
+import { LightningBurst, type LightningBurstHandle } from "./LightningBurst";
 
 export function HeroSection({ onEnter }: { onEnter: () => void }) {
   const scope = useRef<HTMLDivElement>(null);
+  const burstRef = useRef<LightningBurstHandle>(null);
+  const router = useRouter();
+  const [navigating, setNavigating] = useState(false);
+
+  async function handleHowItWorks() {
+    if (navigating) return;
+    setNavigating(true);
+
+    // Four bolt clusters converge inward from the screen's corners toward
+    // center, rather than radiating out from the button itself.
+    await burstRef.current?.fireConverge();
+    router.push("/how-it-works");
+  }
 
   useGSAP(
     () => {
@@ -119,20 +133,22 @@ export function HeroSection({ onEnter }: { onEnter: () => void }) {
             >
               Start your first quest
             </MagneticButton>
-            <LightningWire autoStrikeDelay={2.3}>
-              <a
-                href="#solution"
-                data-cursor="magnetic"
-                className="font-mono text-sm uppercase tracking-widest text-white/50 transition-colors hover:text-white"
-              >
-                See how it works
-              </a>
-            </LightningWire>
+            <button
+              type="button"
+              data-cursor="magnetic"
+              onClick={handleHowItWorks}
+              disabled={navigating}
+              className="font-mono text-sm uppercase tracking-widest text-white/50 transition-colors hover:text-white disabled:opacity-70"
+            >
+              See how it works
+            </button>
           </div>
         </div>
 
         <HeroCrystal sectionRef={scope} />
       </div>
+
+      <LightningBurst ref={burstRef} />
 
       <div className="hero-scroll absolute bottom-10 left-6 flex items-center gap-3 text-white/40 sm:left-12">
         <span className="h-10 w-px bg-gradient-to-b from-white/50 to-transparent" />

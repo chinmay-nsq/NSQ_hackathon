@@ -11,6 +11,7 @@
   --ember: #b23a1f;
   --smoke: #8a8580;
   --line: #232120;
+  --gold: #d4a537;
 
   background: var(--ink);
   color: var(--paper);
@@ -32,6 +33,22 @@
 
 .landing-page .bg-coral {
   background-color: var(--coral);
+}
+
+.landing-page .text-gold {
+  color: var(--gold);
+}
+
+.landing-page .bg-gold {
+  background-color: var(--gold);
+}
+
+.landing-page .border-gold\/30 {
+  border-color: color-mix(in oklch, var(--gold) 30%, transparent);
+}
+
+.landing-page .bg-gold\/10 {
+  background-color: color-mix(in oklch, var(--gold) 10%, transparent);
 }
 
 html.has-custom-cursor,

@@ -12,7 +12,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { Separator } from "@/components/ui/separator";
 import { Sparkles } from "lucide-react";
 
-const PUBLIC_ROUTES = ["/", "/login"];
+const PUBLIC_ROUTES = ["/", "/login", "/how-it-works", "/show-ppt"];
 const ONBOARDING_ROUTE = "/onboarding";
 const PROFILE_ROUTE = "/onboarding/profile";
 const APP_HOME_ROUTE = "/app";
