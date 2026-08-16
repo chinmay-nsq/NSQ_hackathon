@@ -7,12 +7,19 @@ interface OnboardingTourState {
   stepIndex: number;
   /**
    * True once the tour has ever finished (completed OR skipped) — the tour
-   * never runs again once true. Always starts false on the client; the real
-   * source of truth is the DB (`employee.onboardingTourDone`), synced in via
-   * `syncDone()` once `/auth/me` resolves — never read from localStorage.
+   * never runs again once true. Always starts false on the client; kept in
+   * sync with the DB value (`employee.onboardingTourDone`) via `syncDone()`
+   * on every `employee` change (not just the first), so a stale/incomplete
+   * `employee` snapshot from earlier in the session can never permanently
+   * lock this in wrong — never read from localStorage.
    */
   done: boolean;
-  /** True until the initial `/auth/me` fetch has told us the real `done` state — used to gate accidental early interaction before we actually know. */
+  /**
+   * True once we've received at least one real employee record — used to
+   * gate accidental early interaction before we actually know the real
+   * `done` state. Sticky: once true, stays true (there's always a real
+   * employee snapshot to fall back on after the first fetch).
+   */
   doneKnown: boolean;
   /**
    * Set by a page once a real gated action has genuinely completed (e.g.
@@ -22,7 +29,7 @@ interface OnboardingTourState {
    * `signalAction(key)` themselves right when the real thing happens.
    */
   completedActionKey: string | null;
-  /** Syncs `done`/`doneKnown` from the fetched employee record — call once /auth/me resolves. */
+  /** Syncs `done`/`doneKnown` from the fetched employee record — call on every /auth/me-driven employee update, not just once. */
   syncDone: (onboardingTourDone: boolean) => void;
   start: () => void;
   next: () => void;
@@ -45,7 +52,13 @@ export const useOnboardingTourStore = create<OnboardingTourState>((set, get) => 
   completedActionKey: null,
 
   syncDone(onboardingTourDone) {
-    if (get().doneKnown) return;
+    // Once the tour has been finished/skipped locally this session, don't
+    // let a subsequent (possibly briefly-stale) employee refetch flip
+    // `done` back to false before the persistDone() POST has landed.
+    if (get().done && !onboardingTourDone) {
+      set({ doneKnown: true });
+      return;
+    }
     set({ done: onboardingTourDone, doneKnown: true });
   },
 

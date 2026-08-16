@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Coins, Flame, Sparkles, Star, type LucideIcon } from "lucide-react";
@@ -19,6 +19,7 @@ import { CountUp } from "@/components/motion/CountUp";
 import { AnimatedBar } from "@/components/motion/AnimatedBar";
 import { CompanionViewer } from "@/components/companion3d/CompanionViewer";
 import { ensureDailyQuiz } from "@/lib/ensureDailyQuiz";
+import { LightningBurst, type LightningBurstHandle } from "@/components/landing/LightningBurst";
 
 const FALLBACK_DIALOGUE = "I'm here with you — let's see what today brings!";
 const XP_PER_LEVEL = 100;
@@ -66,6 +67,20 @@ export default function DashboardPage() {
   const [dialogueLoading, setDialogueLoading] = useState(true);
   const [adventures, setAdventures] = useState<Adventure[]>([]);
   const [adventuresLoading, setAdventuresLoading] = useState(true);
+  const burstRef = useRef<LightningBurstHandle>(null);
+  const stillLoading = dialogueLoading || adventuresLoading;
+
+  // While this page's own data is still loading (companion dialogue +
+  // today's adventures), a click anywhere strikes a real lightning bolt at
+  // the click point instead of silently doing nothing on the skeletons.
+  useEffect(() => {
+    if (!stillLoading) return;
+    function onClick(e: MouseEvent) {
+      void burstRef.current?.fire(e.clientX, e.clientY, 120);
+    }
+    window.addEventListener("click", onClick, { capture: true });
+    return () => window.removeEventListener("click", onClick, { capture: true });
+  }, [stillLoading]);
 
   useEffect(() => {
     // Ensure today's quiz exists BEFORE asking the companion for a greeting
@@ -221,6 +236,8 @@ export default function DashboardPage() {
           </StaggerGrid>
         )}
       </div>
+
+      <LightningBurst ref={burstRef} />
     </PageIn>
   );
 }
