@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Maximize, X, Swords, Users, ClipboardCheck, MessageCircle, Store, Crown, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, Maximize, X, Swords, Users, ClipboardCheck, MessageCircle, Store, Crown, TrendingUp, Flame, type LucideIcon } from "lucide-react";
 import "../landing.css";
 import { gsap, MorphSVGPlugin, SplitText } from "@/lib/gsap/registerPlugins";
 import { AmbientParticles } from "@/components/landing/AmbientParticles";
@@ -19,6 +19,12 @@ const MORPH_SHAPES_2 = {
   boxes:
     "M10,10 L45,10 L45,45 L10,45 Z M55,10 L90,10 L90,45 L55,45 Z M10,55 L45,55 L45,90 L10,90 Z M55,55 L90,55 L90,90 L55,90 Z",
   banner: "M50,6 L88,20 L88,60 L50,94 L12,60 L12,20 Z",
+};
+const MORPH_SHAPES_3 = {
+  // Three flat, even bars — a generic "before" stat row.
+  flatBars: "M10,80 L26,80 L26,70 L10,70 Z M40,80 L56,80 L56,70 L40,70 Z M70,80 L86,80 L86,70 L70,70 Z",
+  // The same three bars, risen to different heights — an ascending trend.
+  risingBars: "M10,80 L26,80 L26,55 L10,55 Z M40,80 L56,80 L56,35 L40,35 Z M70,80 L86,80 L86,12 L70,12 Z",
 };
 
 function useFullscreen() {
@@ -237,8 +243,77 @@ const SLIDES: SlideDef[] = [
     ),
   },
   {
+    id: "morph-growth",
+    kicker: "05 — New: Real Growth",
+    notes: "This shipped just now — say so. The point: flat, generic stats become a real trend line, no invented numbers, ever.",
+    render: () => (
+      <div className="flex h-full flex-col items-center justify-center text-center">
+        <h2 className="slide-title font-display text-[clamp(2.4rem,5.5vw,4.4rem)] leading-[0.95] text-white">
+          Flat stats become <span className="text-coral">a real trend.</span>
+        </h2>
+        <svg viewBox="0 0 100 100" className="morph-stage mt-10 h-64 w-64 sm:h-80 sm:w-80">
+          <path id="morph-path-c" d={MORPH_SHAPES_3.flatBars} fill="var(--coral)" />
+        </svg>
+        <p className="slide-body mt-8 max-w-xl text-xl text-white/55">
+          Quiz accuracy, activity streaks, XP versus your own average — computed from what actually happened, never
+          AI-invented. The AI only writes 2-3 sentences about numbers it&apos;s handed, nothing more.
+        </p>
+      </div>
+    ),
+  },
+  {
+    id: "growth-detail",
+    kicker: "06 — Growth, By Role",
+    notes: "Walk through employee vs. manager separately — they see genuinely different things, not a relabeled copy of the same screen.",
+    render: () => (
+      <div className="flex h-full flex-col justify-center">
+        <h2 className="slide-title font-display text-[clamp(2.2rem,5vw,3.8rem)] leading-[0.95] text-white">
+          Everyone sees <span className="text-coral">their own trajectory.</span>
+        </h2>
+        <p className="slide-body mt-4 max-w-2xl text-xl text-white/50">
+          Not a leaderboard. Not compared to anyone else — this is about getting better than you were, not better than someone else.
+        </p>
+        <div className="feature-grid mt-7 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="feature-card flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-6">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-coral/30 bg-coral/10">
+              <TrendingUp className="size-5 text-coral" strokeWidth={1.5} />
+            </span>
+            <div>
+              <h4 className="font-display text-lg text-white">Employees</h4>
+              <p className="mt-1.5 text-sm leading-relaxed text-white/55">
+                Skill, consistency, and output — toggle between all three, each tracked against their own recent average.
+              </p>
+            </div>
+          </div>
+          <div className="feature-card flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-6">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-coral/30 bg-coral/10">
+              <Users className="size-5 text-coral" strokeWidth={1.5} />
+            </span>
+            <div>
+              <h4 className="font-display text-lg text-white">Team Growth</h4>
+              <p className="mt-1.5 text-sm leading-relaxed text-white/55">
+                A manager&apos;s whole team&apos;s collective skill and consistency trend — aggregate only, never singles anyone out.
+              </p>
+            </div>
+          </div>
+          <div className="feature-card flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-6">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-coral/30 bg-coral/10">
+              <Flame className="size-5 text-coral" strokeWidth={1.5} />
+            </span>
+            <div>
+              <h4 className="font-display text-lg text-white">My Leadership</h4>
+              <p className="mt-1.5 text-sm leading-relaxed text-white/55">
+                A manager&apos;s own review-turnaround speed and assignment volume — how effective they are as a lead, not their personal XP.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
     id: "companions-roster",
-    kicker: "05 — Seven Companions",
+    kicker: "07 — Seven Companions",
     notes: "Name a couple of them out loud as they appear — pick two whose personality contrasts well (e.g. Charger vs Raven) to show the range.",
     render: () => (
       <div className="flex h-full flex-col justify-center">
@@ -276,7 +351,7 @@ const SLIDES: SlideDef[] = [
   },
   {
     id: "features-1",
-    kicker: "06 — What's Actually Built",
+    kicker: "08 — What's Actually Built",
     notes: "Pick two or three of these to expand on verbally based on the room — don't read all six, use them as prompts.",
     render: () => (
       <div className="flex h-full flex-col justify-center">
@@ -301,7 +376,7 @@ const SLIDES: SlideDef[] = [
   },
   {
     id: "features-2",
-    kicker: "07 — And Two More",
+    kicker: "09 — And Two More",
     notes: "This continues the previous slide — no need to re-explain the format, just keep the same energy.",
     render: () => (
       <div className="flex h-full flex-col justify-center">
@@ -338,7 +413,7 @@ const SLIDES: SlideDef[] = [
   },
   {
     id: "economy",
-    kicker: "08 — A Real Economy",
+    kicker: "10 — A Real Economy",
     notes: "Emphasize \"even after you spend them\" — that's the surprising part, most reward systems are dead ends once you redeem.",
     render: () => (
       <div className="flex h-full flex-col justify-center">
@@ -367,7 +442,7 @@ const SLIDES: SlideDef[] = [
   },
   {
     id: "stats",
-    kicker: "09 — By The Numbers",
+    kicker: "11 — By The Numbers",
     notes: "Let each number count up before speaking over it — the count-up itself holds attention, don't talk through it.",
     render: () => (
       <div className="flex h-full flex-col justify-center">
@@ -377,7 +452,7 @@ const SLIDES: SlideDef[] = [
         <div className="stats-row mt-9 grid grid-cols-2 gap-8 sm:grid-cols-4">
           {[
             { value: 7, label: "AI companion species" },
-            { value: 14, label: "product areas, shipped" },
+            { value: 15, label: "product areas, shipped" },
             { value: 4, label: "guild resource types" },
             { value: 100, label: "% of adventures AI-generated" },
           ].map((s) => (
@@ -394,7 +469,7 @@ const SLIDES: SlideDef[] = [
   },
   {
     id: "why",
-    kicker: "10 — Why This Stands Out",
+    kicker: "12 — Why This Stands Out",
     notes: "This is the thesis statement of the whole pitch. Slow down and say it plainly — it's the line people should remember.",
     render: () => (
       <div className="flex h-full flex-col justify-center">
@@ -429,7 +504,7 @@ function Deck({ onExit }: { onExit: () => void }) {
   const [notesVisible, setNotesVisible] = useState(true);
   const stageRef = useRef<HTMLDivElement>(null);
   const burstRef = useRef<LightningBurstHandle>(null);
-  const morphedRef = useRef({ tasks: false, org: false });
+  const morphedRef = useRef({ tasks: false, org: false, growth: false });
   const transitioning = useRef(false);
 
   function playSlideIn(el: HTMLElement) {
@@ -482,6 +557,11 @@ function Deck({ onExit }: { onExit: () => void }) {
     if (morphB && !morphedRef.current.org) {
       morphedRef.current.org = true;
       gsap.delayedCall(0.6, () => gsap.to(morphB, { morphSVG: MORPH_SHAPES_2.banner, duration: 1.2, ease: "power2.inOut" }));
+    }
+    const morphC = el.querySelector<SVGPathElement>("#morph-path-c");
+    if (morphC && !morphedRef.current.growth) {
+      morphedRef.current.growth = true;
+      gsap.delayedCall(0.6, () => gsap.to(morphC, { morphSVG: MORPH_SHAPES_3.risingBars, duration: 1.2, ease: "power2.inOut" }));
     }
   }
 

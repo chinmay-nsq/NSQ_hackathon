@@ -21,7 +21,7 @@ export default function robots(): MetadataRoute.Robots {
           "/admin",
           "/profile",
           "/onboarding",
-          "/recap",
+          "/growth",
         ],
       },
     ],

@@ -28,14 +28,4 @@ export const KingdomController = {
     );
     return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Contribution recorded", result));
   },
-
-  async latestStory(_req: AuthedRequest, res: Response) {
-    const story = await KingdomService.getLatestStory();
-    return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Story fetched", { story }));
-  },
-
-  async generateStory(_req: AuthedRequest, res: Response) {
-    const story = await KingdomService.generateWeeklyStory();
-    return res.status(HttpStatus.CREATED).json(new ApiResponse(HttpStatus.CREATED, "Story generated", { story }));
-  },
 };

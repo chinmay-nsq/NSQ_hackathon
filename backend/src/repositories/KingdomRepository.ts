@@ -1,5 +1,5 @@
 import { prisma } from "@/config/db";
-import { Adventure, Employee, Guild, KingdomProject } from "@prisma/client";
+import { KingdomProject } from "@prisma/client";
 import { ResourceType } from "@/config/constants";
 
 export const KingdomRepository = {
@@ -41,24 +41,5 @@ export const KingdomRepository = {
 
   unlockProject(id: string) {
     return prisma.kingdomProject.update({ where: { id }, data: { unlocked: true } });
-  },
-
-  latestStory(kingdomId: string) {
-    return prisma.weeklyStory.findFirst({ where: { kingdomId }, orderBy: { weekOf: "desc" } });
-  },
-
-  createStory(kingdomId: string, weekOf: Date, content: string) {
-    return prisma.weeklyStory.create({ data: { kingdomId, weekOf, content } });
-  },
-
-  recentCompletedAdventures(
-    since: Date,
-    take = 20
-  ): Promise<{ adventure: Adventure; employee: Employee & { guild: Guild | null } }[]> {
-    return prisma.adventureProgress.findMany({
-      where: { completed: true, completedAt: { gte: since } },
-      include: { adventure: true, employee: { include: { guild: true } } },
-      take,
-    });
   },
 };

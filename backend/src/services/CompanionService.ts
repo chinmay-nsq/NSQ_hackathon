@@ -6,6 +6,7 @@ import { GuildRepository } from "@/repositories/GuildRepository";
 import { ChatRepository } from "@/repositories/ChatRepository";
 import { CompanionFactory } from "@/factories/CompanionFactory";
 import { AIService, ChatContext } from "./AIService";
+import { GrowthService } from "./GrowthService";
 import { CHAT_TOOLS, executeCompanionTool } from "./CompanionToolService";
 import { ToolCallResult } from "@/factories/AIProviderFactory";
 import { CompanionSpecies, RESOURCE_TYPES } from "@/config/constants";
@@ -86,6 +87,19 @@ class CompanionServiceImpl {
           ? "completed"
           : "pending";
 
+    // A genuinely brand-new account has nothing real for the AI to reference
+    // — no guild, no completed work, no memory — so asking it to write a
+    // "grounded" greeting anyway just produces generic filler dressed up as
+    // personalization. Skip the AI call entirely and say something honest
+    // instead: this is their first day, here's what's next.
+    const hasCompletedAnything = await prisma.adventureProgress.count({
+      where: { employeeId, completed: true },
+    });
+    if (hasCompletedAnything === 0 && !employee.guild && pendingAdventures === 0 && dailyQuizStatus === "not_generated") {
+      await CompanionRepository.touchDialogueTimestamp(employee.companion.id);
+      return `Hey ${employee.name}, I'm ${employee.companion.name} — glad you're here. We haven't done anything together yet, so let's fix that: your first daily quiz is one click away, and I'll help you find a guild to join.`;
+    }
+
     let guildResourceGap: string | undefined;
     if (employee.guild) {
       const guild = employee.guild;
@@ -94,6 +108,20 @@ class CompanionServiceImpl {
     }
 
     const latestMemory = await CompanionRepository.latestMemory(employee.companion.id);
+
+    // Real streak/trend signal from GrowthService — lets a returning user's
+    // greeting reference something specific about THEM, not generic praise.
+    // Best-effort: if this fails for any reason, the greeting still works,
+    // just without the extra flavor.
+    let currentStreakDays: number | undefined;
+    let outputDeltaPct: number | null | undefined;
+    try {
+      const growth = await GrowthService.getEmployeeGrowth(employeeId);
+      currentStreakDays = growth.consistency.currentStreakDays;
+      outputDeltaPct = growth.output.deltaPct;
+    } catch {
+      // best-effort only — dialogue still works without it
+    }
 
     const dialogue = await AIService.generateCompanionDialogue({
       companionName: employee.companion.name,
@@ -104,6 +132,8 @@ class CompanionServiceImpl {
       pendingAdventures,
       dailyQuizStatus,
       recentMemory: latestMemory?.summary,
+      currentStreakDays,
+      outputDeltaPct,
     });
 
     await CompanionRepository.touchDialogueTimestamp(employee.companion.id);

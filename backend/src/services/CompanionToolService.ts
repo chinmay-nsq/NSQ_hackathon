@@ -10,13 +10,13 @@ import { Role } from "@prisma/client";
  * NAV_ITEMS; there's no single shared source of truth to import from since
  * the sidebar list mixes in role-gating logic this doesn't need.
  */
-const NAVIGABLE_ROUTES: Record<string, string> = {
+export const NAVIGABLE_ROUTES: Record<string, string> = {
   dashboard: "/app",
   adventures: "/adventures",
   teams: "/teams",
   rewards: "/rewards",
   trading: "/trading",
-  "weekly recap": "/recap",
+  growth: "/growth",
   approvals: "/approvals",
   admin: "/admin",
   profile: "/profile",

@@ -1,7 +1,6 @@
 import { KingdomRepository } from "@/repositories/KingdomRepository";
 import { GuildRepository } from "@/repositories/GuildRepository";
 import { EmployeeRepository } from "@/repositories/EmployeeRepository";
-import { AIService } from "./AIService";
 import { RESOURCE_TYPES, ResourceType } from "@/config/constants";
 import { ApiError } from "@/utils/apiError";
 import { HttpStatus } from "@/utils/httpStatus";
@@ -44,37 +43,6 @@ class KingdomServiceImpl {
 
     const updatedProject = await KingdomRepository.findProjectById(project.id);
     return { project: updatedProject, unlocked: isComplete };
-  }
-
-  async getLatestStory() {
-    const kingdom = await KingdomRepository.getOrCreate();
-    return KingdomRepository.latestStory(kingdom.id);
-  }
-
-  async generateWeeklyStory() {
-    const kingdom = await KingdomRepository.getOrCreate();
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-
-    const completedAdventures = await KingdomRepository.recentCompletedAdventures(weekAgo);
-    const unlockedProjects = await KingdomRepository.findUnlockedProjects(kingdom.id);
-
-    const events = [
-      ...completedAdventures.map(
-        (p) => `${p.employee.guild?.name ?? p.employee.name} completed "${p.adventure.title}"`
-      ),
-      ...unlockedProjects.map((p) => `The kingdom unlocked ${p.name}`),
-    ];
-
-    if (events.length === 0) {
-      events.push("The kingdom was quiet this week, but the guilds prepared for adventures ahead.");
-    }
-
-    const content = await AIService.generateWeeklyStory({ events });
-
-    const startOfWeek = new Date();
-    startOfWeek.setHours(0, 0, 0, 0);
-
-    return KingdomRepository.createStory(kingdom.id, startOfWeek, content);
   }
 }
 

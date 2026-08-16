@@ -14,6 +14,20 @@ export interface ProfileSuggestion {
   skills: string[];
 }
 
+/** A closed set of destinations an observation can point at — chosen BY the AI from this fixed enum (never a free-text URL), the same discipline as the companion chat's navigate tool. */
+export type GrowthObservationTopic = "adventures" | "teams" | "approvals" | "growth";
+
+export interface GrowthObservation {
+  text: string;
+  /** Omitted when the observation isn't actionable (e.g. "not enough data yet"). */
+  topic?: GrowthObservationTopic;
+}
+
+export interface GrowthInsight {
+  headline: string;
+  observations: GrowthObservation[];
+}
+
 export interface ChatContext {
   companionName: string;
   species: string;
@@ -107,6 +121,14 @@ const FALLBACK_SOLO: GeneratedAdventureContent[] = [
 const FALLBACK_PROFILE_SUGGESTION: ProfileSuggestion = {
   seniority: "MID",
   skills: ["communication", "problem-solving", "time-management"],
+};
+
+// Used only if the AI call fails — deliberately generic since it has no real
+// numbers to fall back on; the frontend still shows the real computed stats
+// regardless, this only covers the AI-phrased headline/observations.
+const FALLBACK_GROWTH_INSIGHT: GrowthInsight = {
+  headline: "Keep going — your trend is still building.",
+  observations: [{ text: "Complete a few more quests this week to unlock a clearer trend.", topic: "adventures" }],
 };
 
 const FALLBACK_WELCOME_QUEST: GeneratedAdventureContent = {
@@ -233,6 +255,98 @@ Respond ONLY with JSON matching: { "title": string, "description": string, "xpRe
     }
   }
 
+  /**
+   * Employee's own growth insight — given ALREADY-COMPUTED real trend
+   * numbers (never raw rows), phrases 2-3 short grounded observations. The
+   * AI is never asked to compute or invent a number, only to describe ones
+   * it's handed — the source of truth for every figure is GrowthService.
+   */
+  async generateEmployeeGrowthInsight(context: {
+    employeeName: string;
+    skillCurrentPct: number | null;
+    skillDeltaPct: number | null;
+    currentStreakDays: number;
+    longestGapDays: number | null;
+    thisWeekXp: number;
+    rollingAvgXp: number;
+    outputDeltaPct: number | null;
+  }): Promise<GrowthInsight> {
+    const system = `You are a growth-insight writer for Skibidi-Sprint, a workplace gamification app.
+You are given ALREADY-COMPUTED real numbers about one employee's own trend over recent weeks. Do not invent, estimate, or recompute any numbers — only reference the numbers given.
+Respond ONLY with JSON matching: { "headline": string (max 90 chars, one punchy factual sentence), "observations": [{ "text": string (max 140 chars, grounded in a specific number from the input), "topic": "adventures" | "growth" | omit }] (2-3 items) }
+"topic" tags what the observation is ABOUT so the UI can offer a "go there" button — use "adventures" for anything about quiz accuracy, streaks, or XP/quest output (since that's where quests and the daily quiz live), "growth" for a meta-observation about the trend itself with no single obvious destination, or omit "topic" entirely if the observation isn't actionable (e.g. "not enough data yet"). Never invent a topic outside this list.
+Tone: encouraging but concrete and specific — never generic praise ("great job!") without a number attached. Never mention "kingdom", fantasy framing, or invented narrative — this is a real stats summary, not a story.
+If a number is null (not enough data yet), do not fabricate a value for it — write around it or omit that dimension from the observations.`;
+
+    const user = `Employee: ${context.employeeName}.
+Quiz accuracy this week: ${context.skillCurrentPct ?? "not enough data"}%. Change vs earlier in the window: ${context.skillDeltaPct ?? "not enough data"} percentage points.
+Current activity streak: ${context.currentStreakDays} consecutive day(s). Longest gap between active days in this window: ${context.longestGapDays ?? "not enough data"} day(s).
+This week's XP: ${context.thisWeekXp}. Their own recent rolling average XP/week: ${context.rollingAvgXp}. Change vs their own average: ${context.outputDeltaPct ?? "not enough data"}%.
+Write their growth insight.`;
+
+    try {
+      const result = await getAIProvider().completeJSON<GrowthInsight>(system, user);
+      return isValidGrowthInsight(result) ? clampGrowthInsight(result) : FALLBACK_GROWTH_INSIGHT;
+    } catch {
+      return FALLBACK_GROWTH_INSIGHT;
+    }
+  }
+
+  /** Manager's team growth insight — aggregate-only, never names or implies a specific member. */
+  async generateTeamGrowthInsight(context: {
+    memberCount: number;
+    skillCurrentPct: number | null;
+    skillDeltaPct: number | null;
+    avgActiveDaysThisWeek: number | null;
+  }): Promise<GrowthInsight> {
+    const system = `You are a growth-insight writer for Skibidi-Sprint, a workplace gamification app.
+You are given ALREADY-COMPUTED real numbers about a manager's TEAM'S collective trend (not any one individual). Do not invent, estimate, or recompute any numbers, and never name or imply a specific team member — this is aggregate-only, anonymized by design.
+Respond ONLY with JSON matching: { "headline": string (max 90 chars), "observations": [{ "text": string (max 140 chars, grounded in a specific number from the input), "topic": "teams" | "growth" | omit }] (2-3 items) }
+"topic" tags what the observation is ABOUT so the UI can offer a "go there" button — use "teams" for anything about the team/guild, "growth" for a meta-observation with no single obvious destination, or omit "topic" if the observation isn't actionable. Never invent a topic outside this list.
+Tone: factual and useful to a manager deciding where to focus — never generic. Never mention "kingdom", "guild" narrative, or fantasy framing.`;
+
+    const user = `Team size: ${context.memberCount} member(s).
+Team's average quiz accuracy this week: ${context.skillCurrentPct ?? "not enough data"}%. Change vs earlier in the window: ${context.skillDeltaPct ?? "not enough data"} percentage points.
+Average active days per member this week: ${context.avgActiveDaysThisWeek ?? "not enough data"}.
+Write the team's growth insight.`;
+
+    try {
+      const result = await getAIProvider().completeJSON<GrowthInsight>(system, user);
+      return isValidGrowthInsight(result) ? clampGrowthInsight(result) : FALLBACK_GROWTH_INSIGHT;
+    } catch {
+      return FALLBACK_GROWTH_INSIGHT;
+    }
+  }
+
+  /** Manager's own leadership-effectiveness insight — review turnaround speed + assignment volume, NOT their personal XP. */
+  async generateManagerSelfGrowthInsight(context: {
+    currentAvgTurnaroundHours: number | null;
+    turnaroundDeltaPct: number | null;
+    turnaroundSampleSize: number;
+    assignedThisWeek: number;
+    approvedThisWeek: number;
+  }): Promise<GrowthInsight> {
+    const system = `You are a growth-insight writer for Skibidi-Sprint, a workplace gamification app.
+You are given ALREADY-COMPUTED real numbers about a manager's OWN effectiveness as a reviewer/lead — review turnaround speed and assignment/approval volume. This is NOT about their personal XP or quests completed as an individual contributor. Do not invent, estimate, or recompute any numbers.
+Respond ONLY with JSON matching: { "headline": string (max 90 chars), "observations": [{ "text": string (max 140 chars, grounded in a specific number from the input), "topic": "approvals" | "growth" | omit }] (2-3 items) }
+"topic" tags what the observation is ABOUT so the UI can offer a "go there" button — use "approvals" for anything about turnaround speed, assigning, or approving work, "growth" for a meta-observation with no single obvious destination, or omit "topic" if the observation isn't actionable. Never invent a topic outside this list.
+IMPORTANT on direction: a LOWER turnaround-hours number, or a NEGATIVE turnaroundDeltaPct, means they are reviewing FASTER (an improvement) — do not describe a negative delta as "declining" or "slower".
+If turnaroundSampleSize is very small (fewer than 3), explicitly caveat that the trend is based on limited data rather than stating it with confidence.
+Tone: factual, useful for self-reflection on leadership effectiveness. Never mention "kingdom" or fantasy framing.`;
+
+    const user = `Average review turnaround time this week: ${context.currentAvgTurnaroundHours ?? "not enough data"} hours, based on ${context.turnaroundSampleSize} reviewed submission(s) in the window.
+Change vs earlier in the window: ${context.turnaroundDeltaPct ?? "not enough data"}% (negative = faster).
+Tasks assigned this week: ${context.assignedThisWeek}. Tasks approved this week: ${context.approvedThisWeek}.
+Write their leadership growth insight.`;
+
+    try {
+      const result = await getAIProvider().completeJSON<GrowthInsight>(system, user);
+      return isValidGrowthInsight(result) ? clampGrowthInsight(result) : FALLBACK_GROWTH_INSIGHT;
+    } catch {
+      return FALLBACK_GROWTH_INSIGHT;
+    }
+  }
+
   async generateCompanionDialogue(context: {
     companionName: string;
     species: string;
@@ -242,12 +356,16 @@ Respond ONLY with JSON matching: { "title": string, "description": string, "xpRe
     pendingAdventures: number;
     dailyQuizStatus: "not_generated" | "pending" | "completed";
     recentMemory?: string;
+    /** From GrowthService — real trend signal so a returning user's greeting can reference something specific, not just generic praise. Omitted (not null) when there's not enough history yet. */
+    currentStreakDays?: number;
+    outputDeltaPct?: number | null;
   }): Promise<string> {
     const system = `You are ${context.companionName}, a ${context.species} AI companion in Skibidi-Sprint, a workplace gamification app.
 You are warm, encouraging, and a little playful — like a coach and friend. Speak in first person, 1-3 sentences, no markdown.
-You know about the employee's guild progress and pending adventures. Reference concrete numbers naturally, the way this example does:
+You know about the employee's guild progress, pending adventures, and (when given) their real activity streak and week-over-week XP trend. Reference concrete numbers naturally, the way these examples do:
 "Good morning! Your guild is only 120 Knowledge away from upgrading the Forge. Completing today's learning adventure will help everyone."
-Never claim they completed something they haven't — only say a quiz/adventure is "done" if you are explicitly told it is.
+"You're on a 4-day streak — keep it going! Your XP is up 30% from your usual week too."
+Never claim they completed something they haven't — only say a quiz/adventure is "done" if you are explicitly told it is. Never invent a streak or XP trend number not given to you.
 If told their daily skill quiz is still unanswered, you MUST nudge them to go take it — that's the single most important thing to mention.`;
 
     const quizLine =
@@ -257,7 +375,16 @@ If told their daily skill quiz is still unanswered, you MUST nudge them to go ta
           ? "Their daily skill quiz is already done for today — congratulate them, don't ask them to do it again."
           : "Their daily skill quiz hasn't been generated yet — don't mention it either way.";
 
-    const user = `Employee: ${context.employeeName}. Guild: ${context.guildName ?? "no guild yet"}. Resource gap: ${context.guildResourceGap ?? "none"}. Pending adventures: ${context.pendingAdventures}. ${quizLine} Recent memory: ${context.recentMemory ?? "none"}. Generate today's greeting.`;
+    const streakLine =
+      context.currentStreakDays !== undefined && context.currentStreakDays > 1
+        ? ` They're on a ${context.currentStreakDays}-day activity streak.`
+        : "";
+    const trendLine =
+      context.outputDeltaPct !== undefined && context.outputDeltaPct !== null
+        ? ` Their XP this week is ${context.outputDeltaPct >= 0 ? "up" : "down"} ${Math.abs(context.outputDeltaPct)}% vs their recent average.`
+        : "";
+
+    const user = `Employee: ${context.employeeName}. Guild: ${context.guildName ?? "no guild yet"}. Resource gap: ${context.guildResourceGap ?? "none"}. Pending adventures: ${context.pendingAdventures}. ${quizLine}${streakLine}${trendLine} Recent memory: ${context.recentMemory ?? "none"}. Generate today's greeting.`;
 
     try {
       return await getAIProvider().completeText(system, user);
@@ -266,18 +393,6 @@ If told their daily skill quiz is still unanswered, you MUST nudge them to go ta
         return `Hey ${context.employeeName}! Your daily skill quiz is ready and waiting — 5 questions, 5 coins each. Let's knock it out!`;
       }
       return `Good morning, ${context.employeeName}! You have ${context.pendingAdventures} adventure(s) waiting. Let's make today count!`;
-    }
-  }
-
-  async generateWeeklyStory(context: { events: string[] }): Promise<string> {
-    const system = `You are the AI Story Engine for Skibidi-Sprint. Write a short, warm narrative recap (3-5 sentences) of the week's events in the kingdom, in a light fantasy storytelling tone, based ONLY on the real events given. Do not invent events not listed.`;
-
-    const user = `Events this week:\n${context.events.map((e) => `- ${e}`).join("\n")}\n\nWrite the weekly kingdom story.`;
-
-    try {
-      return await getAIProvider().completeText(system, user);
-    } catch {
-      return `This week, the kingdom's guilds pressed forward together. ${context.events.join(" ")}`;
     }
   }
 
@@ -432,6 +547,47 @@ If asked about anything outside this app (unrelated general knowledge, code help
     const system = this.buildChatSystemPrompt(context);
     return getAIProvider().completeChatToolReply(system, history, calls, results);
   }
+}
+
+const GROWTH_OBSERVATION_TOPICS: GrowthObservationTopic[] = ["adventures", "teams", "approvals", "growth"];
+
+function isValidGrowthInsight(v: unknown): v is GrowthInsight {
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    typeof (v as GrowthInsight).headline === "string" &&
+    Array.isArray((v as GrowthInsight).observations)
+  );
+}
+
+/** Coerces one raw observation entry to a safe shape — accepts either the new { text, topic? } object or a bare string (in case the model reverts to the old shape), always producing a valid GrowthObservation or null if it's unusable. */
+function coerceObservation(raw: unknown): GrowthObservation | null {
+  if (typeof raw === "string") {
+    const text = raw.trim();
+    return text.length > 0 ? { text: text.slice(0, 160) } : null;
+  }
+  if (typeof raw !== "object" || raw === null) return null;
+
+  const obj = raw as { text?: unknown; topic?: unknown };
+  if (typeof obj.text !== "string" || obj.text.trim().length === 0) return null;
+
+  const topic =
+    typeof obj.topic === "string" && GROWTH_OBSERVATION_TOPICS.includes(obj.topic as GrowthObservationTopic)
+      ? (obj.topic as GrowthObservationTopic)
+      : undefined;
+
+  return { text: obj.text.trim().slice(0, 160), topic };
+}
+
+function clampGrowthInsight(v: GrowthInsight): GrowthInsight {
+  const headline = v.headline.slice(0, 120).trim();
+  const observations = v.observations
+    .map(coerceObservation)
+    .filter((o): o is GrowthObservation => o !== null)
+    .slice(0, 3);
+  return observations.length > 0
+    ? { headline: headline || FALLBACK_GROWTH_INSIGHT.headline, observations }
+    : FALLBACK_GROWTH_INSIGHT;
 }
 
 export const AIService = new AIServiceImpl();

@@ -7,7 +7,5 @@ const router = Router();
 
 router.get("/", requireAuth, asyncHandler(KingdomController.overview));
 router.post("/projects/:id/contribute", requireAuth, asyncHandler(KingdomController.contribute));
-router.get("/story/latest", requireAuth, asyncHandler(KingdomController.latestStory));
-router.post("/story/generate", requireAuth, asyncHandler(KingdomController.generateStory));
 
 export default router;

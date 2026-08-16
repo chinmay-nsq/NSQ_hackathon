@@ -209,10 +209,40 @@ export interface KingdomProject {
   materialsContributed: number;
 }
 
-export interface WeeklyStory {
-  id: string;
-  weekOf: string;
-  content: string;
+export interface WeeklyPoint {
+  weekStart: string;
+  value: number;
+}
+
+export type GrowthObservationTopic = "adventures" | "teams" | "approvals" | "growth";
+
+export interface GrowthObservation {
+  text: string;
+  topic?: GrowthObservationTopic;
+  /** Set by the backend from a fixed route map keyed on `topic` — never a raw AI-produced URL. */
+  href?: string;
+}
+
+export interface GrowthInsight {
+  headline: string;
+  observations: GrowthObservation[];
+}
+
+export interface EmployeeGrowth {
+  skill: { weekly: WeeklyPoint[]; currentPct: number | null; deltaPct: number | null };
+  consistency: { activeDaysByWeek: WeeklyPoint[]; currentStreakDays: number; longestGapDays: number | null };
+  output: { xpByWeek: WeeklyPoint[]; thisWeekXp: number; rollingAvgXp: number; deltaPct: number | null };
+}
+
+export interface TeamGrowth {
+  memberCount: number;
+  skill: { weekly: WeeklyPoint[]; currentPct: number | null; deltaPct: number | null };
+  consistency: { activeDaysByWeek: WeeklyPoint[] };
+}
+
+export interface ManagerSelfGrowth {
+  turnaround: { weekly: WeeklyPoint[]; currentAvgHours: number | null; deltaPct: number | null; sampleSize: number };
+  volume: { assignedByWeek: WeeklyPoint[]; approvedByWeek: WeeklyPoint[] };
 }
 
 export interface MarketplaceItem {

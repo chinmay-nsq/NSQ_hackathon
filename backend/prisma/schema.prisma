@@ -172,7 +172,6 @@ model Kingdom {
   createdAt DateTime @default(now())
 
   projects KingdomProject[]
-  stories  WeeklyStory[]
 }
 
 model KingdomProject {
@@ -208,16 +207,6 @@ model KingdomContribution {
   resourceType String // knowledge | gold | influence | materials
   amount       Int
   createdAt    DateTime @default(now())
-}
-
-model WeeklyStory {
-  id        String  @id @default(cuid())
-  kingdomId String
-  kingdom   Kingdom @relation(fields: [kingdomId], references: [id])
-
-  weekOf    DateTime
-  content   String   @db.Text
-  createdAt DateTime @default(now())
 }
 
 // ---------- Adventures ----------

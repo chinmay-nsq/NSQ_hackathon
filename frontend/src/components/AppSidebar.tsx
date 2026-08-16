@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useGSAP } from "@gsap/react";
@@ -11,10 +12,9 @@ import {
   Users,
   Store,
   ArrowLeftRight,
-  Newspaper,
+  TrendingUp,
   User,
   LogOut,
-  Sparkles,
   ClipboardCheck,
   ShieldCheck,
 } from "lucide-react";
@@ -40,7 +40,7 @@ const NAV_ITEMS = [
   // { href: "/company", label: "Company", icon: Sparkles }, // temporarily hidden
   { href: "/rewards", label: "Rewards", icon: Store },
   { href: "/trading", label: "Trading Post", icon: ArrowLeftRight },
-  { href: "/recap", label: "Weekly Recap", icon: Newspaper },
+  { href: "/growth", label: "Growth", icon: TrendingUp },
 ];
 
 const MANAGER_NAV_ITEM = { href: "/approvals", label: "Approvals", icon: ClipboardCheck };
@@ -84,8 +84,8 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="px-3 py-4">
         <div className="flex items-center gap-2.5 px-1">
-          <div className="glow-primary flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Sparkles className="size-4" />
+          <div className="glow-primary size-8 shrink-0 overflow-hidden rounded-lg">
+            <Image src="/icon.svg" alt="" width={32} height={32} className="size-full" />
           </div>
           <span className="font-display text-base tracking-wide uppercase">Skibidi-Sprint</span>
         </div>
