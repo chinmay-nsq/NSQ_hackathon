@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowRight, Coins, Flame, Sparkles, Star, type LucideIcon } from "lucide-react";
 import { api } from "@/lib/api";
-import { Adventure, AssignedTask, Guild, PendingApproval } from "@/lib/types";
+import { Adventure, DialogueAction } from "@/lib/types";
 import { useAuthStore } from "@/store/authStore";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,11 +18,16 @@ import { HoverLift } from "@/components/motion/HoverLift";
 import { CountUp } from "@/components/motion/CountUp";
 import { AnimatedBar } from "@/components/motion/AnimatedBar";
 import { CompanionViewer } from "@/components/companion3d/CompanionViewer";
-import { GettingStarted } from "@/components/GettingStarted";
 import { ensureDailyQuiz } from "@/lib/ensureDailyQuiz";
 
 const FALLBACK_DIALOGUE = "I'm here with you — let's see what today brings!";
 const XP_PER_LEVEL = 100;
+
+const DIALOGUE_ACTION_ROUTE: Record<DialogueAction["topic"], string> = {
+  adventures: "/adventures",
+  approvals: "/approvals",
+  teams: "/teams",
+};
 
 function StatTile({
   icon: Icon,
@@ -54,15 +60,12 @@ function StatTile({
 
 export default function DashboardPage() {
   const { employee } = useAuthStore();
+  const router = useRouter();
   const [dialogue, setDialogue] = useState<string | null>(null);
+  const [dialogueAction, setDialogueAction] = useState<DialogueAction | undefined>(undefined);
   const [dialogueLoading, setDialogueLoading] = useState(true);
   const [adventures, setAdventures] = useState<Adventure[]>([]);
   const [adventuresLoading, setAdventuresLoading] = useState(true);
-  const [managedGuilds, setManagedGuilds] = useState<Guild[]>([]);
-  const [assignedTasks, setAssignedTasks] = useState<AssignedTask[]>([]);
-  const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>([]);
-
-  const isLead = employee?.role === "MANAGER" || employee?.role === "ADMIN";
 
   useEffect(() => {
     // Ensure today's quiz exists BEFORE asking the companion for a greeting
@@ -77,34 +80,20 @@ export default function DashboardPage() {
         setAdventuresLoading(false);
 
         api
-          .get<{ dialogue: string }>("/companion/dialogue")
-          .then((data) => setDialogue(data.dialogue))
+          .get<{ dialogue: string; action?: DialogueAction }>("/companion/dialogue")
+          .then((data) => {
+            setDialogue(data.dialogue);
+            setDialogueAction(data.action);
+          })
           .catch(() => setDialogue(FALLBACK_DIALOGUE))
           .finally(() => setDialogueLoading(false));
       });
   }, []);
 
-  // Manager/admin-only data for the lead's "Getting Started" checklist.
-  useEffect(() => {
-    if (!isLead) return;
-    api
-      .get<{ guilds: Guild[] }>("/guilds/managed")
-      .then((data) => setManagedGuilds(data.guilds))
-      .catch(() => setManagedGuilds([]));
-    api
-      .get<{ pending: PendingApproval[]; assigned: AssignedTask[] }>("/adventures/pending")
-      .then((data) => {
-        setPendingApprovals(data.pending);
-        setAssignedTasks(data.assigned);
-      })
-      .catch(() => {
-        setPendingApprovals([]);
-        setAssignedTasks([]);
-      });
-  }, [isLead]);
-
   const pendingAdventures = adventures.filter((a) => !a.progress?.[0]?.completed && a.status === "ACTIVE");
   const xpIntoLevel = (employee?.xp ?? 0) % XP_PER_LEVEL;
+  const tourQuestId =
+    pendingAdventures.find((a) => a.quiz && a.quiz.length > 0)?.id ?? pendingAdventures[0]?.id;
 
   return (
     <PageIn>
@@ -112,16 +101,6 @@ export default function DashboardPage() {
         title={`Welcome back${employee ? `, ${employee.name.split(" ")[0]}` : ""}`}
         description="Here's what's happening with you and your team today."
       />
-
-      {employee && (
-        <GettingStarted
-          employee={employee}
-          adventures={adventures}
-          managedGuilds={managedGuilds}
-          assignedTasks={assignedTasks}
-          pendingApprovals={pendingApprovals}
-        />
-      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="glow-primary bg-grid relative overflow-hidden border-0 lg:col-span-2">
@@ -147,7 +126,20 @@ export default function DashboardPage() {
                   <Skeleton className="h-4 w-3/4" />
                 </div>
               ) : (
-                <p className="text-base leading-relaxed">{dialogue}</p>
+                <>
+                  <p className="text-base leading-relaxed">{dialogue}</p>
+                  {dialogueAction && (
+                    <button
+                      type="button"
+                      data-cursor="magnetic"
+                      onClick={() => router.push(DIALOGUE_ACTION_ROUTE[dialogueAction.topic])}
+                      className="group mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 font-mono text-[11px] font-medium tracking-widest text-primary uppercase transition-colors hover:border-primary/50 hover:bg-primary/20"
+                    >
+                      {dialogueAction.label}
+                      <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </CardContent>
@@ -209,7 +201,7 @@ export default function DashboardPage() {
         ) : (
           <StaggerGrid className="grid gap-3 sm:grid-cols-2" deps={[pendingAdventures.length]}>
             {pendingAdventures.slice(0, 4).map((a) => (
-              <Link key={a.id} href={`/adventures/${a.id}`}>
+              <Link key={a.id} href={`/adventures/${a.id}`} data-tour={a.id === tourQuestId ? "quest-card" : undefined}>
                 <HoverLift>
                   <Card className="border-0">
                     <CardContent className="px-5">

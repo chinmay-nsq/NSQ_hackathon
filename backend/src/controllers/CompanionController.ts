@@ -43,8 +43,8 @@ export const CompanionController = {
   },
 
   async dialogue(req: AuthedRequest, res: Response) {
-    const dialogue = await CompanionService.getDialogue(req.employeeId!);
-    return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Dialogue generated", { dialogue }));
+    const { text, action } = await CompanionService.getDialogue(req.employeeId!);
+    return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Dialogue generated", { dialogue: text, action }));
   },
 
   async chatHistory(req: AuthedRequest, res: Response) {

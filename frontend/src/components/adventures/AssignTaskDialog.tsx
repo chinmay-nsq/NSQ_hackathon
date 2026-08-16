@@ -126,7 +126,7 @@ export function AssignTaskDialog({ onAssigned }: { onAssigned: () => void }) {
     >
       <DialogTrigger
         render={
-          <Button variant="outline" size="sm" className="font-mono text-xs tracking-wide uppercase">
+          <Button variant="outline" size="sm" className="font-mono text-xs tracking-wide uppercase" data-tour="assign-task-btn">
             <UserPlus />
             Assign task
           </Button>

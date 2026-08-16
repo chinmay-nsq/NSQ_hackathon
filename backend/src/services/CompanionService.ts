@@ -5,7 +5,7 @@ import { AdventureRepository } from "@/repositories/AdventureRepository";
 import { GuildRepository } from "@/repositories/GuildRepository";
 import { ChatRepository } from "@/repositories/ChatRepository";
 import { CompanionFactory } from "@/factories/CompanionFactory";
-import { AIService, ChatContext } from "./AIService";
+import { AIService, ChatContext, DialogueAction } from "./AIService";
 import { GrowthService } from "./GrowthService";
 import { CHAT_TOOLS, executeCompanionTool } from "./CompanionToolService";
 import { ToolCallResult } from "@/factories/AIProviderFactory";
@@ -13,6 +13,11 @@ import { CompanionSpecies, RESOURCE_TYPES } from "@/config/constants";
 import { prisma } from "@/config/db";
 import { ApiError } from "@/utils/apiError";
 import { HttpStatus } from "@/utils/httpStatus";
+
+// Below this accuracy%, a manager's team is considered worth a nudge in
+// their greeting — deliberately generous (not a harsh bar) since this
+// drives a friendly "check in on your team" prompt, not a warning.
+const TEAM_LAGGING_ACCURACY_THRESHOLD = 55;
 
 // A generous but real ceiling — protects against one runaway chat spamming
 // the AI provider (cost) while still allowing a genuinely long conversation.
@@ -65,10 +70,12 @@ class CompanionServiceImpl {
     return companion;
   }
 
-  async getDialogue(employeeId: string) {
+  async getDialogue(employeeId: string): Promise<{ text: string; action?: DialogueAction }> {
     const employee = await EmployeeRepository.findByIdWithRelations(employeeId);
     if (!employee) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
     if (!employee.companion) throw new ApiError(HttpStatus.NOT_FOUND, "No companion yet", "Not Found");
+
+    const isLead = employee.role === "MANAGER" || employee.role === "ADMIN";
 
     const pendingAdventures = await prisma.adventureProgress.count({
       where: { employeeId, completed: false },
@@ -97,7 +104,10 @@ class CompanionServiceImpl {
     });
     if (hasCompletedAnything === 0 && !employee.guild && pendingAdventures === 0 && dailyQuizStatus === "not_generated") {
       await CompanionRepository.touchDialogueTimestamp(employee.companion.id);
-      return `Hey ${employee.name}, I'm ${employee.companion.name} — glad you're here. We haven't done anything together yet, so let's fix that: your first daily quiz is one click away, and I'll help you find a guild to join.`;
+      return {
+        text: `Hey ${employee.name}, I'm ${employee.companion.name} — glad you're here. We haven't done anything together yet, so let's fix that: your first daily quiz is one click away, and I'll help you find a guild to join.`,
+        action: { topic: "adventures", label: "Take today's quiz" },
+      };
     }
 
     let guildResourceGap: string | undefined;
@@ -123,7 +133,50 @@ class CompanionServiceImpl {
       // best-effort only — dialogue still works without it
     }
 
-    const dialogue = await AIService.generateCompanionDialogue({
+    // Decide the action button DETERMINISTICALLY from real conditions, in
+    // this exact priority order — never by asking the AI to pick one or by
+    // parsing its generated text. Managers get a team-facing nudge first
+    // (their own quiz is secondary to something their team needs from
+    // them); everyone else gets whichever of their own things is most
+    // pressing.
+    let action: DialogueAction | undefined;
+
+    if (isLead) {
+      const pendingReviewCount = await prisma.adventureProgress.count({
+        where: {
+          approval: "PENDING",
+          adventure: { assignedById: employeeId },
+        },
+      });
+      if (pendingReviewCount > 0) {
+        action = {
+          topic: "approvals",
+          label: pendingReviewCount === 1 ? "Review 1 submission" : `Review ${pendingReviewCount} submissions`,
+        };
+      } else {
+        // No review queue right now — check whether the team's own trend is
+        // lagging enough to be worth a nudge (real signal from GrowthService,
+        // same accuracy computation Growth's own trend uses).
+        try {
+          const teamGrowth = await GrowthService.getTeamGrowth(employeeId);
+          if (teamGrowth.memberCount > 0 && teamGrowth.skill.currentPct !== null && teamGrowth.skill.currentPct < TEAM_LAGGING_ACCURACY_THRESHOLD) {
+            action = { topic: "teams", label: "Check in on your team" };
+          }
+        } catch {
+          // best-effort only — no team-nudge action if this fails, dialogue still works
+        }
+      }
+    }
+
+    if (!action) {
+      if (dailyQuizStatus === "pending") {
+        action = { topic: "adventures", label: "Take today's quiz" };
+      } else if (pendingAdventures > 0) {
+        action = { topic: "adventures", label: pendingAdventures === 1 ? "View your quest" : "View your quests" };
+      }
+    }
+
+    const dialogueText = await AIService.generateCompanionDialogue({
       companionName: employee.companion.name,
       species: employee.companion.species,
       employeeName: employee.name,
@@ -138,7 +191,7 @@ class CompanionServiceImpl {
 
     await CompanionRepository.touchDialogueTimestamp(employee.companion.id);
 
-    return dialogue;
+    return { text: dialogueText, action };
   }
 
   async recordAdventureCompletion(companionId: string, employeeName: string, adventureTitle: string, bondXpGain: number) {

@@ -58,4 +58,9 @@ export const EmployeeController = {
     const message = await EmployeeService.guildWelcomeMessage(req.employeeId!);
     return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Guild welcome fetched", { message }));
   },
+
+  async completeOnboardingTour(req: AuthedRequest, res: Response) {
+    const employee = await EmployeeService.markOnboardingTourDone(req.employeeId!);
+    return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Onboarding tour marked done", { employee }));
+  },
 };

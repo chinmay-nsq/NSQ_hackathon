@@ -28,6 +28,20 @@ export interface GrowthInsight {
   observations: GrowthObservation[];
 }
 
+/**
+ * A closed set of destinations the dashboard companion greeting can point
+ * at — decided entirely by CompanionService from real conditions (quiz
+ * pending, an assigned task waiting, a manager's team lagging), NEVER by
+ * asking the AI to pick one. The AI only ever sees the resulting text; it
+ * never chooses or produces a route itself.
+ */
+export type DialogueActionTopic = "adventures" | "approvals" | "teams";
+
+export interface DialogueAction {
+  topic: DialogueActionTopic;
+  label: string;
+}
+
 export interface ChatContext {
   companionName: string;
   species: string;
@@ -461,7 +475,8 @@ Introduce their guild using ONLY the real facts given — never invent teammate 
     jobRole?: string | null;
   }): Promise<GeneratedAdventureContent> {
     const system = `You are the AI Dungeon Master for Skibidi-Sprint, a workplace gamification app.
-Generate ONE short "welcome quest" — a brand-new employee's very first task, on their first day. It should help them make a small, visible first contribution to their new team (e.g. introducing themselves, sharing something about their background, asking a question in a team channel) — NOT a generic skill quiz or solo learning task.
+Generate ONE short "welcome quest" — a brand-new employee's very first task, on their first day. It should help them make a small, visible first contribution to their new team (e.g. introducing themselves to the team, sharing something about their background, asking their manager or teammates a question) — NOT a generic skill quiz or solo learning task.
+This app has no chat/channel feature — NEVER invent or name a specific channel (e.g. "#some-channel"), Slack, Teams, or any other messaging tool. Phrase the task generically instead, like "introduce yourself to your team" or "share this with your manager" — leave HOW/WHERE up to the employee's own workplace.
 Respond ONLY with JSON matching: { "title": string, "description": string, "xpReward": number (15-30), "coinReward": number (10-20), "resourceType": "knowledge"|"gold"|"influence"|"materials", "resourceAmount": number (5-15) }`;
 
     const user = `New employee: ${context.employeeName}. Guild: ${context.guildName ?? "no guild yet"}. Role: ${context.jobRole ?? "unspecified"}. Generate their day-one welcome quest.`;

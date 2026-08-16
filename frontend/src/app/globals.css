@@ -41,6 +41,43 @@
 }
 
 /*
+  Themed scrollbar, app-wide — everywhere content genuinely overflows (the
+  sidebar's own inner scroll, long pages, tables, chat panels) should get a
+  thin bar in the app's own tokens instead of the stark OS-default one,
+  matching horizontally and vertically. Firefox reads scrollbar-color/width;
+  Chrome/Safari/Edge read the ::-webkit-scrollbar rules below — both cover
+  the same surfaces so neither browser falls back to an unstyled bar.
+*/
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted-foreground) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--muted);
+  border-radius: 999px;
+  border: 2px solid var(--background);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--muted-foreground);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/*
   Skibidi-Sprint — cinematic game-UI dashboard, matching the landing page's
   dark ink + coral identity. Light and dark both lean bolder/higher-contrast
   than a typical SaaS admin theme; --glow-* tokens back real box-shadow glow

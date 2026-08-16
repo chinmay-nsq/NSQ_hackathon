@@ -35,15 +35,15 @@ import { useAuthStore } from "@/store/authStore";
 
 const NAV_ITEMS = [
   { href: "/app", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/adventures", label: "Adventures", icon: Swords },
-  { href: "/teams", label: "Teams", icon: Users },
+  { href: "/adventures", label: "Adventures", icon: Swords, tourKey: "nav-adventures" },
+  { href: "/teams", label: "Teams", icon: Users, tourKey: "nav-teams" },
   // { href: "/company", label: "Company", icon: Sparkles }, // temporarily hidden
-  { href: "/rewards", label: "Rewards", icon: Store },
-  { href: "/trading", label: "Trading Post", icon: ArrowLeftRight },
-  { href: "/growth", label: "Growth", icon: TrendingUp },
+  { href: "/rewards", label: "Rewards", icon: Store, tourKey: "nav-rewards" },
+  { href: "/trading", label: "Trading Post", icon: ArrowLeftRight, tourKey: "nav-trading" },
+  { href: "/growth", label: "Growth", icon: TrendingUp, tourKey: "nav-growth" },
 ];
 
-const MANAGER_NAV_ITEM = { href: "/approvals", label: "Approvals", icon: ClipboardCheck };
+const MANAGER_NAV_ITEM = { href: "/approvals", label: "Approvals", icon: ClipboardCheck, tourKey: "nav-approvals" };
 const ADMIN_NAV_ITEM = { href: "/admin", label: "Admin", icon: ShieldCheck };
 
 function initials(name: string) {
@@ -106,7 +106,7 @@ export function AppSidebar() {
                       isActive={active}
                       className="data-[active=true]:glow-primary data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:font-medium"
                       render={
-                        <Link href={item.href}>
+                        <Link href={item.href} data-tour={"tourKey" in item ? item.tourKey : undefined}>
                           <item.icon />
                           <span>{item.label}</span>
                         </Link>

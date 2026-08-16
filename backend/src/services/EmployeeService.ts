@@ -16,6 +16,16 @@ class EmployeeServiceImpl {
   }
 
   /**
+   * Marks the guided spotlight tour as done (completed OR skipped) —
+   * persisted server-side so it follows the employee across
+   * browsers/devices and never re-triggers once set. One-way: there's no
+   * "un-complete" path.
+   */
+  markOnboardingTourDone(employeeId: string) {
+    return EmployeeRepository.update(employeeId, { onboardingTourDone: true });
+  }
+
+  /**
    * Completes the mandatory post-onboarding work profile (job role,
    * seniority, skills). Feeds AI task generation for this employee, both
    * their own daily solo adventures and a manager's "generate with AI".

@@ -3,10 +3,13 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
+import { useOnboardingTourStore } from "@/store/onboardingTourStore";
 import { AppSidebar } from "@/components/AppSidebar";
 import { CoinDisplay } from "@/components/CoinDisplay";
 import { NotificationBell } from "@/components/NotificationBell";
 import { CompanionChatBubble } from "@/components/CompanionChatBubble";
+import { OnboardingTour } from "@/components/OnboardingTour";
+import { TourStatusGate } from "@/components/TourStatusGate";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -20,6 +23,7 @@ const FULL_ONBOARDING_ROUTES = [ONBOARDING_ROUTE, PROFILE_ROUTE];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { status, employee, fetchMe } = useAuthStore();
+  const tourActive = useOnboardingTourStore((s) => s.active);
   const pathname = usePathname();
   const router = useRouter();
   const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
@@ -69,10 +73,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (status === "idle" || status === "loading") {
     return (
-      <main className="bg-grid flex min-h-screen items-center justify-center gap-2.5 bg-background text-muted-foreground">
-        <Sparkles className="size-4 animate-pulse text-primary" />
-        <span className="font-display text-sm tracking-wide uppercase">Loading Skibidi-Sprint…</span>
-      </main>
+      <>
+        <TourStatusGate />
+        <main className="bg-grid flex min-h-screen items-center justify-center gap-2.5 bg-background text-muted-foreground">
+          <Sparkles className="size-4 animate-pulse text-primary" />
+          <span className="font-display text-sm tracking-wide uppercase">Loading Skibidi-Sprint…</span>
+        </main>
+      </>
     );
   }
 
@@ -95,7 +102,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="mx-auto w-full min-w-0 max-w-6xl">{children}</div>
         </main>
       </SidebarInset>
-      <CompanionChatBubble />
+      {!tourActive && <CompanionChatBubble />}
+      <OnboardingTour />
+      <TourStatusGate />
     </SidebarProvider>
   );
 }

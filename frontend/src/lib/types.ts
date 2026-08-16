@@ -25,6 +25,7 @@ export interface Employee {
   seniority?: Seniority | null;
   skills?: string[];
   profileCompletedAt?: string | null;
+  onboardingTourDone: boolean;
   companion?: Companion | null;
   guild?: Guild | null;
 }
@@ -215,6 +216,13 @@ export interface WeeklyPoint {
 }
 
 export type GrowthObservationTopic = "adventures" | "teams" | "approvals" | "growth";
+
+export type DialogueActionTopic = "adventures" | "approvals" | "teams";
+
+export interface DialogueAction {
+  topic: DialogueActionTopic;
+  label: string;
+}
 
 export interface GrowthObservation {
   text: string;

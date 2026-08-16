@@ -6,6 +6,7 @@ import { Users, UsersRound } from "lucide-react";
 import { api, ApiRequestError } from "@/lib/api";
 import { Guild } from "@/lib/types";
 import { useAuthStore } from "@/store/authStore";
+import { useOnboardingTourStore } from "@/store/onboardingTourStore";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -28,6 +29,11 @@ export default function TeamsPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  function handleGuildCreated() {
+    useOnboardingTourStore.getState().signalAction("create-team");
+    void load();
+  }
+
   useEffect(() => {
     void load();
   }, [load]);
@@ -43,7 +49,7 @@ export default function TeamsPage() {
             ? "Teams you lead, with their resources and roster."
             : "Your team, its resources, and its roster."
         }
-        action={canCreateGuild ? <CreateGuildDialog onCreated={load} /> : undefined}
+        action={canCreateGuild ? <CreateGuildDialog onCreated={handleGuildCreated} /> : undefined}
       />
 
       {error && <p className="text-sm text-destructive">{error}</p>}

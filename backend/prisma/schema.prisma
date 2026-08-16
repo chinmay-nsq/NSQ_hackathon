@@ -56,6 +56,11 @@ model Employee {
   // only ever sent once per employee, not on every subsequent login.
   onboardingNudgeSentAt DateTime?
 
+  // True once the guided spotlight tour has been completed OR skipped —
+  // persisted server-side (not just localStorage) so it follows the
+  // employee across browsers/devices and never re-triggers once done.
+  onboardingTourDone Boolean @default(false)
+
   guildId String?
   guild   Guild?  @relation("GuildMember", fields: [guildId], references: [id])
 
