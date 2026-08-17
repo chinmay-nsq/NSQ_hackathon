@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { User, Users, Building2 } from "lucide-react";
 import { useGSAP } from "@gsap/react";
 import { gsap, ScrollTrigger } from "@/lib/gsap/registerPlugins";
+import { ScatterText } from "./ScatterText";
 
 const LOOP = [
   { label: "Employee", detail: "grows through daily quests", icon: User, metric: "+40 XP / quest" },
@@ -28,7 +29,7 @@ export function SolutionSection() {
           pin: true,
         },
       })
-        .fromTo(".solution-head", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.3 })
+        .fromTo(".solution-eyebrow", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.3 })
         .fromTo(".solution-sub", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.25 }, "-=0.1")
         .fromTo(
           ".loop-node",
@@ -61,12 +62,14 @@ export function SolutionSection() {
       className="relative flex min-h-screen flex-col justify-center overflow-hidden px-6 sm:px-12"
     >
       <div className="mx-auto w-full max-w-7xl">
-        <p className="solution-head font-mono text-xs uppercase tracking-[0.25em] text-coral">The Solution</p>
-        <h2 className="solution-head mt-3 max-w-3xl font-display text-[clamp(2rem,6vw,4.2rem)] leading-[0.95] text-white">
-          One loop. Everybody
-          <br />
-          wins together.
-        </h2>
+        <p className="solution-eyebrow font-mono text-xs uppercase tracking-[0.25em] text-coral">The Solution</p>
+        <ScatterText
+          as="h2"
+          scatterRadius={220}
+          className="mt-3 block max-w-3xl font-display text-[clamp(2rem,6vw,4.2rem)] leading-[0.95] text-white"
+        >
+          One loop. Everybody wins together.
+        </ScatterText>
         <p className="solution-sub mt-5 max-w-lg text-base leading-relaxed text-white/50">
           No leaderboards pitting people against each other. Every level someone earns
           feeds directly into their team — and every team&apos;s progress feeds the company.

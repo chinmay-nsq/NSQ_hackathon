@@ -151,15 +151,15 @@ const SLIDES: SlideDef[] = [
   {
     id: "problem",
     kicker: "01 — The Problem",
-    notes: "This is the setup. Walk through each line slowly — the point is that every engagement tool follows the same decay curve. Land hard on \"Silence.\"",
+    notes: "This is the setup — keep it brief, one breath: people disengage fast, and every gamification tool decays the same way. Walk the four lines quickly and land hard on \"Silence,\" then move.",
     render: () => (
       <div className="flex h-full flex-col justify-center">
         <h2 className="slide-title font-display text-[clamp(2.4rem,5.5vw,4.4rem)] leading-[0.95] text-white">
           Engagement dies by week three.
         </h2>
         <p className="slide-body mt-5 max-w-2xl text-xl text-white/50">
-          Every workplace gamification tool follows the same curve — a burst of interest at launch, then a slow fade
-          as the novelty wears off and the mechanics start feeling like homework.
+          Every gamification tool follows the same curve: a burst of interest, then a fade as it starts feeling like
+          homework.
         </p>
         <div className="slide-body mt-8 flex flex-col gap-4 max-w-2xl">
           {[
@@ -257,6 +257,9 @@ const SLIDES: SlideDef[] = [
         <p className="slide-body mt-8 max-w-xl text-xl text-white/55">
           Quiz accuracy, activity streaks, XP versus your own average — computed from what actually happened, never
           AI-invented. The AI only writes 2-3 sentences about numbers it&apos;s handed, nothing more.
+        </p>
+        <p className="slide-body mt-6 max-w-xl font-mono text-lg text-coral/90">
+          1<sup>365</sup> = 1. But 1.01<sup>365</sup> = 37.
         </p>
       </div>
     ),
@@ -498,6 +501,9 @@ const SLIDES: SlideDef[] = [
   },
 ];
 
+/** Reserved for the deck's big "turn" moments so the effect stays special — everything else gets a simple fade+rise instead. */
+const GATHER_SLIDE_IDS = new Set(["cover", "problem", "morph-tasks", "morph-org", "morph-growth", "closer"]);
+
 function Deck({ onExit }: { onExit: () => void }) {
   const { isFullscreen, exit } = useFullscreen();
   const [index, setIndex] = useState(0);
@@ -506,12 +512,67 @@ function Deck({ onExit }: { onExit: () => void }) {
   const burstRef = useRef<LightningBurstHandle>(null);
   const morphedRef = useRef({ tasks: false, org: false, growth: false });
   const transitioning = useRef(false);
+  const titleSplitRef = useRef<SplitText | null>(null);
 
+  /**
+   * The slide's single entrance animation — everything else in this
+   * function is gated behind it, never layered with a separate
+   * container-level fade (goTo() only does an instant visibility swap for
+   * the incoming slide, see below), so exactly one animation plays per
+   * element, not two competing ones.
+   *
+   * On the deck's big "turn" moments (GATHER_SLIDE_IDS), the title
+   * "gathers" into place: each character starts scattered at a random
+   * offset/rotation/opacity and converges to its real resting spot, like
+   * it's being assembled rather than just fading up. Every other slide's
+   * title gets a plain fade+rise instead, so the gather effect stays
+   * special rather than feeling like default chrome. Supporting copy
+   * (eyebrow/body/rows/stats) always gets the same simple fade+rise,
+   * staggered in right after.
+   */
   function playSlideIn(el: HTMLElement) {
+    titleSplitRef.current?.revert();
+    titleSplitRef.current = null;
+
+    const slideId = SLIDES[Number(el.dataset.slide)]?.id;
+    const titleEl = el.querySelector<HTMLElement>(".slide-title");
+
+    if (titleEl && slideId && GATHER_SLIDE_IDS.has(slideId)) {
+      const split = SplitText.create(titleEl, { type: "chars", charsClass: "slide-title-char" });
+      titleSplitRef.current = split;
+      gsap.set(split.chars, { display: "inline-block" });
+      split.chars.forEach((char) => {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 60 + Math.random() * 120;
+        gsap.fromTo(
+          char,
+          {
+            opacity: 0,
+            x: Math.cos(angle) * dist,
+            y: Math.sin(angle) * dist,
+            rotation: (Math.random() - 0.5) * 200,
+            scale: 0.3,
+          },
+          {
+            opacity: 1,
+            x: 0,
+            y: 0,
+            rotation: 0,
+            scale: 1,
+            duration: 0.7,
+            delay: Math.random() * 0.15,
+            ease: "power3.out",
+          },
+        );
+      });
+    } else if (titleEl) {
+      gsap.fromTo(titleEl, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" });
+    }
+
     gsap.fromTo(
-      el.querySelectorAll(".slide-eyebrow, .slide-title, .slide-body, .slide-row, .slide-stat"),
-      { opacity: 0, y: 28, filter: "blur(6px)" },
-      { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.6, stagger: 0.06, ease: "power3.out" },
+      el.querySelectorAll(".slide-eyebrow, .slide-body, .slide-row, .slide-stat"),
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.5, stagger: 0.06, delay: 0.25, ease: "power2.out" },
     );
 
     const companionCards = el.querySelectorAll(".companion-card");
@@ -573,42 +634,31 @@ function Deck({ onExit }: { onExit: () => void }) {
     const stage = stageRef.current;
     const outgoing = stage?.querySelector<HTMLElement>(`[data-slide="${index}"]`);
     const incoming = stage?.querySelector<HTMLElement>(`[data-slide="${clamped}"]`);
-    const dir = clamped > index ? 1 : -1;
 
     setIndex(clamped);
 
     if (outgoing) {
+      // A quick, simple exit — the outgoing slide's own animation, never
+      // layered with anything else on the same element.
       gsap.to(outgoing, {
         opacity: 0,
-        scale: 0.96,
-        filter: "blur(8px)",
-        x: -dir * 40,
-        duration: 0.35,
+        duration: 0.25,
         ease: "power2.in",
         onComplete: () => gsap.set(outgoing, { visibility: "hidden" }),
       });
     }
     if (incoming) {
-      gsap.set(incoming, { visibility: "visible" });
-      gsap.fromTo(
-        incoming,
-        { opacity: 0, scale: 1.03, filter: "blur(8px)", x: dir * 40 },
-        {
-          opacity: 1,
-          scale: 1,
-          filter: "blur(0px)",
-          x: 0,
-          duration: 0.5,
-          ease: "power2.out",
-          onComplete: () => {
-            playSlideIn(incoming);
-            transitioning.current = false;
-          },
-        },
-      );
-    } else {
-      transitioning.current = false;
+      // Instant swap — no fade/blur/slide of its own. playSlideIn() below is
+      // the ONLY entrance animation for the incoming slide's content.
+      gsap.set(incoming, { visibility: "visible", opacity: 1 });
+      playSlideIn(incoming);
     }
+    // Held slightly longer than the char-gather animation so rapid
+    // key-mashing can't interrupt it mid-flight (title chars are still
+    // converging for ~0.7s + up to 0.15s random stagger delay).
+    gsap.delayedCall(0.9, () => {
+      transitioning.current = false;
+    });
   }
 
   useEffect(() => {
