@@ -16,10 +16,10 @@ export function CoinDisplay() {
   return (
     <div
       data-coin-target
-      className="glow-primary ml-auto flex items-center gap-1.5 rounded-full border border-currency/30 bg-currency/10 px-3 py-1"
+      className="ml-auto flex items-center gap-1.5 rounded-full border border-yellow/40 bg-yellow-soft px-2.5 py-1"
     >
-      <Coins className="size-3.5 text-currency" />
-      <span className="tabular font-mono text-xs font-medium">
+      <Coins className="size-3.5 text-yellow-foreground" />
+      <span className="tabular text-xs font-semibold text-yellow-foreground">
         <CountUp value={employee.coins ?? 0} duration={0.6} />
       </span>
     </div>

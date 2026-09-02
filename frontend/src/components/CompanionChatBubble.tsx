@@ -186,7 +186,7 @@ export function CompanionChatBubble() {
               maxLength={1000}
               className="h-9 flex-1 rounded-full border border-border bg-background px-3.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             />
-            <Button type="submit" size="icon-sm" disabled={!draft.trim() || sending} className="glow-primary rounded-full">
+            <Button type="submit" size="icon-sm" disabled={!draft.trim() || sending} className="rounded-full">
               <Send className="size-3.5" />
             </Button>
           </form>
@@ -197,7 +197,7 @@ export function CompanionChatBubble() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? "Close companion chat" : "Chat with your companion"}
-        className="glow-primary-strong flex size-14 items-center justify-center overflow-hidden rounded-full border border-border bg-card shadow-lg transition-transform hover:scale-105"
+        className="glow-primary-strong flex size-14 items-center justify-center overflow-hidden rounded-full bg-card ring-2 ring-pink/30 transition-transform hover:scale-105"
       >
         {open ? (
           <X className="size-5 text-muted-foreground" />

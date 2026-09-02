@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Anton, Inter, JetBrains_Mono } from "next/font/google";
+import { Anton, Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
@@ -9,16 +9,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { StructuredData } from "@/components/StructuredData";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 // Landing page ("/") only — a distinct, always-dark visual world.
 const anton = Anton({
   variable: "--font-anton",
@@ -26,8 +16,16 @@ const anton = Anton({
   weight: "400",
 });
 
+// Body copy across the whole authenticated app.
 const inter = Inter({
   variable: "--font-inter",
+  subsets: ["latin"],
+});
+
+// Headings across the app — a grotesque with enough character to stay
+// playful, but none of the display font's shouting.
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
 });
 
@@ -73,7 +71,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${anton.variable} ${inter.variable} ${jetbrainsMono.variable} antialiased`}
+      className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${anton.variable} antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-screen">

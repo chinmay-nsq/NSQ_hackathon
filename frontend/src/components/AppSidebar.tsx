@@ -84,16 +84,16 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="px-3 py-4">
         <div className="flex items-center gap-2.5 px-1">
-          <div className="glow-primary size-8 shrink-0 overflow-hidden rounded-lg">
+          <div className="size-8 shrink-0 overflow-hidden rounded-lg ring-1 ring-border">
             <Image src="/icon.svg" alt="" width={32} height={32} className="size-full" />
           </div>
-          <span className="font-display text-base tracking-wide uppercase">Skibidi-Sprint</span>
+          <span className="font-display text-[15px] font-bold">Skibidi-Sprint</span>
         </div>
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="font-mono text-[10px] tracking-[0.15em] uppercase">
+          <SidebarGroupLabel className="text-[11px] font-semibold tracking-[0.12em] uppercase">
             Workspace
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -104,7 +104,7 @@ export function AppSidebar() {
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
                       isActive={active}
-                      className="data-[active=true]:glow-primary data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:font-medium"
+                      className="data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground"
                       render={
                         <Link href={item.href} data-tour={"tourKey" in item ? item.tourKey : undefined}>
                           <item.icon />

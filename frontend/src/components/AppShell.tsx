@@ -77,7 +77,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <TourStatusGate />
         <main className="bg-grid flex min-h-screen items-center justify-center gap-2.5 bg-background text-muted-foreground">
           <Sparkles className="size-4 animate-pulse text-primary" />
-          <span className="font-display text-sm tracking-wide uppercase">Loading Skibidi-Sprint…</span>
+          <span className="font-display text-sm font-medium">Loading Skibidi-Sprint…</span>
         </main>
       </>
     );
@@ -91,7 +91,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset className="bg-grid">
-        <header className="bg-background/80 flex h-14 shrink-0 items-center gap-2 border-b px-4 backdrop-blur-sm">
+        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/80 px-4 backdrop-blur-md">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <CoinDisplay />

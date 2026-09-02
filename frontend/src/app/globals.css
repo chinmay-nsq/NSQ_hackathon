@@ -78,109 +78,135 @@ html {
 }
 
 /*
-  Skibidi-Sprint — cinematic game-UI dashboard, matching the landing page's
-  dark ink + coral identity. Light and dark both lean bolder/higher-contrast
-  than a typical SaaS admin theme; --glow-* tokens back real box-shadow glow
-  on cards/buttons in both modes (kept subtle in light, dramatic in dark).
-  Amber reserved for currency, emerald reserved for success/unlock states.
+  Skibidi-Sprint — clean, professional workspace theme.
+
+  The app is white first: near-white page, pure-white cards, near-black
+  neutral text. Colour is spent deliberately rather than as decoration —
+  blue (--primary) carries actions and progress, yellow (--currency)
+  carries the economy (coins, rewards), pink (--pink) carries the
+  companion and the playful moments. Each accent has a `-soft` tint for
+  fills and a `-foreground` step dark enough to read as text on white.
+
+  The landing page ("/") keeps its own dark cinematic identity via
+  landing.css and --font-anton, and is deliberately untouched by these
+  tokens.
 */
 
 :root {
   --radius: 0.75rem;
 
-  --background: oklch(0.985 0.004 40);
-  --foreground: oklch(0.14 0.012 40);
+  --background: oklch(0.99 0.002 260);
+  --foreground: oklch(0.17 0.008 260);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.14 0.012 40);
+  --card-foreground: oklch(0.17 0.008 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.14 0.012 40);
+  --popover-foreground: oklch(0.17 0.008 260);
 
-  --primary: oklch(0.62 0.21 27);
+  --primary: oklch(0.55 0.2 262);
   --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.95 0.012 40);
-  --secondary-foreground: oklch(0.2 0.012 40);
-  --muted: oklch(0.95 0.012 40);
-  --muted-foreground: oklch(0.48 0.02 40);
-  --accent: oklch(0.94 0.05 27);
-  --accent-foreground: oklch(0.38 0.17 27);
-  --destructive: oklch(0.577 0.245 27.325);
+  --secondary: oklch(0.965 0.003 260);
+  --secondary-foreground: oklch(0.25 0.008 260);
+  --muted: oklch(0.965 0.003 260);
+  --muted-foreground: oklch(0.52 0.012 260);
+  --accent: oklch(0.955 0.025 262);
+  --accent-foreground: oklch(0.44 0.17 262);
+  --destructive: oklch(0.58 0.22 25);
 
-  --border: oklch(0.89 0.012 40);
-  --input: oklch(0.89 0.012 40);
-  --ring: oklch(0.62 0.21 27);
+  --border: oklch(0.922 0.004 260);
+  --input: oklch(0.922 0.004 260);
+  --ring: oklch(0.55 0.2 262);
 
-  /* Game-UI semantic tokens */
-  --xp: oklch(0.62 0.21 27);
-  --currency: oklch(0.72 0.16 75);
-  --currency-foreground: oklch(0.32 0.1 75);
-  --success: oklch(0.58 0.15 155);
-  --success-foreground: oklch(0.98 0 0);
+  /* Accent family — blue lives on --primary; pink and yellow below. */
+  --blue-soft: oklch(0.96 0.024 262);
+  --pink: oklch(0.65 0.2 355);
+  --pink-foreground: oklch(0.47 0.18 355);
+  --pink-soft: oklch(0.96 0.026 355);
+  --yellow: oklch(0.82 0.16 85);
+  --yellow-foreground: oklch(0.48 0.11 75);
+  --yellow-soft: oklch(0.965 0.05 90);
 
-  --chart-1: oklch(0.62 0.21 27);
-  --chart-2: oklch(0.72 0.16 75);
-  --chart-3: oklch(0.58 0.15 155);
-  --chart-4: oklch(0.62 0.15 220);
-  --chart-5: oklch(0.62 0.18 320);
+  /* Semantic aliases — XP reads as progress (blue), coins as the in-app
+     economy (yellow), completion as success (green). */
+  --xp: oklch(0.55 0.2 262);
+  --currency: oklch(0.82 0.16 85);
+  --currency-foreground: oklch(0.48 0.11 75);
+  --success: oklch(0.56 0.14 155);
+  --success-foreground: oklch(0.99 0 0);
 
-  --sidebar: oklch(0.98 0.008 40);
-  --sidebar-foreground: oklch(0.14 0.012 40);
-  --sidebar-primary: oklch(0.62 0.21 27);
+  --chart-1: oklch(0.55 0.2 262);
+  --chart-2: oklch(0.65 0.2 355);
+  --chart-3: oklch(0.82 0.16 85);
+  --chart-4: oklch(0.56 0.14 155);
+  --chart-5: oklch(0.62 0.13 230);
+
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.17 0.008 260);
+  --sidebar-primary: oklch(0.55 0.2 262);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.94 0.05 27);
-  --sidebar-accent-foreground: oklch(0.38 0.17 27);
-  --sidebar-border: oklch(0.89 0.012 40);
-  --sidebar-ring: oklch(0.62 0.21 27);
+  --sidebar-accent: oklch(0.955 0.025 262);
+  --sidebar-accent-foreground: oklch(0.44 0.17 262);
+  --sidebar-border: oklch(0.922 0.004 260);
+  --sidebar-ring: oklch(0.55 0.2 262);
 
-  --glow-primary: oklch(0.62 0.21 27 / 22%);
-  --glow-strong: oklch(0.62 0.21 27 / 35%);
-  --grid-line: oklch(0.14 0.012 40 / 4%);
+  /* Elevation, not glow — see .glow-primary below. */
+  --glow-primary: oklch(0.17 0.008 260 / 8%);
+  --glow-strong: oklch(0.17 0.008 260 / 12%);
+  --grid-line: oklch(0.17 0.008 260 / 4.5%);
 }
 
 .dark {
-  --background: oklch(0.11 0.012 40);
-  --foreground: oklch(0.97 0.006 40);
-  --card: oklch(0.155 0.014 40);
-  --card-foreground: oklch(0.97 0.006 40);
-  --popover: oklch(0.155 0.014 40);
-  --popover-foreground: oklch(0.97 0.006 40);
+  --background: oklch(0.16 0.006 260);
+  --foreground: oklch(0.97 0.003 260);
+  --card: oklch(0.2 0.007 260);
+  --card-foreground: oklch(0.97 0.003 260);
+  --popover: oklch(0.2 0.007 260);
+  --popover-foreground: oklch(0.97 0.003 260);
 
-  --primary: oklch(0.71 0.2 27);
-  --primary-foreground: oklch(0.11 0.012 40);
-  --secondary: oklch(0.22 0.014 40);
-  --secondary-foreground: oklch(0.97 0.006 40);
-  --muted: oklch(0.22 0.014 40);
-  --muted-foreground: oklch(0.65 0.018 40);
-  --accent: oklch(0.28 0.08 27);
-  --accent-foreground: oklch(0.88 0.1 27);
-  --destructive: oklch(0.7 0.19 22);
+  --primary: oklch(0.68 0.17 262);
+  --primary-foreground: oklch(0.16 0.006 260);
+  --secondary: oklch(0.26 0.008 260);
+  --secondary-foreground: oklch(0.97 0.003 260);
+  --muted: oklch(0.26 0.008 260);
+  --muted-foreground: oklch(0.68 0.012 260);
+  --accent: oklch(0.3 0.06 262);
+  --accent-foreground: oklch(0.85 0.09 262);
+  --destructive: oklch(0.68 0.19 25);
 
-  --border: oklch(1 0 0 / 9%);
+  --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.71 0.2 27);
+  --ring: oklch(0.68 0.17 262);
 
-  --xp: oklch(0.73 0.19 27);
-  --currency: oklch(0.76 0.15 75);
-  --currency-foreground: oklch(0.22 0.06 75);
-  --success: oklch(0.66 0.15 155);
-  --success-foreground: oklch(0.11 0.012 40);
+  --blue-soft: oklch(0.3 0.06 262);
+  --pink: oklch(0.72 0.17 355);
+  --pink-foreground: oklch(0.82 0.12 355);
+  --pink-soft: oklch(0.3 0.06 355);
+  --yellow: oklch(0.84 0.15 88);
+  --yellow-foreground: oklch(0.88 0.12 88);
+  --yellow-soft: oklch(0.3 0.05 88);
 
-  --chart-1: oklch(0.73 0.19 27);
-  --chart-2: oklch(0.76 0.15 75);
-  --chart-3: oklch(0.66 0.15 155);
-  --chart-4: oklch(0.68 0.15 220);
-  --chart-5: oklch(0.68 0.18 320);
+  --xp: oklch(0.68 0.17 262);
+  --currency: oklch(0.84 0.15 88);
+  --currency-foreground: oklch(0.88 0.12 88);
+  --success: oklch(0.68 0.14 155);
+  --success-foreground: oklch(0.16 0.006 260);
 
-  --sidebar: oklch(0.13 0.013 40);
-  --sidebar-foreground: oklch(0.97 0.006 40);
-  --sidebar-primary: oklch(0.71 0.2 27);
-  --sidebar-primary-foreground: oklch(0.11 0.012 40);
-  --sidebar-accent: oklch(0.28 0.08 27);
-  --sidebar-accent-foreground: oklch(0.88 0.1 27);
-  --sidebar-border: oklch(1 0 0 / 9%);
-  --sidebar-ring: oklch(0.71 0.2 27);
+  --chart-1: oklch(0.68 0.17 262);
+  --chart-2: oklch(0.72 0.17 355);
+  --chart-3: oklch(0.84 0.15 88);
+  --chart-4: oklch(0.68 0.14 155);
+  --chart-5: oklch(0.7 0.12 230);
 
-  --glow-primary: oklch(0.71 0.2 27 / 30%);
-  --glow-strong: oklch(0.71 0.2 27 / 50%);
+  --sidebar: oklch(0.18 0.006 260);
+  --sidebar-foreground: oklch(0.97 0.003 260);
+  --sidebar-primary: oklch(0.68 0.17 262);
+  --sidebar-primary-foreground: oklch(0.16 0.006 260);
+  --sidebar-accent: oklch(0.3 0.06 262);
+  --sidebar-accent-foreground: oklch(0.85 0.09 262);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.68 0.17 262);
+
+  --glow-primary: oklch(0 0 0 / 40%);
+  --glow-strong: oklch(0 0 0 / 55%);
   --grid-line: oklch(1 0 0 / 3.5%);
 }
 
@@ -204,6 +230,14 @@ html {
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  --color-blue-soft: var(--blue-soft);
+  --color-pink: var(--pink);
+  --color-pink-foreground: var(--pink-foreground);
+  --color-pink-soft: var(--pink-soft);
+  --color-yellow: var(--yellow);
+  --color-yellow-foreground: var(--yellow-foreground);
+  --color-yellow-soft: var(--yellow-soft);
+
   --color-xp: var(--xp);
   --color-currency: var(--currency);
   --color-currency-foreground: var(--currency-foreground);
@@ -225,9 +259,9 @@ html {
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-anton);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains);
+  --font-display: var(--font-space-grotesk);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -245,14 +279,21 @@ html {
   html {
     @apply font-sans;
   }
+  /* The app's display face is a grotesque, so it needs negative tracking at
+     heading sizes — without it, set headings read loose and unfinished.
+     Excluded inside .landing-page, which keeps Anton at its own tracking. */
+  .font-display:not(.landing-page *) {
+    letter-spacing: -0.02em;
+  }
 }
 
 .tabular {
   font-variant-numeric: tabular-nums;
 }
 
-/* Faint background grid, matching the landing page's ambient texture — used
-   behind dashboard shell/hero-style cards for the same cinematic identity. */
+/* Faint background grid — the app's one piece of ambient texture, kept from
+   the original design. It sits behind the whole workspace canvas so white
+   cards read as paper stacked on paper rather than a flat void. */
 .bg-grid {
   background-image:
     linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
@@ -260,17 +301,27 @@ html {
   background-size: 40px 40px;
 }
 
-/* Soft coral glow ring, dial-able via box-shadow spread — used on hero cards
-   and the sidebar's active nav state so key surfaces feel "powered on". */
+/*
+  Elevation, app-wide. Still named .glow-primary for continuity with the many
+  call sites that predate the white theme, but it is no longer a coloured
+  bloom: a raised surface is now a hairline plus a soft neutral drop shadow,
+  which is what keeps pure-white cards legible on the near-white page.
+*/
 .glow-primary {
-  box-shadow: 0 0 0 1px var(--glow-primary), 0 8px 30px -8px var(--glow-primary);
+  box-shadow:
+    0 0 0 1px var(--border),
+    0 1px 2px 0 var(--glow-primary),
+    0 6px 16px -8px var(--glow-primary);
 }
 
 .glow-primary-strong {
-  box-shadow: 0 0 0 1px var(--glow-strong), 0 12px 40px -6px var(--glow-strong);
+  box-shadow:
+    0 0 0 1px var(--border),
+    0 2px 4px -1px var(--glow-primary),
+    0 12px 28px -10px var(--glow-strong);
 }
 
-/* Drifting ember field — the login page's ambient texture, same drift
+/* Drifting particle field — the login page's ambient texture, same drift
    pattern as the landing page's particles but themed to the app's --primary
    token so it stays correct in both light and dark mode. */
 .ember-particle {
@@ -278,7 +329,7 @@ html {
   bottom: -5%;
   border-radius: 50%;
   background: var(--primary);
-  box-shadow: 0 0 12px 3px var(--glow-strong);
+  box-shadow: 0 0 12px 3px oklch(0.55 0.2 262 / 30%);
   opacity: 0;
   animation-name: ember-drift;
   animation-timing-function: linear;

@@ -79,7 +79,7 @@ export function NotificationBell() {
       />
       <DropdownMenuContent align="end" className="w-80 max-w-[calc(100vw-2rem)] p-0">
         <div className="border-b border-border/60 px-3 py-2">
-          <p className="font-mono text-xs tracking-widest text-muted-foreground uppercase">Notifications</p>
+          <p className="text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">Notifications</p>
         </div>
         <div className="max-h-96 overflow-y-auto">
           {notifications.length === 0 ? (
@@ -101,7 +101,7 @@ export function NotificationBell() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium">{n.title}</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">{n.body}</p>
-                    <p className="mt-1 font-mono text-[10px] tracking-wide text-muted-foreground/70 uppercase">
+                    <p className="mt-1 text-[10px] tracking-wide text-muted-foreground/70 uppercase">
                       {timeAgo(n.createdAt)}
                     </p>
                   </div>
