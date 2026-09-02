@@ -39,6 +39,7 @@ export default function ProfileOnboardingPage() {
 
   const { employee, fetchMe } = useAuthStore();
   const router = useRouter();
+  const isManager = employee?.role === "MANAGER" || employee?.role === "ADMIN";
   const debouncedJobRole = useDebouncedValue(jobRole.trim(), 700);
 
   useEffect(() => {
@@ -185,8 +186,9 @@ export default function ProfileOnboardingPage() {
           </p>
           <h1 className="font-display mt-2 text-3xl tracking-wide uppercase sm:text-4xl">Complete your profile</h1>
           <p className="mt-3 text-sm text-muted-foreground">
-            Your role, level, and skills shape the daily adventures your companion generates for
-            you.
+            {isManager
+              ? "Your role and experience help tailor task suggestions for your team."
+              : "Your role, level, and skills shape the daily adventures your companion generates for you."}
           </p>
         </div>
 

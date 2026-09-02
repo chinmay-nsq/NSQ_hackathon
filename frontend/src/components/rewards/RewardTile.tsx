@@ -115,9 +115,9 @@ export function RewardTile({
           )}
         >
           {redeeming
-            ? "Claiming…"
+            ? "Ordering…"
             : canAfford
-              ? "Pull to claim"
+              ? "Pull to order"
               : `Need ${coinsShort.toLocaleString()} more coins`}
         </span>
       </button>

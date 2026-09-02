@@ -10,8 +10,8 @@ import {
   LayoutDashboard,
   Swords,
   Users,
+  Users2,
   Store,
-  ArrowLeftRight,
   TrendingUp,
   User,
   LogOut,
@@ -32,14 +32,17 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuthStore } from "@/store/authStore";
+import { taskWord } from "@/lib/taskLabels";
 
 const NAV_ITEMS = [
   { href: "/app", label: "Dashboard", icon: LayoutDashboard },
   { href: "/adventures", label: "Adventures", icon: Swords, tourKey: "nav-adventures" },
+  { href: "/standup", label: "Standup", icon: Users2 },
   { href: "/teams", label: "Teams", icon: Users, tourKey: "nav-teams" },
   // { href: "/company", label: "Company", icon: Sparkles }, // temporarily hidden
   { href: "/rewards", label: "Rewards", icon: Store, tourKey: "nav-rewards" },
-  { href: "/trading", label: "Trading Post", icon: ArrowLeftRight, tourKey: "nav-trading" },
+  // Trading Post — removed entirely per backlog; kept here commented for a fast revert.
+  // { href: "/trading", label: "Trading Post", icon: ArrowLeftRight, tourKey: "nav-trading" },
   { href: "/growth", label: "Growth", icon: TrendingUp, tourKey: "nav-growth" },
 ];
 
@@ -61,9 +64,15 @@ export function AppSidebar() {
   const { employee, logout } = useAuthStore();
   const menuRef = useRef<HTMLUListElement>(null);
 
+  const isManager = employee?.role === "MANAGER" || employee?.role === "ADMIN";
+
   const navItems = [
-    ...NAV_ITEMS,
-    ...(employee?.role === "MANAGER" || employee?.role === "ADMIN" ? [MANAGER_NAV_ITEM] : []),
+    // "Adventures" is renamed per role (Tasks for managers, Sprint for
+    // everyone else — see taskLabels.ts); Rewards is hidden for managers.
+    ...NAV_ITEMS.filter((item) => !(isManager && item.href === "/rewards")).map((item) =>
+      item.href === "/adventures" ? { ...item, label: taskWord(employee?.role) } : item
+    ),
+    ...(isManager ? [MANAGER_NAV_ITEM] : []),
     ...(employee?.role === "ADMIN" ? [ADMIN_NAV_ITEM] : []),
   ];
 

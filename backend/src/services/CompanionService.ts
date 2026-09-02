@@ -31,6 +31,22 @@ function startOfToday(): Date {
 }
 
 class CompanionServiceImpl {
+  /**
+   * Managers/admins don't go through companion selection — the companion
+   * UI is hidden for that role entirely (dashboard card, chat bubble,
+   * onboarding picker). A lot of internal logic still structurally expects
+   * `employee.companion` to exist (onboarding redirects, chat-adjacent
+   * checks), so rather than thread a "manager has no companion" special
+   * case through all of that tonight, a hidden default companion is
+   * silently provisioned at registration — named after the employee's own
+   * id (guaranteed unique, never rendered anywhere a manager would see it).
+   */
+  autoProvisionHidden(employeeId: string) {
+    return prisma.companion.create({
+      data: CompanionFactory.build(employeeId, "barbarian", employeeId),
+    });
+  }
+
   async create(employeeId: string, species: CompanionSpecies, name: string) {
     const existing = await CompanionRepository.findByEmployeeId(employeeId);
     if (existing) {

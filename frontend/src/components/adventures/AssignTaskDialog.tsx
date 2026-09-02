@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { UserPlus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiRequestError } from "@/lib/api";
-import { Guild } from "@/lib/types";
+import { Guild, Sprint, WorkItemType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,16 +22,34 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
+const WORK_ITEM_OPTIONS: { value: WorkItemType; label: string }[] = [
+  { value: "TASK", label: "Task" },
+  { value: "STORY", label: "Story" },
+  { value: "BUG", label: "Bug" },
+];
+
 /** Manager/admin-only: hand-writes a task and assigns it to one or more members of a team they lead. */
-export function AssignTaskDialog({ onAssigned }: { onAssigned: () => void }) {
+export function AssignTaskDialog({
+  onAssigned,
+  sprints = [],
+  defaultSprintId,
+}: {
+  onAssigned: () => void;
+  /** Recent sprints, for the "plan into" picker — passed down from the board so it doesn't re-fetch its own copy. */
+  sprints?: Sprint[];
+  /** Pre-selects whichever sprint the board is currently scoped to, if any. */
+  defaultSprintId?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [guilds, setGuilds] = useState<Guild[]>([]);
   const [guildsLoaded, setGuildsLoaded] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [workItemType, setWorkItemType] = useState<WorkItemType>("TASK");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [xpReward, setXpReward] = useState(25);
   const [coinReward, setCoinReward] = useState(15);
+  const [sprintId, setSprintId] = useState(defaultSprintId ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -65,12 +83,18 @@ export function AssignTaskDialog({ onAssigned }: { onAssigned: () => void }) {
       .finally(() => setGuildsLoaded(true));
   }, [open, guildsLoaded]);
 
+  useEffect(() => {
+    if (open) setSprintId(defaultSprintId ?? "");
+  }, [open, defaultSprintId]);
+
   function reset() {
     setSelectedIds(new Set());
+    setWorkItemType("TASK");
     setTitle("");
     setDescription("");
     setXpReward(25);
     setCoinReward(15);
+    setSprintId(defaultSprintId ?? "");
     setError(null);
   }
 
@@ -102,6 +126,8 @@ export function AssignTaskDialog({ onAssigned }: { onAssigned: () => void }) {
         description: description.trim(),
         xpReward,
         coinReward,
+        workItemType,
+        ...(sprintId ? { sprintId } : {}),
       });
       setOpen(false);
       reset();
@@ -128,14 +154,14 @@ export function AssignTaskDialog({ onAssigned }: { onAssigned: () => void }) {
         render={
           <Button variant="outline" size="sm" className="font-mono text-xs tracking-wide uppercase" data-tour="assign-task-btn">
             <UserPlus />
-            Assign task
+            Create Task
           </Button>
         }
       />
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle className="font-display text-xl tracking-wide uppercase">Assign a task</DialogTitle>
+            <DialogTitle className="font-display text-xl tracking-wide uppercase">Create a task</DialogTitle>
             <DialogDescription>
               Hand-write a task and assign it to one or more of your team&apos;s companions. Members
               are shown by companion name only.
@@ -143,6 +169,47 @@ export function AssignTaskDialog({ onAssigned }: { onAssigned: () => void }) {
           </DialogHeader>
 
           <div className="mt-5 space-y-4">
+            <div className="space-y-1.5">
+              <Label className="font-mono text-xs tracking-wide uppercase">Type</Label>
+              <div className="flex gap-1.5">
+                {WORK_ITEM_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setWorkItemType(opt.value)}
+                    className={cn(
+                      "flex-1 rounded-lg border px-3 py-2 text-center font-mono text-xs tracking-wide uppercase transition-colors",
+                      workItemType === opt.value
+                        ? "border-primary bg-accent font-medium text-primary"
+                        : "border-border text-muted-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="assign-sprint" className="font-mono text-xs tracking-wide uppercase">
+                Sprint
+              </Label>
+              <select
+                id="assign-sprint"
+                value={sprintId}
+                onChange={(e) => setSprintId(e.target.value)}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                <option value="">Backlog (no sprint)</option>
+                {sprints.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                    {s.isCurrent ? " · Current" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label className="font-mono text-xs tracking-wide uppercase">Assign to</Label>
@@ -283,10 +350,10 @@ export function AssignTaskDialog({ onAssigned }: { onAssigned: () => void }) {
               className="glow-primary font-mono text-xs tracking-wide uppercase"
             >
               {submitting
-                ? "Assigning…"
+                ? "Creating…"
                 : selectedIds.size > 1
-                  ? `Assign to ${selectedIds.size}`
-                  : "Assign task"}
+                  ? `Create for ${selectedIds.size}`
+                  : "Create task"}
             </Button>
           </DialogFooter>
         </form>

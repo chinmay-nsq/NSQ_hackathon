@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Gift, Coins, ShoppingBag, History, X } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiRequestError } from "@/lib/api";
@@ -29,6 +30,7 @@ function statusBadgeClass(status: MyListing["status"]) {
 }
 
 export default function TradingPage() {
+  const router = useRouter();
   const { employee, fetchMe } = useAuthStore();
   const [listings, setListings] = useState<Listing[]>([]);
   const [myListings, setMyListings] = useState<MyListing[]>([]);
@@ -55,6 +57,13 @@ export default function TradingPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Trading Post is removed from the product (nav entry already gone) —
+  // this just catches anyone landing here by a direct/old link. Kept as a
+  // redirect rather than deleting the page, so it's a one-line revert.
+  useEffect(() => {
+    router.replace("/app");
+  }, [router]);
 
   async function handleBuy(listing: Listing) {
     setBuyingId(listing.id);

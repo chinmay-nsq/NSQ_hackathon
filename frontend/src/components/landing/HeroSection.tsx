@@ -7,6 +7,7 @@ import { gsap } from "@/lib/gsap/registerPlugins";
 import { MagneticButton } from "./MagneticButton";
 import { HeroCrystal } from "./HeroCrystal";
 import { LightningBurst, type LightningBurstHandle } from "./LightningBurst";
+import { THUNDERBOLT_ENABLED } from "@/lib/featureFlags";
 
 export function HeroSection({ onEnter }: { onEnter: () => void }) {
   const scope = useRef<HTMLDivElement>(null);
@@ -20,7 +21,7 @@ export function HeroSection({ onEnter }: { onEnter: () => void }) {
 
     // Four bolt clusters converge inward from the screen's corners toward
     // center, rather than radiating out from the button itself.
-    await burstRef.current?.fireConverge();
+    if (THUNDERBOLT_ENABLED) await burstRef.current?.fireConverge();
     router.push("/how-it-works");
   }
 

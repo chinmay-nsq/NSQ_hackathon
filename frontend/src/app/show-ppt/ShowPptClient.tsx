@@ -8,6 +8,7 @@ import "../landing.css";
 import { gsap, MorphSVGPlugin, SplitText } from "@/lib/gsap/registerPlugins";
 import { AmbientParticles } from "@/components/landing/AmbientParticles";
 import { LightningBurst, type LightningBurstHandle } from "@/components/landing/LightningBurst";
+import { THUNDERBOLT_ENABLED } from "@/lib/featureFlags";
 import { PETS } from "@/components/landing/petData";
 
 /** Two path definitions sharing a compatible point count so MorphSVGPlugin can tween cleanly between them without auto-inserting extra points mid-animation (kept simple/manual for predictable results). */
@@ -688,7 +689,7 @@ function Deck({ onExit }: { onExit: () => void }) {
   }, [index]);
 
   async function handleClickZone(dir: 1 | -1) {
-    if (dir === 1 && index === SLIDES.length - 2) {
+    if (THUNDERBOLT_ENABLED && dir === 1 && index === SLIDES.length - 2) {
       const stage = stageRef.current;
       const rect = stage?.getBoundingClientRect();
       if (rect) {

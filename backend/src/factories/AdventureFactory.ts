@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, WorkItemType } from "@prisma/client";
 import { ResourceType } from "@/config/constants";
 import { QuizQuestionContent } from "@/services/AIService";
 
@@ -40,10 +40,12 @@ export const AdventureFactory = {
     title: string,
     description: string,
     employeeId: string,
-    guildId: string | null
+    guildId: string | null,
+    workItemType: WorkItemType = "TASK"
   ): Prisma.AdventureCreateInput {
     return {
       type: "SOLO",
+      workItemType,
       title,
       description,
       xpReward: MANUAL_ADVENTURE_XP,
@@ -62,10 +64,13 @@ export const AdventureFactory = {
     coinReward: number,
     assigneeId: string,
     guildId: string | null,
-    assignerId: string
+    assignerId: string,
+    workItemType: WorkItemType = "TASK",
+    sprintId?: string | null
   ): Prisma.AdventureCreateInput {
     return {
       type: "SOLO",
+      workItemType,
       title,
       description,
       xpReward,
@@ -74,6 +79,7 @@ export const AdventureFactory = {
       createdBy: { connect: { id: assigneeId } },
       assignedBy: { connect: { id: assignerId } },
       ...(guildId ? { guild: { connect: { id: guildId } } } : {}),
+      ...(sprintId ? { sprint: { connect: { id: sprintId } } } : {}),
     };
   },
 

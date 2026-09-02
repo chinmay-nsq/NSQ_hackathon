@@ -75,6 +75,9 @@ model Employee {
   createdAdventures  Adventure[]         @relation("AdventureCreator")
   assignedAdventures Adventure[]         @relation("AdventureAssigner")
   approvedProgress   AdventureProgress[] @relation("ProgressApprover")
+  approvedPurchases  Purchase[]          @relation("PurchaseApprover")
+  taskComments       TaskComment[]
+  taskActivity       TaskActivityLog[]
 
   listingsSelling Listing[] @relation("ListingSeller")
   listingsBought  Listing[] @relation("ListingBuyer")
@@ -166,7 +169,26 @@ model Guild {
   members       Employee[]            @relation("GuildMember")
   adventures    Adventure[]           @relation("AdventureGuild")
   contributions KingdomContribution[]
+  sprints       Sprint[]
   createdAt     DateTime              @default(now())
+}
+
+// A time-boxed iteration (Azure DevOps-style) that a team's tasks can be
+// planned into. Scoped to one guild — each team runs its own sprints.
+// Whether a sprint is "current" is derived from startDate/endDate against
+// today, never a separate hand-maintained status field.
+model Sprint {
+  id        String   @id @default(cuid())
+  guildId   String
+  guild     Guild    @relation(fields: [guildId], references: [id])
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  createdAt DateTime @default(now())
+
+  adventures Adventure[]
+
+  @@index([guildId, startDate])
 }
 
 // ---------- Kingdom ----------
@@ -235,6 +257,11 @@ model Adventure {
   description String          @db.Text
   status      AdventureStatus @default(ACTIVE)
 
+  // Work-item kind for the Kanban board — orthogonal to `type` (which is
+  // about WHO it's for: solo/guild/cross-guild). A manager picks this when
+  // creating a task, the same way Azure DevOps has Task/User Story/Bug.
+  workItemType WorkItemType @default(TASK)
+
   xpReward        Int @default(0)
   coinReward      Int @default(0)
   knowledgeReward Int @default(0)
@@ -246,6 +273,13 @@ model Adventure {
   // CROSS_GUILD: open to multiple guilds, tracked via participants.
   guildId String?
   guild   Guild?  @relation("AdventureGuild", fields: [guildId], references: [id])
+
+  // Which sprint this task is planned into — null means it's in the
+  // backlog (unplanned). Only ever set on manager-assigned tasks; a manager
+  // picks the sprint (default: whichever one is currently active) when
+  // creating one.
+  sprintId String?
+  sprint   Sprint? @relation(fields: [sprintId], references: [id])
 
   createdById String?
   createdBy   Employee? @relation("AdventureCreator", fields: [createdById], references: [id])
@@ -276,8 +310,16 @@ model Adventure {
   quiz Json?
 
   progress AdventureProgress[]
+  comments TaskComment[]
+  activity TaskActivityLog[]
 
   @@unique([createdById, dailyQuizDate])
+}
+
+enum WorkItemType {
+  TASK
+  STORY
+  BUG
 }
 
 enum ApprovalStatus {
@@ -317,6 +359,46 @@ model AdventureProgress {
   @@unique([adventureId, employeeId])
 }
 
+// Real discussion on a task, shown in its enlarged detail view.
+model TaskComment {
+  id          String    @id @default(cuid())
+  adventureId String
+  adventure   Adventure @relation(fields: [adventureId], references: [id])
+  authorId    String
+  author      Employee  @relation(fields: [authorId], references: [id])
+  body        String    @db.Text
+  createdAt   DateTime  @default(now())
+
+  @@index([adventureId, createdAt])
+}
+
+enum TaskActivityType {
+  CREATED
+  ASSIGNED
+  SUBMITTED
+  APPROVED
+  REJECTED
+  COMMENTED
+}
+
+// Every real movement of a task — what feeds both the task detail view's
+// history and the Standup page's "who did what" feed. Written alongside
+// the actual state change (never backfilled/inferred), so it's always a
+// true record of what happened and when.
+model TaskActivityLog {
+  id          String            @id @default(cuid())
+  adventureId String
+  adventure   Adventure         @relation(fields: [adventureId], references: [id])
+  actorId     String
+  actor       Employee          @relation(fields: [actorId], references: [id])
+  type        TaskActivityType
+  detail      String
+  createdAt   DateTime          @default(now())
+
+  @@index([adventureId, createdAt])
+  @@index([actorId, createdAt])
+}
+
 model Reflection {
   id         String   @id @default(cuid())
   employeeId String
@@ -346,6 +428,15 @@ model Purchase {
   item       MarketplaceItem @relation(fields: [itemId], references: [id])
 
   createdAt DateTime @default(now())
+
+  // Reward-claim approval: coins are deducted (reserved) the moment an
+  // employee orders a reward, but the claim itself waits on a manager.
+  // PENDING = "Ordered" (shown to the employee), APPROVED = "Claimed",
+  // REJECTED = coins refunded, order voided.
+  approval     ApprovalStatus @default(PENDING)
+  approvedById String?
+  approvedBy   Employee?      @relation("PurchaseApprover", fields: [approvedById], references: [id])
+  approvedAt   DateTime?
 
   listings Listing[]
 }
@@ -385,6 +476,8 @@ model Listing {
 enum NotificationType {
   REWARD_CLAIMED // an employee redeemed a marketplace reward — their manager is notified
   ONBOARDING_STALLED // an employee picked a companion but never finished their profile — nudge sent to themself
+  REWARD_APPROVED // a manager approved an employee's ordered reward — the employee is notified it's claimed
+  REWARD_REJECTED // a manager rejected an employee's ordered reward (coins refunded) — the employee is notified
 }
 
 // A lightweight in-app notification. recipientId is who sees it (e.g. a

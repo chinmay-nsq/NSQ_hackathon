@@ -1,0 +1,3 @@
+-- AlterEnum
+ALTER TYPE "NotificationType" ADD VALUE 'REWARD_APPROVED';
+ALTER TYPE "NotificationType" ADD VALUE 'REWARD_REJECTED';

@@ -1,5 +1,6 @@
 import { Response } from "express";
 import { z } from "zod";
+import { WorkItemType } from "@prisma/client";
 import { AdventureService } from "@/services/AdventureService";
 import { AuthedRequest } from "@/middleware/requireAuth";
 import { ApiResponse } from "@/utils/apiResponse";
@@ -18,6 +19,7 @@ const completeSchema = z.object({
 const createManualSchema = z.object({
   title: z.string().min(3).max(120),
   description: z.string().min(10).max(2000),
+  workItemType: z.enum(WorkItemType).optional(),
 });
 
 const assignSchema = z.object({
@@ -26,10 +28,20 @@ const assignSchema = z.object({
   description: z.string().min(10).max(2000),
   xpReward: z.number().int().min(5).max(200).default(25),
   coinReward: z.number().int().min(5).max(200).default(15),
+  workItemType: z.enum(WorkItemType).optional(),
+  sprintId: z.string().min(1).optional(),
 });
 
 const rejectSchema = z.object({
   note: z.string().max(500).optional(),
+});
+
+const addCommentSchema = z.object({
+  body: z.string().min(1).max(2000),
+});
+
+const moveSprintSchema = z.object({
+  sprintId: z.string().min(1).nullable(),
 });
 
 export const AdventureController = {
@@ -47,7 +59,12 @@ export const AdventureController = {
 
   async createManual(req: AuthedRequest, res: Response) {
     const parsed = createManualSchema.parse(req.body ?? {});
-    const adventure = await AdventureService.createManualSolo(req.employeeId!, parsed.title, parsed.description);
+    const adventure = await AdventureService.createManualSolo(
+      req.employeeId!,
+      parsed.title,
+      parsed.description,
+      parsed.workItemType
+    );
     return res
       .status(HttpStatus.CREATED)
       .json(new ApiResponse(HttpStatus.CREATED, "Adventure created", { adventure }));
@@ -61,7 +78,9 @@ export const AdventureController = {
       parsed.title,
       parsed.description,
       parsed.xpReward,
-      parsed.coinReward
+      parsed.coinReward,
+      parsed.workItemType,
+      parsed.sprintId
     );
     return res
       .status(HttpStatus.CREATED)
@@ -126,5 +145,31 @@ export const AdventureController = {
     const employeeId = String(req.params.employeeId);
     const progress = await AdventureService.reject(req.employeeId!, adventureId, employeeId, parsed.note);
     return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Adventure rejected", { progress }));
+  },
+
+  async board(req: AuthedRequest, res: Response) {
+    const sprintId = typeof req.query.sprintId === "string" ? req.query.sprintId : undefined;
+    const tasks = await AdventureService.getBoard(req.employeeId!, sprintId);
+    return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Board fetched", { tasks }));
+  },
+
+  async taskDetail(req: AuthedRequest, res: Response) {
+    const adventureId = String(req.params.id);
+    const detail = await AdventureService.getTaskDetail(req.employeeId!, adventureId);
+    return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Task detail fetched", detail));
+  },
+
+  async addComment(req: AuthedRequest, res: Response) {
+    const parsed = addCommentSchema.parse(req.body ?? {});
+    const adventureId = String(req.params.id);
+    const comment = await AdventureService.addComment(req.employeeId!, adventureId, parsed.body);
+    return res.status(HttpStatus.CREATED).json(new ApiResponse(HttpStatus.CREATED, "Comment added", { comment }));
+  },
+
+  async moveSprint(req: AuthedRequest, res: Response) {
+    const parsed = moveSprintSchema.parse(req.body ?? {});
+    const adventureId = String(req.params.id);
+    const adventure = await AdventureService.moveToSprint(req.employeeId!, adventureId, parsed.sprintId);
+    return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Task moved", { adventure }));
   },
 };

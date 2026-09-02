@@ -19,4 +19,24 @@ export const MarketplaceController = {
     const purchases = await MarketplaceService.myPurchases(req.employeeId!);
     return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Purchases fetched", { purchases }));
   },
+
+  async pendingClaims(req: AuthedRequest, res: Response) {
+    const claims = await MarketplaceService.pendingClaims(req.employeeId!);
+    return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Pending claims fetched", { claims }));
+  },
+
+  async recentDecisions(req: AuthedRequest, res: Response) {
+    const decisions = await MarketplaceService.recentDecisions(req.employeeId!);
+    return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Recent decisions fetched", { decisions }));
+  },
+
+  async approveClaim(req: AuthedRequest, res: Response) {
+    const purchase = await MarketplaceService.approveClaim(req.employeeId!, String(req.params.id));
+    return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Claim approved", { purchase }));
+  },
+
+  async rejectClaim(req: AuthedRequest, res: Response) {
+    const purchase = await MarketplaceService.rejectClaim(req.employeeId!, String(req.params.id));
+    return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Claim rejected", { purchase }));
+  },
 };

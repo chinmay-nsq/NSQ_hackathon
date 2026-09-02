@@ -15,5 +15,17 @@ router.get(
   requireRole(Role.MANAGER, Role.ADMIN),
   asyncHandler(GrowthController.selfLeadership)
 );
+router.get(
+  "/team-members",
+  requireAuth,
+  requireRole(Role.MANAGER, Role.ADMIN),
+  asyncHandler(GrowthController.teamMembers)
+);
+router.get(
+  "/team-members/:employeeId/week",
+  requireAuth,
+  requireRole(Role.MANAGER, Role.ADMIN),
+  asyncHandler(GrowthController.teamMemberWeekDetail)
+);
 
 export default router;

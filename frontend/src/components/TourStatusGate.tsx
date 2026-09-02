@@ -6,6 +6,7 @@ import { useGSAP } from "@gsap/react";
 import { gsap } from "@/lib/gsap/registerPlugins";
 import { useOnboardingTourStore } from "@/store/onboardingTourStore";
 import { LightningBurst, type LightningBurstHandle } from "@/components/landing/LightningBurst";
+import { THUNDERBOLT_ENABLED } from "@/lib/featureFlags";
 import { Loader2 } from "lucide-react";
 
 /**
@@ -30,7 +31,7 @@ export function TourStatusGate() {
 
     function onClick(e: MouseEvent) {
       setStruck(true);
-      void burstRef.current?.fire(e.clientX, e.clientY, 140);
+      if (THUNDERBOLT_ENABLED) void burstRef.current?.fire(e.clientX, e.clientY, 140);
     }
     window.addEventListener("click", onClick, { capture: true });
     return () => window.removeEventListener("click", onClick, { capture: true });

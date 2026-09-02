@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { TrendingUp, Flame, Zap, Users, Timer, ClipboardCheck, type LucideIcon } from "lucide-react";
+import { TrendingUp, Flame, Zap, Users, Timer, ClipboardCheck, CheckCircle2, ListChecks, type LucideIcon } from "lucide-react";
 import { useGSAP } from "@gsap/react";
 import { gsap } from "@/lib/gsap/registerPlugins";
 import { api } from "@/lib/api";
@@ -114,6 +114,21 @@ function MyGrowthTab() {
 
   return (
     <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <StatTile icon={ListChecks} label="Tasks completed" value={growth.totalTasksCompleted} accent="var(--chart-1)" />
+        <StatTile
+          icon={CheckCircle2}
+          label={
+            growth.approval.ratePct !== null
+              ? `Approval rate (${growth.approval.approvedCount}/${growth.approval.approvedCount + growth.approval.rejectedCount})`
+              : "Approval rate"
+          }
+          value={growth.approval.ratePct ?? 0}
+          suffix={growth.approval.ratePct !== null ? "%" : " — no reviews yet"}
+          accent="var(--success)"
+        />
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-4">
         <DimensionToggle value={dimension} onChange={setDimension} />
       </div>
@@ -211,6 +226,17 @@ function TeamGrowthTab() {
           </div>
           <GrowthSparkline points={growth.consistency.activeDaysByWeek} color="var(--chart-3)" />
         </div>
+        <div className="rounded-2xl border border-border/60 bg-card p-6 sm:col-span-2">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="font-display text-lg tracking-wide uppercase">Sprint Completion</h3>
+            <DeltaBadge deltaPct={growth.sprintCompletion.deltaPct} />
+          </div>
+          {growth.sprintCompletion.sprintCount === 0 ? (
+            <EmptyState message="Start a sprint to track completion rate over time." />
+          ) : (
+            <GrowthSparkline points={growth.sprintCompletion.weekly} color="var(--chart-2)" valueSuffix="%" />
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -222,6 +248,25 @@ function TeamGrowthTab() {
           value={growth.consistency.activeDaysByWeek.at(-1)?.value ?? 0}
           suffix=" days"
           accent="var(--chart-3)"
+        />
+        <StatTile icon={ListChecks} label="Tasks completed" value={growth.totalTasksCompleted} accent="var(--chart-1)" />
+        <StatTile
+          icon={TrendingUp}
+          label="Sprint completion"
+          value={growth.sprintCompletion.currentPct ?? 0}
+          suffix={growth.sprintCompletion.sprintCount > 0 ? "%" : " — no sprints yet"}
+          accent="var(--chart-2)"
+        />
+        <StatTile
+          icon={CheckCircle2}
+          label={
+            growth.approval.ratePct !== null
+              ? `Approval rate (${growth.approval.approvedCount}/${growth.approval.approvedCount + growth.approval.rejectedCount})`
+              : "Approval rate"
+          }
+          value={growth.approval.ratePct ?? 0}
+          suffix={growth.approval.ratePct !== null ? "%" : " — no reviews yet"}
+          accent="var(--success)"
         />
       </div>
 

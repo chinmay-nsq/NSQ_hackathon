@@ -5,6 +5,7 @@ import { env } from "@/config/env";
 import { EmployeeRepository } from "@/repositories/EmployeeRepository";
 import { GuildRepository } from "@/repositories/GuildRepository";
 import { NotificationService } from "./NotificationService";
+import { CompanionService } from "./CompanionService";
 import { ApiError } from "@/utils/apiError";
 import { HttpStatus } from "@/utils/httpStatus";
 
@@ -58,7 +59,13 @@ class AuthServiceImpl {
     const employee = await EmployeeRepository.create({ email, passwordHash, name, role, guildId });
     const token = this.signToken({ employeeId: employee.id });
 
-    return { token, employee, hasCompanion: false };
+    // Managers skip companion selection entirely — see
+    // CompanionService.autoProvisionHidden for why this exists.
+    if (role === Role.MANAGER) {
+      await CompanionService.autoProvisionHidden(employee.id).catch(() => {});
+    }
+
+    return { token, employee, hasCompanion: role === Role.MANAGER };
   }
 
   async login(email: string, password: string) {
