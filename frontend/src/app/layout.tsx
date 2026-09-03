@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Anton, Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import { Anton, Bricolage_Grotesque, Inter, JetBrains_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
@@ -22,11 +22,15 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-// Headings across the app — a grotesque with enough character to stay
-// playful, but none of the display font's shouting.
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
+// Headings across the app — a grotesque that keeps its odd bits (flat-sided
+// bowls, cut terminals) so the UI still reads as playful, without any of the
+// old display face's shouting. Pulling in the optical-size axis lets the
+// browser's default font-optical-sizing tune the letterforms per heading
+// size, from the 13px sidebar brand up to a 30px page title.
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
   subsets: ["latin"],
+  axes: ["opsz"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -71,7 +75,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${anton.variable} antialiased`}
+      className={`${inter.variable} ${bricolage.variable} ${jetbrainsMono.variable} ${anton.variable} antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-screen">

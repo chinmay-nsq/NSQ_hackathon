@@ -261,7 +261,7 @@ html {
 
   --font-sans: var(--font-inter);
   --font-mono: var(--font-jetbrains);
-  --font-display: var(--font-space-grotesk);
+  --font-display: var(--font-bricolage);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -283,7 +283,7 @@ html {
      heading sizes — without it, set headings read loose and unfinished.
      Excluded inside .landing-page, which keeps Anton at its own tracking. */
   .font-display:not(.landing-page *) {
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
   }
 }
 
