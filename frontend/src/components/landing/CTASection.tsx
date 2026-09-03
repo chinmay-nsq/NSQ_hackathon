@@ -38,7 +38,7 @@ export function CTASection() {
       ref={scope}
       className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 text-center sm:px-12"
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_50%,rgba(255,90,54,0.16),transparent)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_50%,var(--gold-wash),transparent_70%)]" />
 
       <div className="cta-content relative flex max-w-2xl flex-col items-center gap-8">
         <p className="font-mono text-xs uppercase tracking-[0.25em] text-(--smoke)">Ready?</p>
