@@ -10,6 +10,11 @@ import { gsap, SplitText } from "@/lib/gsap/registerPlugins";
  * on screen so the word visibly "assembles" out of chaos — rather than a
  * plain fade/slide reveal. Scrubbed to scroll position, not a fire-once
  * timeline, so scrolling back up un-scatters it too.
+ *
+ * Splitting to "words,chars" rather than "chars" alone matters: the chars
+ * are inline-block, which makes every single one a line-break opportunity,
+ * so a heading that has to wrap breaks mid-word ("en / gage"). The word
+ * wrappers keep each word whole while the animation still runs per char.
  */
 export function ScatterText({
   children,
@@ -30,7 +35,11 @@ export function ScatterText({
       const el = ref.current;
       if (!el) return;
 
-      const split = SplitText.create(el, { type: "chars", charsClass: "scatter-char" });
+      const split = SplitText.create(el, {
+        type: "words,chars",
+        charsClass: "scatter-char",
+        wordsClass: "scatter-word",
+      });
 
       split.chars.forEach((char) => {
         gsap.set(char, { display: "inline-block" });
