@@ -1,4 +1,4 @@
-import { Prisma, WorkItemType } from "@prisma/client";
+import { BoardStatus, Prisma, WorkItemType } from "@prisma/client";
 import { prisma } from "@/config/db";
 import { AdventureRepository } from "@/repositories/AdventureRepository";
 import { EmployeeRepository } from "@/repositories/EmployeeRepository";
@@ -18,6 +18,28 @@ import { HttpStatus } from "@/utils/httpStatus";
 // enough that a task finished a couple weeks ago is still visible for
 // context, short enough that the board doesn't accumulate forever.
 const BOARD_HISTORY_DAYS = 14;
+
+/** Stored enum -> the lowercase column key the board UI speaks. */
+const BOARD_COLUMN = {
+  TODO: "todo",
+  IN_REVIEW: "in_review",
+  NEEDS_REWORK: "needs_rework",
+  DONE: "done",
+} as const satisfies Record<BoardStatus, string>;
+
+export type TaskColumnKey = (typeof BOARD_COLUMN)[BoardStatus];
+
+/** The reverse map, for turning a dragged column back into the stored enum. */
+const BOARD_STATUS: Record<TaskColumnKey, BoardStatus> = {
+  todo: "TODO",
+  in_review: "IN_REVIEW",
+  needs_rework: "NEEDS_REWORK",
+  done: "DONE",
+};
+
+export function isTaskColumnKey(value: string): value is TaskColumnKey {
+  return value in BOARD_STATUS;
+}
 
 function startOfToday(): Date {
   const d = new Date();
@@ -284,6 +306,7 @@ class AdventureServiceImpl {
     if (!adventure.aiGenerated) {
       // Manual adventure: record the submission as PENDING and stop — no reward yet.
       await AdventureRepository.upsertProgress(adventureId, employeeId, submission, "PENDING");
+      await AdventureRepository.setBoardStatus(adventureId, "IN_REVIEW");
       await TaskActivityService.log(adventureId, employeeId, "SUBMITTED", "Submitted for review.");
       return { pendingApproval: true as const };
     }
@@ -306,6 +329,7 @@ class AdventureServiceImpl {
       coinOverride,
       isQuiz ? quiz : undefined
     );
+    await AdventureRepository.setBoardStatus(adventureId, "DONE");
     return { pendingApproval: false as const, employee: updatedEmployee };
   }
 
@@ -329,6 +353,7 @@ class AdventureServiceImpl {
       "APPROVED",
       approverId
     );
+    await AdventureRepository.setBoardStatus(adventureId, "DONE");
     await TaskActivityService.log(adventureId, approverId, "APPROVED", `Approved (submitted by ${employee.name}).`);
     return updated;
   }
@@ -344,6 +369,7 @@ class AdventureServiceImpl {
     }
 
     const result = await AdventureRepository.setApproval(adventureId, employeeId, "REJECTED", approverId, note);
+    await AdventureRepository.setBoardStatus(adventureId, "NEEDS_REWORK");
     await TaskActivityService.log(adventureId, approverId, "REJECTED", note ?? "Rejected — sent back for rework.");
     return result;
   }
@@ -450,16 +476,20 @@ class AdventureServiceImpl {
   }
 
   /**
-   * Kanban column, derived from the SAME real fields that already drive
-   * the approvals flow — never a separate hand-maintained status. A card
-   * with no progress row yet (nobody's touched it) is "todo"; APPROVED and
-   * NONE (auto-credited, no review needed) both land in "done".
+   * Moves a card between Kanban columns. This is the drag-and-drop path, so
+   * it deliberately does NOT touch the approval fields or rewards: dragging
+   * a card to Done does not credit XP, and dragging it back out does not
+   * claw anything back. Approving through the approvals flow remains the
+   * only thing that pays out.
    */
-  private deriveColumn(progress?: { completed: boolean; approval: string }): "todo" | "in_review" | "needs_rework" | "done" {
-    if (!progress || !progress.completed) return "todo";
-    if (progress.approval === "PENDING") return "in_review";
-    if (progress.approval === "REJECTED") return "needs_rework";
-    return "done";
+  async setBoardStatus(viewerId: string, adventureId: string, column: TaskColumnKey) {
+    const adventure = await AdventureRepository.findBoardCard(adventureId);
+    if (!adventure) throw new ApiError(HttpStatus.NOT_FOUND, "Task not found", "Not Found");
+
+    // Same visibility rule as opening the card — if you can see it, you can move it.
+    await this.assertCanViewTask(viewerId, adventure);
+
+    return AdventureRepository.setBoardStatus(adventureId, BOARD_STATUS[column]);
   }
 
   /**
@@ -498,7 +528,7 @@ class AdventureServiceImpl {
       return {
         ...a,
         assignee: primaryProgress?.employee ?? a.createdBy,
-        column: this.deriveColumn(primaryProgress),
+        column: BOARD_COLUMN[a.boardStatus],
       };
     });
   }
@@ -539,7 +569,7 @@ class AdventureServiceImpl {
       adventure: {
         ...adventure,
         assignee: primaryProgress?.employee ?? adventure.createdBy,
-        column: this.deriveColumn(primaryProgress),
+        column: BOARD_COLUMN[adventure.boardStatus],
       },
       comments,
       activity,

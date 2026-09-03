@@ -54,6 +54,10 @@ router.post(
 router.get("/board", requireAuth, asyncHandler(AdventureController.board));
 router.get("/:id/detail", requireAuth, asyncHandler(AdventureController.taskDetail));
 router.post("/:id/comments", requireAuth, asyncHandler(AdventureController.addComment));
+// Dragging a card between Kanban columns. Any viewer of the board can move
+// a card (the service re-checks visibility); it changes no rewards, so it
+// does not need the manager gate that approve/reject do.
+router.post("/:id/board-status", requireAuth, asyncHandler(AdventureController.moveBoardStatus));
 router.post(
   "/:id/sprint",
   requireAuth,

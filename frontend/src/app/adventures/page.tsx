@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Sparkles } from "lucide-react";
 import { api, ApiRequestError } from "@/lib/api";
-import { Adventure, BoardTask, Sprint } from "@/lib/types";
+import { Adventure, BoardTask, Sprint, TaskColumn } from "@/lib/types";
 import { useAuthStore } from "@/store/authStore";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,6 +19,7 @@ import { SprintSelector, type SprintFilter } from "@/components/adventures/Sprin
 import { CreateSprintDialog } from "@/components/adventures/CreateSprintDialog";
 import { ensureDailyQuiz } from "@/lib/ensureDailyQuiz";
 import { taskWord } from "@/lib/taskLabels";
+import { toast } from "sonner";
 
 export default function AdventuresPage() {
   const { employee } = useAuthStore();
@@ -96,6 +97,30 @@ export default function AdventuresPage() {
       setError(err instanceof ApiRequestError ? err.message : "Could not generate an adventure right now.");
     } finally {
       setGenerating(null);
+    }
+  }
+
+  /**
+   * Drag-and-drop between columns. The card moves locally first so the drop
+   * feels instant, then the server call confirms it; if that fails we put
+   * the board back exactly as it was rather than leaving a card sitting in
+   * a column the server never accepted.
+   *
+   * This only moves the card. Rewards are still paid by approving through
+   * the task dialog, so dropping something in Done credits nobody.
+   */
+  async function handleMoveTask(taskId: string, column: TaskColumn) {
+    const previous = tasks;
+    const moving = previous.find((t) => t.id === taskId);
+    if (!moving || moving.column === column) return;
+
+    setTasks((current) => current.map((t) => (t.id === taskId ? { ...t, column } : t)));
+
+    try {
+      await api.post(`/adventures/${taskId}/board-status`, { column });
+    } catch (err) {
+      setTasks(previous);
+      toast.error(err instanceof ApiRequestError ? err.message : "Could not move that card.");
     }
   }
 
@@ -188,7 +213,7 @@ export default function AdventuresPage() {
           </CardContent>
         </Card>
       ) : (
-        <TaskBoard tasks={tasks} onOpenTask={handleOpenTask} />
+        <TaskBoard tasks={tasks} onOpenTask={handleOpenTask} onMoveTask={handleMoveTask} />
       )}
 
       <TaskDetailDialog

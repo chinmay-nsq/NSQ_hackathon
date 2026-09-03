@@ -1,5 +1,5 @@
 import { prisma } from "@/config/db";
-import { Prisma, AdventureType, AdventureStatus, ApprovalStatus } from "@prisma/client";
+import { AdventureStatus, AdventureType, ApprovalStatus, BoardStatus, Prisma } from "@prisma/client";
 
 export const AdventureRepository = {
   /**
@@ -110,6 +110,23 @@ export const AdventureRepository = {
     return prisma.adventureProgress.update({
       where: { adventureId_employeeId: { adventureId, employeeId } },
       data: { approval, approvedById, approvedAt: new Date(), rejectionNote },
+    });
+  },
+
+  /** Moves a card to a Kanban column. Touches nothing else — see AdventureService.setBoardStatus. */
+  setBoardStatus(adventureId: string, boardStatus: BoardStatus) {
+    return prisma.adventure.update({ where: { id: adventureId }, data: { boardStatus } });
+  },
+
+  /** The minimum shape assertCanViewTask needs to authorise a board move. */
+  findBoardCard(adventureId: string) {
+    return prisma.adventure.findUnique({
+      where: { id: adventureId },
+      select: {
+        id: true,
+        guildId: true,
+        progress: { select: { employeeId: true, employee: { select: { guildId: true } } } },
+      },
     });
   },
 

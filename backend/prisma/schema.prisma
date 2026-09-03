@@ -250,6 +250,18 @@ enum AdventureStatus {
   EXPIRED
 }
 
+/// Where a card sits on the Kanban board. Deliberately separate from
+/// AdventureStatus (which is lifecycle: active/completed/expired) and from
+/// the approval fields on AdventureProgress, so a card can be dragged
+/// freely between columns without touching rewards. The approval actions
+/// still write their result here, so in normal use the two agree.
+enum BoardStatus {
+  TODO
+  IN_REVIEW
+  NEEDS_REWORK
+  DONE
+}
+
 model Adventure {
   id          String          @id @default(cuid())
   type        AdventureType
@@ -261,6 +273,10 @@ model Adventure {
   // about WHO it's for: solo/guild/cross-guild). A manager picks this when
   // creating a task, the same way Azure DevOps has Task/User Story/Bug.
   workItemType WorkItemType @default(TASK)
+
+  // Kanban column, set by dragging a card. See BoardStatus above for why
+  // this is stored rather than derived from the approval flow.
+  boardStatus BoardStatus @default(TODO)
 
   xpReward        Int @default(0)
   coinReward      Int @default(0)

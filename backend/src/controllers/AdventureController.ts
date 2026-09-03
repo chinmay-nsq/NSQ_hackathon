@@ -1,7 +1,7 @@
 import { Response } from "express";
 import { z } from "zod";
 import { WorkItemType } from "@prisma/client";
-import { AdventureService } from "@/services/AdventureService";
+import { AdventureService, isTaskColumnKey } from "@/services/AdventureService";
 import { AuthedRequest } from "@/middleware/requireAuth";
 import { ApiResponse } from "@/utils/apiResponse";
 import { HttpStatus } from "@/utils/httpStatus";
@@ -38,6 +38,10 @@ const rejectSchema = z.object({
 
 const addCommentSchema = z.object({
   body: z.string().min(1).max(2000),
+});
+
+const boardStatusSchema = z.object({
+  column: z.string().refine(isTaskColumnKey, "Unknown board column"),
 });
 
 const moveSprintSchema = z.object({
@@ -171,5 +175,12 @@ export const AdventureController = {
     const adventureId = String(req.params.id);
     const adventure = await AdventureService.moveToSprint(req.employeeId!, adventureId, parsed.sprintId);
     return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Task moved", { adventure }));
+  },
+
+  async moveBoardStatus(req: AuthedRequest, res: Response) {
+    const parsed = boardStatusSchema.parse(req.body ?? {});
+    const adventureId = String(req.params.id);
+    const adventure = await AdventureService.setBoardStatus(req.employeeId!, adventureId, parsed.column);
+    return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Card moved", { adventure }));
   },
 };
