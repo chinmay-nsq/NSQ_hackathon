@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-/** Confirms a reward redemption before it spends the employee's coins. */
+/** Confirms a reward order before it spends the employee's coins — the order then waits on a manager's approval before it's actually claimed. */
 export function PurchaseConfirmDialog({
   item,
   submitting,
@@ -34,9 +34,10 @@ export function PurchaseConfirmDialog({
         {item && (
           <>
             <DialogHeader>
-              <DialogTitle className="font-display text-xl tracking-wide uppercase">Confirm redemption</DialogTitle>
+              <DialogTitle className="font-display text-xl tracking-wide uppercase">Confirm order</DialogTitle>
               <DialogDescription>
-                This will spend your coins right away. Your manager will be notified once it&apos;s claimed.
+                This will spend your coins right away. Your order shows as &quot;Ordered&quot; until your manager
+                approves it — then it&apos;s yours to claim.
               </DialogDescription>
             </DialogHeader>
 
@@ -71,7 +72,7 @@ export function PurchaseConfirmDialog({
                 className="glow-primary font-mono text-xs tracking-wide uppercase"
                 onClick={onConfirm}
               >
-                {submitting ? "Claiming…" : "Confirm & claim"}
+                {submitting ? "Ordering…" : "Confirm order"}
               </Button>
             </DialogFooter>
           </>

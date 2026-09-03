@@ -24,6 +24,7 @@ import { gsap } from "@/lib/gsap/registerPlugins";
 import { cn } from "@/lib/utils";
 import { ScatterText } from "./ScatterText";
 import { LightningBurst, type LightningBurstHandle } from "./LightningBurst";
+import { THUNDERBOLT_ENABLED } from "@/lib/featureFlags";
 
 type Role = "employee" | "manager";
 
@@ -451,7 +452,7 @@ export function FeatureRoadmap() {
     const originX = rect.left + rect.width / 2;
     const originY = rect.top + rect.height / 2;
     const reach = Math.max(rect.width, rect.height) * 0.9;
-    void burstRef.current?.fire(originX, originY, reach);
+    if (THUNDERBOLT_ENABLED) void burstRef.current?.fire(originX, originY, reach);
     setActiveArea(area);
   }
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Coins, Gift, PackageOpen } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Coins, Gift, PackageOpen, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiRequestError } from "@/lib/api";
 import { MarketplaceItem, Employee, Purchase } from "@/lib/types";
@@ -21,8 +22,17 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
+/** PENDING = "Ordered" (still waiting on the manager), APPROVED = "Claimed", REJECTED = refunded. */
+function purchaseStatus(approval: Purchase["approval"]): { label: string; className: string; icon: typeof Clock } {
+  if (approval === "APPROVED") return { label: "Claimed", className: "text-success", icon: CheckCircle2 };
+  if (approval === "REJECTED") return { label: "Rejected", className: "text-destructive", icon: XCircle };
+  return { label: "Ordered", className: "text-muted-foreground", icon: Clock };
+}
+
 export default function RewardsPage() {
+  const router = useRouter();
   const { employee, fetchMe } = useAuthStore();
+  const isManager = employee?.role === "MANAGER" || employee?.role === "ADMIN";
   const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasingId, setPurchasingId] = useState<string | null>(null);
@@ -51,6 +61,13 @@ export default function RewardsPage() {
     void loadPurchases();
   }, [loadPurchases]);
 
+  // Rewards is removed from the manager role (nav entry already gone) —
+  // this just catches anyone landing here by a direct/old link. Kept as a
+  // redirect rather than deleting the page, so it's a one-line revert.
+  useEffect(() => {
+    if (isManager) router.replace("/app");
+  }, [isManager, router]);
+
   async function handlePurchase(item: MarketplaceItem) {
     setPurchasingId(item.id);
     try {
@@ -64,7 +81,7 @@ export default function RewardsPage() {
         // Coins visibly leave the top-bar balance and land on the tile being claimed.
         flyCoinsFromBalance(origin, 8);
       }
-      toast.success(`Redeemed ${item.name}`);
+      toast.success(`Ordered ${item.name}`, { description: "Waiting on your manager to approve the claim." });
       setConfirmItem(null);
       void loadPurchases();
 
@@ -160,6 +177,7 @@ export default function RewardsPage() {
             <div className="divide-y divide-border/60 border-t border-border/60">
               {purchases.map((purchase) => {
                 const Icon = REWARD_ICONS[purchase.item.icon] ?? Gift;
+                const status = purchaseStatus(purchase.approval);
                 return (
                   <div key={purchase.id} className="flex items-center gap-4 py-4">
                     <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent">
@@ -175,6 +193,12 @@ export default function RewardsPage() {
                       <span className="tabular flex items-center gap-1.5 rounded-full border border-currency/30 bg-currency/10 px-3 py-1 font-mono text-xs font-medium text-currency">
                         <Coins className="size-3.5" />
                         {purchase.item.cost}
+                      </span>
+                      <span
+                        className={`flex items-center gap-1 font-mono text-[10px] tracking-wide uppercase ${status.className}`}
+                      >
+                        <status.icon className="size-3" />
+                        {status.label}
                       </span>
                       <span className="font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
                         {formatDate(purchase.createdAt)}

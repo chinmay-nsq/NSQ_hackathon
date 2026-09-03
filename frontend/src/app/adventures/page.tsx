@@ -1,154 +1,97 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import { CheckCircle2, Clock, History, Plus, Sparkles, XCircle } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Plus, Sparkles } from "lucide-react";
 import { api, ApiRequestError } from "@/lib/api";
-import { Adventure, AssignedTaskHistoryItem, MyHistoryItem, MyAssignedTask } from "@/lib/types";
+import { Adventure, BoardTask, Sprint } from "@/lib/types";
 import { useAuthStore } from "@/store/authStore";
-import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageIn } from "@/components/motion/PageIn";
-import { StaggerGrid } from "@/components/motion/StaggerGrid";
-import { HoverLift } from "@/components/motion/HoverLift";
 import { CreateAdventureDialog } from "@/components/adventures/CreateAdventureDialog";
 import { AssignTaskDialog } from "@/components/adventures/AssignTaskDialog";
+import { TaskBoard } from "@/components/adventures/TaskBoard";
+import { TaskDetailDialog } from "@/components/adventures/TaskDetailDialog";
+import { SprintSelector, type SprintFilter } from "@/components/adventures/SprintSelector";
+import { CreateSprintDialog } from "@/components/adventures/CreateSprintDialog";
 import { ensureDailyQuiz } from "@/lib/ensureDailyQuiz";
-
-function initials(name: string) {
-  return name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
-}
-
-function EmployeeCell({ name, title }: { name: string; title: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <Avatar className="size-8 shrink-0">
-        <AvatarFallback className="font-display bg-accent text-accent-foreground">
-          {initials(name)}
-        </AvatarFallback>
-      </Avatar>
-      <div className="min-w-0">
-        <p className="truncate font-medium">{name}</p>
-        <p className="truncate text-xs text-muted-foreground">{title}</p>
-      </div>
-    </div>
-  );
-}
-
-function EmptyRow({ colSpan, message }: { colSpan: number; message: string }) {
-  return (
-    <TableRow className="hover:bg-transparent">
-      <TableCell colSpan={colSpan} className="whitespace-normal py-10 text-center text-sm text-muted-foreground">
-        {message}
-      </TableCell>
-    </TableRow>
-  );
-}
-
-function historyStatus(item: AssignedTaskHistoryItem): { label: string; className: string; icon: typeof Clock } {
-  const progress = item.progress?.[0];
-  if (!progress?.completed) return { label: "Not started", className: "text-muted-foreground", icon: Clock };
-  if (progress.approval === "PENDING") return { label: "Pending review", className: "text-muted-foreground", icon: Clock };
-  if (progress.approval === "REJECTED") return { label: "Rejected", className: "text-destructive", icon: XCircle };
-  return { label: "Approved", className: "text-success", icon: CheckCircle2 };
-}
-
-function myHistoryStatus(item: MyHistoryItem): { label: string; className: string; icon: typeof Clock } {
-  if (item.approval === "PENDING") return { label: "Pending review", className: "text-muted-foreground", icon: Clock };
-  if (item.approval === "REJECTED") return { label: "Rejected", className: "text-destructive", icon: XCircle };
-  return { label: "Completed", className: "text-success", icon: CheckCircle2 };
-}
-
-const TYPE_LABEL: Record<string, string> = {
-  SOLO: "Solo",
-  GUILD: "Team",
-  CROSS_GUILD: "Company",
-};
+import { taskWord } from "@/lib/taskLabels";
 
 export default function AdventuresPage() {
   const { employee } = useAuthStore();
-  const [adventures, setAdventures] = useState<Adventure[]>([]);
+  const router = useRouter();
+  const [tasks, setTasks] = useState<BoardTask[]>([]);
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState<"solo" | "guild" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [history, setHistory] = useState<AssignedTaskHistoryItem[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(true);
-  const [myAssigned, setMyAssigned] = useState<MyAssignedTask[]>([]);
-  const [myPending, setMyPending] = useState<MyHistoryItem[]>([]);
-  const [myApproved, setMyApproved] = useState<MyHistoryItem[]>([]);
-  const [myHistoryLoading, setMyHistoryLoading] = useState(true);
+  const [generating, setGenerating] = useState<"solo" | "guild" | null>(null);
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [sprints, setSprints] = useState<Sprint[]>([]);
+  const [sprintFilter, setSprintFilter] = useState<SprintFilter>("all");
+  const [boardReady, setBoardReady] = useState(false);
+  const sprintDefaultedRef = useRef(false);
 
   const canAssignTasks = employee?.role === "MANAGER" || employee?.role === "ADMIN";
 
-  const load = useCallback(() => {
+  const loadSprints = useCallback(() => {
     return api
-      .get<{ adventures: Adventure[] }>("/adventures/")
-      .then((data) => setAdventures(data.adventures))
-      .catch((err) => setError(err instanceof ApiRequestError ? err.message : "Could not load adventures."))
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    // Only the initial load auto-generates today's quiz if missing — later
-    // refetches (after assigning/creating a task) just refresh the list.
-    api
-      .get<{ adventures: Adventure[] }>("/adventures/")
-      .then((data) => ensureDailyQuiz(data.adventures))
-      .then((adventures) => setAdventures(adventures))
-      .catch((err) => setError(err instanceof ApiRequestError ? err.message : "Could not load adventures."))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const loadHistory = useCallback(() => {
-    // Only managers/admins can assign tasks (the section is hidden for
-    // everyone else) — the endpoint itself is role-guarded too, so a plain
-    // employee hitting this just gets a quiet 403 here.
-    return api
-      .get<{ history: AssignedTaskHistoryItem[] }>("/adventures/assigned-history")
-      .then((data) => setHistory(data.history))
-      .catch(() => setHistory([]))
-      .finally(() => setHistoryLoading(false));
-  }, []);
-
-  useEffect(() => {
-    // The "Assigned by you" section only ever renders when canAssignTasks is
-    // true, so skipping the fetch otherwise just means historyLoading stays
-    // at its initial true — harmless, since the section (and its skeleton)
-    // never mounts for a plain employee anyway.
-    if (canAssignTasks) void loadHistory();
-  }, [canAssignTasks, loadHistory]);
-
-  useEffect(() => {
-    api
-      .get<{ assigned: MyAssignedTask[]; pending: MyHistoryItem[]; approved: MyHistoryItem[] }>(
-        "/adventures/my-history"
-      )
+      .get<{ sprints: Sprint[] }>("/sprints")
       .then((data) => {
-        setMyAssigned(data.assigned);
-        setMyPending(data.pending);
-        setMyApproved(data.approved);
+        setSprints(data.sprints);
+        // First load only: default the view to whichever sprint is
+        // currently active, so opening the board lands you on "now" —
+        // falls back to "All tasks" once no sprint is in progress. Later
+        // refreshes (e.g. after creating a sprint) never override a filter
+        // the viewer has already chosen.
+        if (!sprintDefaultedRef.current) {
+          sprintDefaultedRef.current = true;
+          const current = data.sprints.find((s) => s.isCurrent);
+          if (current) setSprintFilter(current.id);
+        }
       })
-      .catch(() => {
-        setMyAssigned([]);
-        setMyPending([]);
-        setMyApproved([]);
-      })
-      .finally(() => setMyHistoryLoading(false));
+      .catch(() => {});
   }, []);
+
+  const loadBoard = useCallback((filter: SprintFilter) => {
+    const query = filter === "all" ? "" : `?sprintId=${encodeURIComponent(filter)}`;
+    return api
+      .get<{ tasks: BoardTask[] }>(`/adventures/board${query}`)
+      .then((data) => setTasks(data.tasks))
+      .catch((err) => setError(err instanceof ApiRequestError ? err.message : "Could not load the board."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (!employee) return;
+    // Ensure today's quiz exists (employees only — managers have no
+    // personal daily task) and resolve the default sprint filter before the
+    // board's first load, so it doesn't load once, then reload a moment
+    // later once the real default is known.
+    const ensureQuiz = canAssignTasks
+      ? Promise.resolve()
+      : api
+          .get<{ adventures: Adventure[] }>("/adventures/")
+          .then((data) => ensureDailyQuiz(data.adventures))
+          .catch(() => {});
+
+    Promise.all([loadSprints(), ensureQuiz]).then(() => setBoardReady(true));
+  }, [employee, canAssignTasks, loadSprints]);
+
+  useEffect(() => {
+    if (!boardReady) return;
+    setLoading(true);
+    void loadBoard(sprintFilter);
+  }, [sprintFilter, boardReady, loadBoard]);
 
   async function handleGenerate(kind: "solo" | "guild") {
     setGenerating(kind);
     setError(null);
     try {
       await api.post(`/adventures/${kind}/generate`);
-      await load();
+      await loadBoard(sprintFilter);
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : "Could not generate an adventure right now.");
     } finally {
@@ -156,13 +99,20 @@ export default function AdventuresPage() {
     }
   }
 
-  // Only an AI-generated solo adventure blocks generating another today —
-  // manually-created ones (which stay ACTIVE while pending approval) are a
-  // separate thing and shouldn't disable this button.
-  const hasSoloToday = adventures.some((a) => a.type === "SOLO" && a.status === "ACTIVE" && a.aiGenerated);
-  const hasGuildToday = adventures.some((a) => a.type === "GUILD" && a.status === "ACTIVE");
-  // Only the guild's own lead (or an admin) can start a team adventure — the
-  // backend is the real gate, this just decides whether to show the button.
+  function handleOpenTask(task: BoardTask) {
+    // Quiz-type tasks (the personal daily quiz) keep their own dedicated
+    // question-by-question flow — everything else opens the real enlarged
+    // detail view (comments, history, approve/reject) in place.
+    if (task.quiz && task.quiz.length > 0) {
+      router.push(`/adventures/${task.id}`);
+      return;
+    }
+    setOpenTaskId(task.id);
+    setDetailOpen(true);
+  }
+
+  const hasSoloToday = tasks.some((t) => t.type === "SOLO" && t.status === "ACTIVE" && t.aiGenerated);
+  const hasGuildToday = tasks.some((t) => t.type === "GUILD" && t.status === "ACTIVE");
   const canStartGuildAdventure =
     Boolean(employee?.guildId) &&
     (employee?.role === "ADMIN" ||
@@ -171,29 +121,42 @@ export default function AdventuresPage() {
   return (
     <PageIn>
       <PageHeader
-        title="Adventures"
-        description="Short tasks that earn you XP, coins, and resources for your team."
+        title={taskWord(employee?.role)}
+        description="Everyone on your team, one real board — not just what's assigned to you."
         action={
-          <div className="flex flex-wrap justify-end gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <SprintSelector sprints={sprints} value={sprintFilter} onChange={setSprintFilter} />
             {canAssignTasks && (
-              <AssignTaskDialog
-                onAssigned={() => {
-                  void load();
-                  void loadHistory();
+              <CreateSprintDialog
+                onCreated={(sprint) => {
+                  setSprints((prev) => [sprint, ...prev]);
+                  setSprintFilter(sprint.id);
                 }}
               />
             )}
-            <CreateAdventureDialog onCreated={load} />
-            <Button
-              variant="outline"
-              size="sm"
-              className="font-mono text-xs tracking-wide uppercase"
-              onClick={() => handleGenerate("solo")}
-              disabled={hasSoloToday || generating !== null}
-            >
-              <Plus />
-              {generating === "solo" ? "Generating…" : "New solo adventure"}
-            </Button>
+            {canAssignTasks && (
+              <AssignTaskDialog
+                sprints={sprints}
+                defaultSprintId={sprintFilter !== "all" && sprintFilter !== "backlog" ? sprintFilter : undefined}
+                onAssigned={() => loadBoard(sprintFilter)}
+              />
+            )}
+            {/* "Create your own task" — self-service, not available for managers. */}
+            {!canAssignTasks && (
+              <>
+                <CreateAdventureDialog onCreated={() => loadBoard(sprintFilter)} />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="font-mono text-xs tracking-wide uppercase"
+                  onClick={() => handleGenerate("solo")}
+                  disabled={hasSoloToday || generating !== null}
+                >
+                  <Plus />
+                  {generating === "solo" ? "Generating…" : "New solo adventure"}
+                </Button>
+              </>
+            )}
             {canStartGuildAdventure && (
               <Button
                 variant="outline"
@@ -213,302 +176,28 @@ export default function AdventuresPage() {
       {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
 
       {loading ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-28" />
+            <Skeleton key={i} className="h-64" />
           ))}
         </div>
-      ) : adventures.length === 0 ? (
+      ) : tasks.length === 0 ? (
         <Card className="border-0">
           <CardContent className="px-4 py-10 text-center text-sm text-muted-foreground">
-            No adventures yet. Generate your first one above.
+            No {taskWord(employee?.role).toLowerCase()} yet.
           </CardContent>
         </Card>
       ) : (
-        <StaggerGrid className="grid gap-3 sm:grid-cols-2" deps={[adventures.length]}>
-          {adventures.map((a) => {
-            const progress = a.progress?.[0];
-            const completed = Boolean(progress?.completed);
-            const approval = progress?.approval ?? "NONE";
-            return (
-              <Link key={a.id} href={`/adventures/${a.id}`}>
-                <HoverLift>
-                  <Card className={cn("border-0", completed && approval !== "REJECTED" && "opacity-60")}>
-                    <CardContent className="px-5">
-                      <div className="mb-1.5 flex items-center justify-between">
-                        <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
-                          {TYPE_LABEL[a.type] ?? a.type}
-                        </Badge>
-                        {approval === "PENDING" ? (
-                          <span className="flex items-center gap-1 font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
-                            <Clock className="size-3.5" />
-                            Pending
-                          </span>
-                        ) : approval === "REJECTED" ? (
-                          <span className="flex items-center gap-1 font-mono text-[10px] tracking-wide text-destructive uppercase">
-                            <XCircle className="size-3.5" />
-                            Rejected
-                          </span>
-                        ) : completed ? (
-                          <CheckCircle2 className="size-4 text-success" />
-                        ) : (
-                          <span className="tabular font-mono text-xs text-primary">+{a.xpReward} XP</span>
-                        )}
-                      </div>
-                      <p className="font-medium">{a.title}</p>
-                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{a.description}</p>
-                    </CardContent>
-                  </Card>
-                </HoverLift>
-              </Link>
-            );
-          })}
-        </StaggerGrid>
+        <TaskBoard tasks={tasks} onOpenTask={handleOpenTask} />
       )}
 
-      {canAssignTasks && (
-        <div className="mt-10">
-          <h2 className="mb-4 flex items-center gap-2 font-display text-xl tracking-wide uppercase">
-            <History className="size-4.5 text-muted-foreground" />
-            Assigned by you ({history.length})
-          </h2>
-
-          {historyLoading ? (
-            <div className="space-y-px">
-              <Skeleton className="h-20" />
-              <Skeleton className="h-20" />
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Assignee</TableHead>
-                  <TableHead>Task</TableHead>
-                  <TableHead>Reward</TableHead>
-                  <TableHead className="whitespace-normal">Description</TableHead>
-                  <TableHead className="text-right">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {history.length === 0 ? (
-                  <EmptyRow colSpan={5} message="You haven't assigned any tasks yet." />
-                ) : (
-                  history.map((item) => {
-                    const status = historyStatus(item);
-                    return (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          <EmployeeCell name={item.assignee.name} title={item.assignee.title} />
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
-                            {item.title}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <span className="tabular font-mono text-xs text-primary">
-                            +{item.xpReward} XP · +{item.coinReward} coins
-                          </span>
-                        </TableCell>
-                        <TableCell className="max-w-xs truncate text-sm whitespace-normal text-muted-foreground">
-                          {item.description}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span
-                            className={cn(
-                              "flex items-center justify-end gap-1 font-mono text-[10px] tracking-wide uppercase",
-                              status.className
-                            )}
-                          >
-                            <status.icon className="size-3.5" />
-                            {status.label}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </div>
-      )}
-
-      <div className="mt-10">
-        <h2 className="mb-4 flex items-center gap-2 font-display text-xl tracking-wide uppercase">
-          <History className="size-4.5 text-muted-foreground" />
-          Your approvals
-        </h2>
-
-        {myHistoryLoading ? (
-          <div className="space-y-px">
-            <Skeleton className="h-20" />
-            <Skeleton className="h-20" />
-          </div>
-        ) : (
-          <Tabs defaultValue="assigned">
-            <TabsList className="mb-6">
-              <TabsTrigger value="assigned">Assigned ({myAssigned.length})</TabsTrigger>
-              <TabsTrigger value="review">Waiting for review ({myPending.length})</TabsTrigger>
-              <TabsTrigger value="approved">Approved ({myApproved.length})</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="assigned">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Task</TableHead>
-                    <TableHead>Reward</TableHead>
-                    <TableHead className="whitespace-normal">Description</TableHead>
-                    <TableHead>Assigned by</TableHead>
-                    <TableHead className="text-right">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {myAssigned.length === 0 ? (
-                    <EmptyRow colSpan={5} message="Nothing assigned to you right now." />
-                  ) : (
-                    myAssigned.map((task) => (
-                      <TableRow key={task.id}>
-                        <TableCell>
-                          <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
-                            {task.title}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <span className="tabular font-mono text-xs text-primary">
-                            +{task.xpReward} XP · +{task.coinReward} coins
-                          </span>
-                        </TableCell>
-                        <TableCell className="max-w-xs truncate text-sm whitespace-normal text-muted-foreground">
-                          {task.description}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {task.assignedBy?.name ?? "—"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className="flex items-center justify-end gap-1 font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
-                            <Clock className="size-3.5" />
-                            Not started
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </TabsContent>
-
-            <TabsContent value="review">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Task</TableHead>
-                    <TableHead>Reward</TableHead>
-                    <TableHead className="whitespace-normal">Description</TableHead>
-                    <TableHead>Assigned by</TableHead>
-                    <TableHead className="text-right">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {myPending.length === 0 ? (
-                    <EmptyRow colSpan={5} message="Nothing waiting on review right now." />
-                  ) : (
-                    myPending.map((item) => {
-                      const status = myHistoryStatus(item);
-                      return (
-                        <TableRow key={item.id}>
-                          <TableCell>
-                            <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
-                              {item.adventure.title}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <span className="tabular font-mono text-xs text-primary">
-                              +{item.adventure.xpReward} XP · +{item.adventure.coinReward} coins
-                            </span>
-                          </TableCell>
-                          <TableCell className="max-w-xs truncate text-sm whitespace-normal text-muted-foreground">
-                            {item.adventure.description}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {item.adventure.assignedBy?.name ?? "—"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span
-                              className={cn(
-                                "flex items-center justify-end gap-1 font-mono text-[10px] tracking-wide uppercase",
-                                status.className
-                              )}
-                            >
-                              <status.icon className="size-3.5" />
-                              {status.label}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </TabsContent>
-
-            <TabsContent value="approved">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Task</TableHead>
-                    <TableHead>Reward</TableHead>
-                    <TableHead className="whitespace-normal">Description</TableHead>
-                    <TableHead>Assigned by</TableHead>
-                    <TableHead className="text-right">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {myApproved.length === 0 ? (
-                    <EmptyRow colSpan={5} message="Nothing approved yet." />
-                  ) : (
-                    myApproved.map((item) => {
-                      const status = myHistoryStatus(item);
-                      return (
-                        <TableRow key={item.id}>
-                          <TableCell>
-                            <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
-                              {item.adventure.title}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <span className="tabular font-mono text-xs text-primary">
-                              +{item.adventure.xpReward} XP · +{item.adventure.coinReward} coins
-                            </span>
-                          </TableCell>
-                          <TableCell className="max-w-xs truncate text-sm whitespace-normal text-muted-foreground">
-                            {item.adventure.description}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {item.adventure.assignedBy?.name ?? "—"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span
-                              className={cn(
-                                "flex items-center justify-end gap-1 font-mono text-[10px] tracking-wide uppercase",
-                                status.className
-                              )}
-                            >
-                              <status.icon className="size-3.5" />
-                              {status.label}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </TabsContent>
-          </Tabs>
-        )}
-      </div>
+      <TaskDetailDialog
+        taskId={openTaskId}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        onChanged={() => loadBoard(sprintFilter)}
+        sprints={sprints}
+      />
     </PageIn>
   );
 }

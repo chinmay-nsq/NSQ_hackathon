@@ -52,6 +52,8 @@ export interface ChatMessage {
 export type AdventureType = "SOLO" | "GUILD" | "CROSS_GUILD";
 export type AdventureStatus = "ACTIVE" | "COMPLETED" | "EXPIRED";
 export type ApprovalStatus = "NONE" | "PENDING" | "APPROVED" | "REJECTED";
+export type WorkItemType = "TASK" | "STORY" | "BUG";
+export type TaskColumn = "todo" | "in_review" | "needs_rework" | "done";
 
 export interface AdventureProgress {
   id?: string;
@@ -74,6 +76,7 @@ export interface QuizQuestion {
 export interface Adventure {
   id: string;
   type: AdventureType;
+  workItemType?: WorkItemType;
   title: string;
   description: string;
   status: AdventureStatus;
@@ -84,10 +87,60 @@ export interface Adventure {
   influenceReward: number;
   materialsReward: number;
   guildId?: string | null;
+  sprintId?: string | null;
   aiGenerated?: boolean;
   createdAt: string;
   progress: AdventureProgress[];
   quiz?: QuizQuestion[] | null;
+}
+
+/** A time-boxed iteration tasks can be planned into — Azure DevOps-style sprints, scoped to one team. */
+export interface Sprint {
+  id: string;
+  guildId: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  taskCount: number;
+  isCurrent: boolean;
+}
+
+/** One card on the whole-team Kanban board — real assignee, always shown (visibility is team-wide, not filtered to "mine"). */
+export interface BoardTask extends Adventure {
+  assignee: AssigneeIdentity | null;
+  column: TaskColumn;
+}
+
+export interface TaskComment {
+  id: string;
+  adventureId: string;
+  body: string;
+  createdAt: string;
+  author: { id: string; name: string; title: string };
+}
+
+export type TaskActivityType = "CREATED" | "ASSIGNED" | "SUBMITTED" | "APPROVED" | "REJECTED" | "COMMENTED";
+
+export interface TaskActivityEntry {
+  id: string;
+  type: TaskActivityType;
+  detail: string;
+  createdAt: string;
+  actor: { id: string; name: string; title: string };
+}
+
+export interface TaskDetail {
+  adventure: BoardTask;
+  comments: TaskComment[];
+  activity: TaskActivityEntry[];
+}
+
+/** One person's real "who completed what" feed on the Standup page. */
+export interface StandupPerson {
+  employeeId: string;
+  name: string;
+  title: string;
+  items: { adventureTitle: string; type: TaskActivityType; at: string }[];
 }
 
 export interface PendingApproval {
@@ -236,16 +289,61 @@ export interface GrowthInsight {
   observations: GrowthObservation[];
 }
 
+export interface ApprovalRate {
+  approvedCount: number;
+  rejectedCount: number;
+  ratePct: number | null;
+}
+
 export interface EmployeeGrowth {
   skill: { weekly: WeeklyPoint[]; currentPct: number | null; deltaPct: number | null };
   consistency: { activeDaysByWeek: WeeklyPoint[]; currentStreakDays: number; longestGapDays: number | null };
   output: { xpByWeek: WeeklyPoint[]; thisWeekXp: number; rollingAvgXp: number; deltaPct: number | null };
+  approval: ApprovalRate;
+  totalTasksCompleted: number;
 }
 
 export interface TeamGrowth {
   memberCount: number;
   skill: { weekly: WeeklyPoint[]; currentPct: number | null; deltaPct: number | null };
   consistency: { activeDaysByWeek: WeeklyPoint[] };
+  output: { xpByWeek: WeeklyPoint[]; thisWeekXp: number; rollingAvgXp: number; deltaPct: number | null };
+  approval: ApprovalRate;
+  totalTasksCompleted: number;
+  sprintCompletion: { weekly: WeeklyPoint[]; currentPct: number | null; deltaPct: number | null; sprintCount: number };
+}
+
+export interface TeamMemberGrowth {
+  employeeId: string;
+  name: string;
+  title: string;
+  level: number;
+  growth: EmployeeGrowth;
+}
+
+export interface TaskActivityDetail {
+  title: string;
+  type: string;
+  xpReward: number;
+  completedAt: string | null;
+  detail: string;
+}
+
+/**
+ * Real task-level detail + an AI explanation for why a team member's
+ * performance looked the way it did in a specific week (or the whole
+ * window, when weekStart is null). The personal daily skill quiz is
+ * deliberately excluded — it's private practice, not delegated work a
+ * manager reviews.
+ */
+export interface WeekDetail {
+  periodLabel: string;
+  weekStart: string | null;
+  xpThisPeriod: number;
+  rollingAvgXp: number;
+  activeDays: number;
+  tasks: TaskActivityDetail[];
+  insight: string;
 }
 
 export interface ManagerSelfGrowth {
@@ -268,6 +366,19 @@ export interface Purchase {
   itemId: string;
   item: MarketplaceItem;
   createdAt: string;
+  /** PENDING = "Ordered", APPROVED = "Claimed", REJECTED = refunded. */
+  approval: ApprovalStatus;
+  approvedAt?: string | null;
+}
+
+/** A reward claim awaiting (or having received) a manager's decision — shown on the Approvals page. */
+export interface RewardClaim {
+  id: string;
+  createdAt: string;
+  approval: ApprovalStatus;
+  approvedAt?: string | null;
+  item: MarketplaceItem;
+  employee: { id: string; name: string; title: string };
 }
 
 export type ListingStatus = "ACTIVE" | "SOLD" | "CANCELLED";

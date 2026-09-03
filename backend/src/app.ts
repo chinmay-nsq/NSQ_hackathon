@@ -19,6 +19,8 @@ import employeeRouter from "@/routes/employees";
 import tradingRouter from "@/routes/trading";
 import notificationRouter from "@/routes/notifications";
 import growthRouter from "@/routes/growth";
+import standupRouter from "@/routes/standup";
+import sprintRouter from "@/routes/sprints";
 
 const app = express();
 // Test Deployment 
@@ -45,6 +47,8 @@ app.use("/employees", employeeRouter);
 app.use("/trading", tradingRouter);
 app.use("/notifications", notificationRouter);
 app.use("/growth", growthRouter);
+app.use("/standup", standupRouter);
+app.use("/sprints", sprintRouter);
 
 app.use((req, _res, next) => {
   next(new ApiError(HttpStatus.NOT_FOUND, `Route not found: ${req.originalUrl}`, "Not Found"));

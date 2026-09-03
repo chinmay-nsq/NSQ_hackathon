@@ -21,4 +21,15 @@ export const GrowthController = {
     const data = await GrowthService.getManagerSelfGrowthWithInsight(req.employeeId!, isAdmin);
     return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Leadership growth fetched", data));
   },
+
+  async teamMembers(req: AuthedRequest, res: Response) {
+    const members = await GrowthService.getTeamMemberBreakdown(req.employeeId!);
+    return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Team member growth fetched", { members }));
+  },
+
+  async teamMemberWeekDetail(req: AuthedRequest, res: Response) {
+    const weekStart = typeof req.query.weekStart === "string" ? req.query.weekStart : undefined;
+    const detail = await GrowthService.getEmployeeWeekDetail(req.employeeId!, String(req.params.employeeId), weekStart);
+    return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Week detail fetched", detail));
+  },
 };

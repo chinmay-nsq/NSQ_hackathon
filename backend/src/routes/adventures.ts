@@ -51,4 +51,14 @@ router.post(
   asyncHandler(AdventureController.reject)
 );
 
+router.get("/board", requireAuth, asyncHandler(AdventureController.board));
+router.get("/:id/detail", requireAuth, asyncHandler(AdventureController.taskDetail));
+router.post("/:id/comments", requireAuth, asyncHandler(AdventureController.addComment));
+router.post(
+  "/:id/sprint",
+  requireAuth,
+  requireRole(Role.MANAGER, Role.ADMIN),
+  asyncHandler(AdventureController.moveSprint)
+);
+
 export default router;

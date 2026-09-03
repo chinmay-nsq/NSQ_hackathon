@@ -9,7 +9,7 @@ import { HttpStatus } from "@/utils/httpStatus";
 const ONBOARDING_STALL_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
 
 class NotificationServiceImpl {
-  /** Fire-and-forget: an employee's guild manager (if any) is notified they redeemed a reward. */
+  /** Fire-and-forget: an employee's guild manager (if any) is notified they ordered a reward — this is what surfaces it on the manager's Approvals page. */
   async notifyRewardClaimed(params: {
     employeeName: string;
     employeeId: string;
@@ -21,8 +21,30 @@ class NotificationServiceImpl {
       recipientId: params.managerId,
       actorId: params.employeeId,
       type: "REWARD_CLAIMED",
+      title: "Reward ordered",
+      body: `${params.employeeName} ordered "${params.itemName}" — review it in Approvals.`,
+    });
+  }
+
+  /** Fire-and-forget: the employee is notified their ordered reward was approved (now "Claimed"). */
+  async notifyRewardApproved(params: { employeeId: string; approverId: string; itemName: string }) {
+    await NotificationRepository.create({
+      recipientId: params.employeeId,
+      actorId: params.approverId,
+      type: "REWARD_APPROVED",
       title: "Reward claimed",
-      body: `${params.employeeName} redeemed "${params.itemName}".`,
+      body: `Your "${params.itemName}" order was approved — it's yours!`,
+    });
+  }
+
+  /** Fire-and-forget: the employee is notified their ordered reward was rejected and their coins refunded. */
+  async notifyRewardRejected(params: { employeeId: string; approverId: string; itemName: string }) {
+    await NotificationRepository.create({
+      recipientId: params.employeeId,
+      actorId: params.approverId,
+      type: "REWARD_REJECTED",
+      title: "Reward order rejected",
+      body: `Your "${params.itemName}" order wasn't approved — your coins have been refunded.`,
     });
   }
 

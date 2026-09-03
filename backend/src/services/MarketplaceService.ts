@@ -1,8 +1,11 @@
 import { MarketplaceRepository } from "@/repositories/MarketplaceRepository";
 import { EmployeeRepository } from "@/repositories/EmployeeRepository";
+import { GuildRepository } from "@/repositories/GuildRepository";
 import { NotificationService } from "./NotificationService";
 import { ApiError } from "@/utils/apiError";
 import { HttpStatus } from "@/utils/httpStatus";
+
+const RECENT_DECISIONS_LIMIT = 20;
 
 class MarketplaceServiceImpl {
   listItems() {
@@ -19,6 +22,9 @@ class MarketplaceServiceImpl {
       throw new ApiError(HttpStatus.BAD_REQUEST, "Not enough coins", "Bad Request");
     }
 
+    // Coins are reserved immediately (this is what recordPurchase does) —
+    // the order sits PENDING ("Ordered") until a manager approves it
+    // ("Claimed") or rejects it (coins refunded).
     const [, updatedEmployee] = await MarketplaceRepository.recordPurchase(employeeId, itemId, item.cost);
 
     // Best-effort: the purchase itself already succeeded above, so a
@@ -35,6 +41,90 @@ class MarketplaceServiceImpl {
 
   myPurchases(employeeId: string) {
     return MarketplaceRepository.findPurchasesForEmployee(employeeId);
+  }
+
+  async pendingClaims(managerId: string) {
+    const manager = await EmployeeRepository.findById(managerId);
+    if (!manager) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
+    if (manager.role === "ADMIN") return MarketplaceRepository.findPendingAllGuilds();
+
+    const guilds = await GuildRepository.findIdsManagedBy(managerId);
+    if (guilds.length === 0) return [];
+    return MarketplaceRepository.findPendingForGuilds(guilds.map((g) => g.id));
+  }
+
+  async recentDecisions(managerId: string) {
+    const manager = await EmployeeRepository.findById(managerId);
+    if (!manager) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
+    if (manager.role === "ADMIN") {
+      return MarketplaceRepository.findRecentlyDecidedAllGuilds(RECENT_DECISIONS_LIMIT);
+    }
+
+    const guilds = await GuildRepository.findIdsManagedBy(managerId);
+    if (guilds.length === 0) return [];
+    return MarketplaceRepository.findRecentlyDecidedForGuilds(guilds.map((g) => g.id), RECENT_DECISIONS_LIMIT);
+  }
+
+  /** Confirms `managerId` (manager/admin) is allowed to decide on this purchase's claim. */
+  private async assertCanDecide(managerId: string, purchase: { employeeId: string }) {
+    const manager = await EmployeeRepository.findById(managerId);
+    if (!manager) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
+    if (manager.role === "ADMIN") return;
+    if (manager.role !== "MANAGER") {
+      throw new ApiError(HttpStatus.FORBIDDEN, "You don't have permission to do that", "Forbidden");
+    }
+
+    const employee = await EmployeeRepository.findById(purchase.employeeId);
+    if (!employee?.guildId) {
+      throw new ApiError(HttpStatus.FORBIDDEN, "You don't have permission to do that", "Forbidden");
+    }
+    const managedGuilds = await GuildRepository.findIdsManagedBy(managerId);
+    if (!managedGuilds.some((g) => g.id === employee.guildId)) {
+      throw new ApiError(HttpStatus.FORBIDDEN, "You don't have permission to do that", "Forbidden");
+    }
+  }
+
+  async approveClaim(managerId: string, purchaseId: string) {
+    const purchase = await MarketplaceRepository.findPurchaseById(purchaseId);
+    if (!purchase) throw new ApiError(HttpStatus.NOT_FOUND, "Order not found", "Not Found");
+    if (purchase.approval !== "PENDING") {
+      throw new ApiError(HttpStatus.BAD_REQUEST, "This order has already been decided", "Bad Request");
+    }
+    await this.assertCanDecide(managerId, purchase);
+
+    const updated = await MarketplaceRepository.approvePurchase(purchaseId, managerId);
+
+    await NotificationService.notifyRewardApproved({
+      employeeId: purchase.employeeId,
+      approverId: managerId,
+      itemName: purchase.item.name,
+    }).catch(() => {});
+
+    return updated;
+  }
+
+  async rejectClaim(managerId: string, purchaseId: string) {
+    const purchase = await MarketplaceRepository.findPurchaseById(purchaseId);
+    if (!purchase) throw new ApiError(HttpStatus.NOT_FOUND, "Order not found", "Not Found");
+    if (purchase.approval !== "PENDING") {
+      throw new ApiError(HttpStatus.BAD_REQUEST, "This order has already been decided", "Bad Request");
+    }
+    await this.assertCanDecide(managerId, purchase);
+
+    const [updated] = await MarketplaceRepository.rejectPurchase(
+      purchaseId,
+      managerId,
+      purchase.employeeId,
+      purchase.item.cost
+    );
+
+    await NotificationService.notifyRewardRejected({
+      employeeId: purchase.employeeId,
+      approverId: managerId,
+      itemName: purchase.item.name,
+    }).catch(() => {});
+
+    return updated;
   }
 }
 

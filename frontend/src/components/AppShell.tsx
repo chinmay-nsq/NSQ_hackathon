@@ -102,7 +102,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="mx-auto w-full min-w-0 max-w-6xl">{children}</div>
         </main>
       </SidebarInset>
-      {!tourActive && <CompanionChatBubble />}
+      {/* Managers have a hidden auto-provisioned companion (internal bookkeeping only, see CompanionService.autoProvisionHidden) — never shown as chat. */}
+      {!tourActive && employee.role !== "MANAGER" && employee.role !== "ADMIN" && <CompanionChatBubble />}
       <OnboardingTour />
       <TourStatusGate />
     </SidebarProvider>

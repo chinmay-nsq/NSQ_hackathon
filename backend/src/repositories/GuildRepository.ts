@@ -3,6 +3,10 @@ import { Prisma } from "@prisma/client";
 import { ResourceType } from "@/config/constants";
 
 export const GuildRepository = {
+  findAllIds(): Promise<{ id: string }[]> {
+    return prisma.guild.findMany({ select: { id: true } });
+  },
+
   findAllWithMembers() {
     return prisma.guild.findMany({
       include: { members: { select: { id: true, name: true, level: true, title: true } } },

@@ -14,6 +14,7 @@ export const GrowthRepository = {
         completedAt: true,
         quizAnswers: true,
         quizCorrectCount: true,
+        approval: true,
         adventure: {
           select: { id: true, xpReward: true, quiz: true, dailyQuizDate: true, type: true },
         },
@@ -35,6 +36,7 @@ export const GrowthRepository = {
         completedAt: true,
         quizAnswers: true,
         quizCorrectCount: true,
+        approval: true,
         adventure: {
           select: { id: true, xpReward: true, quiz: true, dailyQuizDate: true, type: true },
         },
@@ -83,6 +85,39 @@ export const GrowthRepository = {
         },
       },
       orderBy: { createdAt: "asc" },
+    });
+  },
+
+  /**
+   * Real task-level activity for one employee in a date range — the actual
+   * titles/types/scores behind a week's (or the whole window's) computed
+   * numbers, for the manager's "why did this week look this way" detail
+   * view. `until` is exclusive.
+   */
+  /** One row per task planned into any of the given sprints, with just enough to compute a per-sprint completion rate. */
+  findTasksForSprints(sprintIds: string[]) {
+    return prisma.adventure.findMany({
+      where: { sprintId: { in: sprintIds } },
+      select: {
+        sprintId: true,
+        progress: { select: { approval: true }, take: 1 },
+      },
+    });
+  },
+
+  findTaskActivityForEmployee(employeeId: string, since: Date, until: Date) {
+    return prisma.adventureProgress.findMany({
+      where: { employeeId, completed: true, completedAt: { gte: since, lt: until } },
+      select: {
+        completedAt: true,
+        approval: true,
+        quizAnswers: true,
+        quizCorrectCount: true,
+        adventure: {
+          select: { id: true, title: true, type: true, xpReward: true, quiz: true, dailyQuizDate: true },
+        },
+      },
+      orderBy: { completedAt: "asc" },
     });
   },
 };

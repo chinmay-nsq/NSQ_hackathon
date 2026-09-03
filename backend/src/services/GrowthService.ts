@@ -1,6 +1,7 @@
 import { GrowthRepository } from "@/repositories/GrowthRepository";
 import { GuildRepository } from "@/repositories/GuildRepository";
 import { EmployeeRepository } from "@/repositories/EmployeeRepository";
+import { SprintRepository } from "@/repositories/SprintRepository";
 import { AIService, GrowthInsight, GrowthObservationTopic } from "./AIService";
 import { NAVIGABLE_ROUTES } from "./CompanionToolService";
 import { decodeAnswer } from "@/utils/quizCipher";
@@ -37,16 +38,45 @@ export interface WeeklyPoint {
   value: number;
 }
 
+export interface ApprovalRate {
+  approvedCount: number;
+  rejectedCount: number;
+  /** null when there's nothing decided yet to compute a rate from. */
+  ratePct: number | null;
+}
+
 export interface EmployeeGrowth {
   skill: { weekly: WeeklyPoint[]; currentPct: number | null; deltaPct: number | null };
   consistency: { activeDaysByWeek: WeeklyPoint[]; currentStreakDays: number; longestGapDays: number | null };
   output: { xpByWeek: WeeklyPoint[]; thisWeekXp: number; rollingAvgXp: number; deltaPct: number | null };
+  approval: ApprovalRate;
+  totalTasksCompleted: number;
+}
+
+export interface SprintCompletionTrend {
+  /** One point per sprint, oldest first; weekStart is that sprint's start date. */
+  weekly: WeeklyPoint[];
+  currentPct: number | null;
+  deltaPct: number | null;
+  sprintCount: number;
 }
 
 export interface TeamGrowth {
   memberCount: number;
   skill: { weekly: WeeklyPoint[]; currentPct: number | null; deltaPct: number | null };
   consistency: { activeDaysByWeek: WeeklyPoint[] };
+  output: { xpByWeek: WeeklyPoint[]; thisWeekXp: number; rollingAvgXp: number; deltaPct: number | null };
+  approval: ApprovalRate;
+  totalTasksCompleted: number;
+  sprintCompletion: SprintCompletionTrend;
+}
+
+export interface TeamMemberGrowth {
+  employeeId: string;
+  name: string;
+  title: string;
+  level: number;
+  growth: EmployeeGrowth;
 }
 
 export interface ManagerSelfGrowth {
@@ -64,7 +94,35 @@ interface ProgressRow {
   completedAt: Date | null;
   quizAnswers: unknown;
   quizCorrectCount: number | null;
+  approval: string;
   adventure: QuizAdventureRef;
+}
+
+interface TaskActivityRow {
+  completedAt: Date | null;
+  approval: string;
+  quizAnswers: unknown;
+  quizCorrectCount: number | null;
+  adventure: QuizAdventureRef & { id: string; title: string; type: string };
+}
+
+export interface TaskActivityDetail {
+  title: string;
+  type: string;
+  xpReward: number;
+  completedAt: string | null;
+  /** Human-readable outcome — "3/5 correct (60%)" for a quiz, or the approval status for a regular task. */
+  detail: string;
+}
+
+export interface WeekDetail {
+  periodLabel: string;
+  weekStart: string | null;
+  xpThisPeriod: number;
+  rollingAvgXp: number;
+  activeDays: number;
+  tasks: TaskActivityDetail[];
+  insight: string;
 }
 
 interface AssignedAdventureRow {
@@ -151,6 +209,35 @@ function submissionAccuracyPct(row: ProgressRow): number | null {
   }
 
   return null;
+}
+
+const APPROVAL_LABEL: Record<string, string> = {
+  APPROVED: "Approved",
+  REJECTED: "Rejected",
+  PENDING: "Submitted, awaiting review",
+  NONE: "Completed",
+};
+
+/** Turns one real task-activity row into a human-readable outcome line — quiz accuracy for quizzes, approval status for everything else. Never invents anything not in the row itself. */
+function describeTaskActivity(row: TaskActivityRow): TaskActivityDetail {
+  const pct = submissionAccuracyPct(row);
+  let detail: string;
+  if (pct !== null) {
+    const quiz = row.adventure.quiz as unknown[] | null;
+    const total = Array.isArray(quiz) ? quiz.length : 0;
+    const correct = total > 0 ? Math.round((pct / 100) * total) : 0;
+    detail = total > 0 ? `${correct}/${total} correct (${Math.round(pct)}%)` : `${Math.round(pct)}% accuracy`;
+  } else {
+    detail = APPROVAL_LABEL[row.approval] ?? row.approval;
+  }
+
+  return {
+    title: row.adventure.title,
+    type: row.adventure.type,
+    xpReward: row.adventure.xpReward,
+    completedAt: row.completedAt ? row.completedAt.toISOString() : null,
+    detail,
+  };
 }
 
 function computeSkillTrend(rows: ProgressRow[]): EmployeeGrowth["skill"] {
@@ -254,6 +341,24 @@ function computeOutputVolume(rows: ProgressRow[]): EmployeeGrowth["output"] {
 }
 
 /**
+ * Approval rate over decided submissions only — PENDING (still waiting) and
+ * NONE (no review required, e.g. a self-generated quiz) are excluded from
+ * the denominator entirely, since neither is a real "approved vs rejected"
+ * decision yet.
+ */
+function computeApprovalRate(rows: ProgressRow[]): ApprovalRate {
+  let approvedCount = 0;
+  let rejectedCount = 0;
+  for (const row of rows) {
+    if (row.approval === "APPROVED") approvedCount++;
+    else if (row.approval === "REJECTED") rejectedCount++;
+  }
+  const decided = approvedCount + rejectedCount;
+  const ratePct = decided > 0 ? Math.round((approvedCount / decided) * 1000) / 10 : null;
+  return { approvedCount, rejectedCount, ratePct };
+}
+
+/**
  * Manager review-turnaround, in hours, bucketed by the week of the REVIEW
  * (approvedAt), not the submission — this is a "how fast is the manager
  * reviewing" trend. A LOWER number, and a NEGATIVE delta, means faster
@@ -297,6 +402,49 @@ function computeTurnaround(history: AssignedAdventureRow[]): ManagerSelfGrowth["
   return { weekly, currentAvgHours, deltaPct, sampleSize };
 }
 
+/**
+ * Per-sprint task completion rate — approved tasks / all tasks planned into
+ * that sprint. `sprints` must already be ordered oldest-first (chronological,
+ * matching the week-bucket charts) and `tasks` is every Adventure whose
+ * sprintId is one of those sprints, each with its lone progress row's
+ * approval status (a SOLO task has exactly one assignee).
+ */
+function computeSprintCompletion(
+  sprints: { id: string; startDate: Date }[],
+  tasks: { sprintId: string | null; progress: { approval: string }[] }[]
+): SprintCompletionTrend {
+  const totals = new Map<string, { total: number; approved: number }>();
+  sprints.forEach((s) => totals.set(s.id, { total: 0, approved: 0 }));
+  for (const t of tasks) {
+    if (!t.sprintId) continue;
+    const bucket = totals.get(t.sprintId);
+    if (!bucket) continue;
+    bucket.total += 1;
+    if (t.progress[0]?.approval === "APPROVED") bucket.approved += 1;
+  }
+
+  const points = sprints.map((s) => {
+    const b = totals.get(s.id)!;
+    return {
+      weekStart: dateKey(s.startDate),
+      value: b.total > 0 ? Math.round((b.approved / b.total) * 1000) / 10 : 0,
+      hasData: b.total > 0,
+    };
+  });
+
+  const withData = points.filter((p) => p.hasData);
+  const currentPct = withData.length > 0 ? withData[withData.length - 1].value : null;
+  const oldestPct = withData.length > 0 ? withData[0].value : null;
+  const deltaPct = currentPct !== null && oldestPct !== null ? Math.round((currentPct - oldestPct) * 10) / 10 : null;
+
+  return {
+    weekly: points.map(({ weekStart, value }) => ({ weekStart, value })),
+    currentPct,
+    deltaPct,
+    sprintCount: sprints.length,
+  };
+}
+
 function computeAssignmentVolume(history: AssignedAdventureRow[]): ManagerSelfGrowth["volume"] {
   const buckets = buildWeekBuckets();
   const assigned = new Map<string, number>();
@@ -332,21 +480,156 @@ class GrowthServiceImpl {
       skill: computeSkillTrend(rows),
       consistency: computeConsistency(rows),
       output: computeOutputVolume(rows),
+      approval: computeApprovalRate(rows),
+      totalTasksCompleted: rows.length,
     };
   }
 
   async getTeamGrowth(managerId: string): Promise<TeamGrowth> {
     const guildIds = (await GuildRepository.findIdsManagedBy(managerId)).map((g) => g.id);
     if (guildIds.length === 0) {
-      return { memberCount: 0, skill: emptySkill(), consistency: emptyConsistency() };
+      return {
+        memberCount: 0,
+        skill: emptySkill(),
+        consistency: emptyConsistency(),
+        output: computeOutputVolume([]),
+        approval: computeApprovalRate([]),
+        totalTasksCompleted: 0,
+        sprintCompletion: { weekly: [], currentPct: null, deltaPct: null, sprintCount: 0 },
+      };
     }
     const since = weeksAgo(GROWTH_WEEKS);
-    const rows = await GrowthRepository.findCompletedProgressForGuilds(guildIds, since);
+    const [rows, sprintsDesc] = await Promise.all([
+      GrowthRepository.findCompletedProgressForGuilds(guildIds, since),
+      SprintRepository.findRecentForGuilds(guildIds, GROWTH_WEEKS),
+    ]);
+    const sprints = [...sprintsDesc].reverse(); // oldest -> newest, matching the week-bucket charts
+    const tasks = sprints.length > 0 ? await GrowthRepository.findTasksForSprints(sprints.map((s) => s.id)) : [];
     const memberIds = new Set(rows.map((r) => r.employeeId));
     return {
       memberCount: memberIds.size,
       skill: computeSkillTrend(rows),
       consistency: computeConsistency(rows),
+      output: computeOutputVolume(rows),
+      approval: computeApprovalRate(rows),
+      totalTasksCompleted: rows.length,
+      sprintCompletion: computeSprintCompletion(sprints, tasks),
+    };
+  }
+
+  /**
+   * Per-member breakdown for the manager's Teams dashboard — same
+   * skill/consistency/output computation getEmployeeGrowth already does,
+   * just run once per member of every guild this manager leads. "Current"
+   * (currentPct / thisWeekXp) reads as the recent snapshot, deltaPct as the
+   * trend since the start of the 6-week window — that's the "this month vs
+   * overall" comparison the dashboard shows.
+   */
+  async getTeamMemberBreakdown(managerId: string): Promise<TeamMemberGrowth[]> {
+    const guilds = await GuildRepository.findManagedByWithMembers(managerId);
+    const members = guilds.flatMap((g) => g.members);
+    if (members.length === 0) return [];
+
+    const breakdown = await Promise.all(
+      members.map(async (m) => ({
+        employeeId: m.id,
+        name: m.name,
+        title: m.title,
+        level: m.level,
+        growth: await this.getEmployeeGrowth(m.id),
+      }))
+    );
+    return breakdown;
+  }
+
+  /** Confirms `managerId` (manager/admin) is allowed to view `employeeId`'s week-level detail. */
+  private async assertCanView(managerId: string, employeeId: string) {
+    const manager = await EmployeeRepository.findById(managerId);
+    if (!manager) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
+    if (manager.role === "ADMIN") return;
+    if (manager.role !== "MANAGER") {
+      throw new ApiError(HttpStatus.FORBIDDEN, "You don't have permission to do that", "Forbidden");
+    }
+
+    const employee = await EmployeeRepository.findById(employeeId);
+    if (!employee?.guildId) {
+      throw new ApiError(HttpStatus.FORBIDDEN, "You don't have permission to do that", "Forbidden");
+    }
+    const managedGuilds = await GuildRepository.findIdsManagedBy(managerId);
+    if (!managedGuilds.some((g) => g.id === employee.guildId)) {
+      throw new ApiError(HttpStatus.FORBIDDEN, "You don't have permission to do that", "Forbidden");
+    }
+  }
+
+  /**
+   * Real task-level detail + an AI explanation for why one employee's
+   * performance looked the way it did in a specific week (weekStartISO
+   * given, any Monday-of-the-week date) or across the whole window
+   * (weekStartISO omitted — "at any time"). Every number and every task
+   * title shown here is real; the AI is only ever handed this same data to
+   * phrase an explanation from, never asked to invent a cause.
+   */
+  async getEmployeeWeekDetail(managerId: string, employeeId: string, weekStartISO?: string): Promise<WeekDetail> {
+    await this.assertCanView(managerId, employeeId);
+
+    const employee = await EmployeeRepository.findById(employeeId);
+    if (!employee) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
+
+    let since: Date;
+    let until: Date;
+    let periodLabel: string;
+    let weekStartKey: string | null = null;
+
+    if (weekStartISO) {
+      const parsed = new Date(`${weekStartISO}T00:00:00`);
+      if (Number.isNaN(parsed.getTime())) {
+        throw new ApiError(HttpStatus.BAD_REQUEST, "Invalid week", "Bad Request");
+      }
+      since = weekStartOf(parsed);
+      until = new Date(since);
+      until.setDate(until.getDate() + 7);
+      weekStartKey = dateKey(since);
+      periodLabel = `the week of ${weekStartKey}`;
+    } else {
+      since = weeksAgo(GROWTH_WEEKS);
+      until = new Date();
+      until.setDate(until.getDate() + 1); // inclusive of today
+      periodLabel = `the full ${GROWTH_WEEKS}-week window`;
+    }
+
+    const [growth, allRows] = await Promise.all([
+      this.getEmployeeGrowth(employeeId),
+      GrowthRepository.findTaskActivityForEmployee(employeeId, since, until),
+    ]);
+
+    // The daily skill quiz is personal practice, not delegated work — this
+    // view is about real assigned/self-created tasks a manager would
+    // actually review, so quiz completions are excluded entirely (not just
+    // hidden from the list — they don't count toward this period's XP or
+    // active-day totals either).
+    const rows = allRows.filter((r) => r.adventure.dailyQuizDate === null);
+    const tasks = rows.map(describeTaskActivity);
+
+    const xpThisPeriod = tasks.reduce((sum, t) => sum + t.xpReward, 0);
+    const activeDays = new Set(rows.filter((r) => r.completedAt).map((r) => dateKey(r.completedAt!))).size;
+
+    const insight = await AIService.generateWeekPerformanceInsight({
+      employeeName: employee.name,
+      periodLabel,
+      xpThisPeriod,
+      rollingAvgXp: growth.output.rollingAvgXp,
+      activeDays,
+      tasks: tasks.map((t) => ({ title: t.title, type: t.type, xpReward: t.xpReward, detail: t.detail })),
+    });
+
+    return {
+      periodLabel,
+      weekStart: weekStartKey,
+      xpThisPeriod,
+      rollingAvgXp: growth.output.rollingAvgXp,
+      activeDays,
+      tasks,
+      insight,
     };
   }
 

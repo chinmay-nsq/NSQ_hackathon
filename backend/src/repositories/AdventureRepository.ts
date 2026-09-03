@@ -44,6 +44,22 @@ export const AdventureRepository = {
     return prisma.adventure.findUnique({ where: { id } });
   },
 
+  /** Full detail for the enlarged task view — real assignee identity, who created/assigned it, all in one query. */
+  findByIdWithFullDetail(id: string) {
+    return prisma.adventure.findUnique({
+      where: { id },
+      include: {
+        createdBy: { select: { id: true, name: true, title: true, avatarSeed: true } },
+        assignedBy: { select: { id: true, name: true, title: true, avatarSeed: true } },
+        progress: {
+          include: {
+            employee: { select: { id: true, name: true, title: true, avatarSeed: true, guildId: true } },
+          },
+        },
+      },
+    });
+  },
+
   create(data: Prisma.AdventureCreateInput) {
     return prisma.adventure.create({ data });
   },
@@ -95,6 +111,11 @@ export const AdventureRepository = {
       where: { adventureId_employeeId: { adventureId, employeeId } },
       data: { approval, approvedById, approvedAt: new Date(), rejectionNote },
     });
+  },
+
+  /** Re-plans (or un-plans, with `null`) which sprint a task belongs to — e.g. moving a spillover task into the next sprint. */
+  setSprint(adventureId: string, sprintId: string | null) {
+    return prisma.adventure.update({ where: { id: adventureId }, data: { sprintId } });
   },
 
   /**
@@ -284,6 +305,83 @@ export const AdventureRepository = {
     return prisma.adventureProgress.findUnique({
       where: { adventureId_employeeId: { adventureId, employeeId } },
       include: { adventure: true },
+    });
+  },
+
+  /**
+   * Whole-team Kanban board — every SOLO task belonging to a member of
+   * these guilds (self-created or manager-assigned, active or completed in
+   * the last window) plus every GUILD-type task for these guilds, each
+   * with real assignee identity. The board still respects who's actually
+   * assigned (shown per-card), it just isn't filtered down to "my own
+   * tasks only" the way the plain task list is.
+   */
+  findBoardForGuilds(guildIds: string[], since: Date) {
+    return prisma.adventure.findMany({
+      where: {
+        AND: [
+          // The personal daily skill quiz is practice, not team-planned
+          // work — it never belongs on the shared Sprint/Kanban board.
+          { dailyQuizDate: null },
+          {
+            OR: [
+              {
+                type: "SOLO",
+                OR: [
+                  { createdBy: { guildId: { in: guildIds } } },
+                  { progress: { some: { employee: { guildId: { in: guildIds } } } } },
+                ],
+              },
+              { type: "GUILD", guildId: { in: guildIds } },
+            ],
+          },
+          { OR: [{ status: "ACTIVE" }, { createdAt: { gte: since } }] },
+        ],
+      },
+      include: {
+        createdBy: { select: { id: true, name: true, title: true, avatarSeed: true } },
+        assignedBy: { select: { id: true, name: true, title: true, avatarSeed: true } },
+        progress: {
+          include: {
+            employee: { select: { id: true, name: true, title: true, avatarSeed: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  },
+
+  /**
+   * The board scoped to exactly one sprint (or, with `sprintId: null`, the
+   * backlog) — no recency window, since a past sprint should still show
+   * its full task list, not just what's happened in the last two weeks.
+   */
+  findBoardBySprint(guildIds: string[], sprintId: string | null) {
+    return prisma.adventure.findMany({
+      where: {
+        sprintId,
+        dailyQuizDate: null,
+        OR: [
+          {
+            type: "SOLO",
+            OR: [
+              { createdBy: { guildId: { in: guildIds } } },
+              { progress: { some: { employee: { guildId: { in: guildIds } } } } },
+            ],
+          },
+          { type: "GUILD", guildId: { in: guildIds } },
+        ],
+      },
+      include: {
+        createdBy: { select: { id: true, name: true, title: true, avatarSeed: true } },
+        assignedBy: { select: { id: true, name: true, title: true, avatarSeed: true } },
+        progress: {
+          include: {
+            employee: { select: { id: true, name: true, title: true, avatarSeed: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
     });
   },
 };

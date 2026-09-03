@@ -45,7 +45,11 @@ class EmployeeServiceImpl {
       profileCompletedAt: new Date(),
     });
 
-    await this.generateWelcomeQuestOnce(employeeId, jobRole).catch(() => {});
+    // Managers/admins don't get the "Say hello" welcome quest — commented
+    // out rather than deleted so it's a one-line revert if that changes.
+    if (employee.role === Role.EMPLOYEE) {
+      await this.generateWelcomeQuestOnce(employeeId, jobRole).catch(() => {});
+    }
 
     return updated;
   }
@@ -58,6 +62,10 @@ class EmployeeServiceImpl {
    */
   async guildWelcomeMessage(employeeId: string): Promise<string | null> {
     const employee = await EmployeeRepository.findByIdWithRelations(employeeId);
+    // Managers have a hidden auto-provisioned companion (bookkeeping only —
+    // see CompanionService.autoProvisionHidden) and never see a companion
+    // welcome message.
+    if (employee?.role !== Role.EMPLOYEE) return null;
     if (!employee?.guild || !employee.companion) return null;
 
     const guild = await GuildRepository.findByIdWithMembers(employee.guild.id);

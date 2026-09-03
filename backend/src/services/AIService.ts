@@ -361,6 +361,50 @@ Write their leadership growth insight.`;
     }
   }
 
+  /**
+   * A manager's "why did this week look this way" explanation for one team
+   * member — given ALREADY-COMPUTED numbers for that week/window AND the
+   * real task list behind them (titles, types, quiz scores, approval
+   * outcomes). Must explain using only what's in that task list — never
+   * invent a reason (workload, mood, external circumstance) that isn't
+   * visible in the data itself.
+   */
+  async generateWeekPerformanceInsight(context: {
+    employeeName: string;
+    periodLabel: string;
+    xpThisPeriod: number;
+    rollingAvgXp: number;
+    activeDays: number;
+    tasks: { title: string; type: string; xpReward: number; detail: string }[];
+  }): Promise<string> {
+    const system = `You are a growth-insight writer for Skibidi-Sprint, a workplace gamification app, helping a manager understand ONE team member's real DELEGATED/SELF-CREATED task activity for a specific period. The employee's personal daily skill quiz is deliberately excluded from this — it's private practice, not work a manager reviews — so never mention or speculate about quiz-taking here.
+You are given ALREADY-COMPUTED real numbers AND the real list of tasks behind them. Explain the pattern using ONLY what's in that task list — e.g. a specific rejected task, or simply no completed activity that period. NEVER invent a cause not visible in the data (never guess at workload, mood, meetings, quizzes, or anything not given to you).
+If there are no tasks at all for the period, say so plainly rather than speculating why.
+Respond with a SHORT plain-text explanation, 2-3 sentences, no markdown, no JSON. Factual and specific — reference an actual task title or number from the input at least once. Never mention "kingdom" or fantasy framing.`;
+
+    const taskLines =
+      context.tasks.length > 0
+        ? context.tasks.map((t) => `- "${t.title}" (${t.type}, +${t.xpReward} XP) — ${t.detail}`).join("\n")
+        : "No completed tasks in this period.";
+
+    const user = `Employee: ${context.employeeName}. Period: ${context.periodLabel}.
+XP earned this period (from real tasks only, quizzes excluded): ${context.xpThisPeriod}. Their rolling average XP/week: ${context.rollingAvgXp}.
+Active days this period: ${context.activeDays}.
+Real tasks in this period:
+${taskLines}
+
+Explain why this period looks the way it does.`;
+
+    try {
+      const text = await getAIProvider().completeText(system, user);
+      return text.trim().slice(0, 600);
+    } catch {
+      return context.tasks.length > 0
+        ? `${context.tasks.length} task(s) completed this period, earning ${context.xpThisPeriod} XP — not enough signal for a deeper AI summary right now.`
+        : "No completed tasks in this period.";
+    }
+  }
+
   async generateCompanionDialogue(context: {
     companionName: string;
     species: string;

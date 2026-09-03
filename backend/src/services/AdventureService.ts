@@ -1,15 +1,23 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, WorkItemType } from "@prisma/client";
 import { prisma } from "@/config/db";
 import { AdventureRepository } from "@/repositories/AdventureRepository";
 import { EmployeeRepository } from "@/repositories/EmployeeRepository";
 import { GuildRepository } from "@/repositories/GuildRepository";
 import { CompanionRepository } from "@/repositories/CompanionRepository";
+import { SprintRepository } from "@/repositories/SprintRepository";
 import { AdventureFactory, QUIZ_COINS_PER_CORRECT, QUIZ_QUESTION_COUNT } from "@/factories/AdventureFactory";
 import { AIService } from "./AIService";
 import { CompanionService } from "./CompanionService";
+import { TaskActivityService } from "./TaskActivityService";
+import { TaskCommentRepository } from "@/repositories/TaskCommentRepository";
 import { XP_PER_LEVEL, COMPANION_BOND_XP_PER_ADVENTURE } from "@/config/constants";
 import { ApiError } from "@/utils/apiError";
 import { HttpStatus } from "@/utils/httpStatus";
+
+// How far back the Kanban board looks for recently-completed cards — long
+// enough that a task finished a couple weeks ago is still visible for
+// context, short enough that the board doesn't accumulate forever.
+const BOARD_HISTORY_DAYS = 14;
 
 function startOfToday(): Date {
   const d = new Date();
@@ -80,12 +88,14 @@ class AdventureServiceImpl {
   }
 
   /** Employee-authored solo adventure — no AI, fixed reward, requires manager/admin approval before crediting. */
-  async createManualSolo(employeeId: string, title: string, description: string) {
+  async createManualSolo(employeeId: string, title: string, description: string, workItemType?: WorkItemType) {
     const employee = await EmployeeRepository.findById(employeeId);
     if (!employee) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
 
-    const data = AdventureFactory.buildManualSolo(title, description, employeeId, employee.guildId);
-    return AdventureRepository.create(data);
+    const data = AdventureFactory.buildManualSolo(title, description, employeeId, employee.guildId, workItemType);
+    const created = await AdventureRepository.create(data);
+    await TaskActivityService.log(created.id, employeeId, "CREATED", `Created "${title}".`);
+    return created;
   }
 
   /**
@@ -99,7 +109,9 @@ class AdventureServiceImpl {
     title: string,
     description: string,
     xpReward: number,
-    coinReward: number
+    coinReward: number,
+    workItemType?: WorkItemType,
+    sprintId?: string
   ) {
     const uniqueIds = Array.from(new Set(assigneeIds));
 
@@ -112,7 +124,12 @@ class AdventureServiceImpl {
       })
     );
 
-    return prisma.$transaction(
+    // A sprint is scoped to one guild — only actually attach it to
+    // assignees who belong to that same guild, so a sprint from one team
+    // can never silently plan work for another.
+    const sprint = sprintId ? await SprintRepository.findById(sprintId) : null;
+
+    const created = await prisma.$transaction(
       assignees.map((assignee) =>
         AdventureRepository.create(
           AdventureFactory.buildAssignedSolo(
@@ -122,11 +139,46 @@ class AdventureServiceImpl {
             coinReward,
             assignee.id,
             assignee.guildId,
-            assignerId
+            assignerId,
+            workItemType,
+            sprint && sprint.guildId === assignee.guildId ? sprint.id : undefined
           )
         )
       )
     );
+
+    await Promise.all(
+      created.map((adventure, i) =>
+        TaskActivityService.log(adventure.id, assignerId, "ASSIGNED", `Assigned to ${assignees[i].name}.`)
+      )
+    );
+
+    return created;
+  }
+
+  /**
+   * Re-plans a task into a different sprint (or `null` for the backlog) —
+   * how a spillover task that didn't finish in time gets moved into the
+   * next sprint. Same permission rule as assigning: only the task's own
+   * manager (or an admin) can move it, and the target sprint must belong
+   * to the same guild the task is already in.
+   */
+  async moveToSprint(actorId: string, adventureId: string, sprintId: string | null) {
+    const adventure = await AdventureRepository.findById(adventureId);
+    if (!adventure) throw new ApiError(HttpStatus.NOT_FOUND, "Task not found", "Not Found");
+    if (!adventure.createdById) {
+      throw new ApiError(HttpStatus.BAD_REQUEST, "This task has no owner to check permissions against", "Bad Request");
+    }
+    await this.assertCanManage(actorId, adventure.createdById);
+
+    if (sprintId) {
+      const sprint = await SprintRepository.findById(sprintId);
+      if (!sprint || sprint.guildId !== adventure.guildId) {
+        throw new ApiError(HttpStatus.BAD_REQUEST, "That sprint doesn't belong to this task's team", "Bad Request");
+      }
+    }
+
+    return AdventureRepository.setSprint(adventureId, sprintId);
   }
 
   /**
@@ -163,7 +215,9 @@ class AdventureServiceImpl {
       assignee.guildId,
       assignerId
     );
-    return AdventureRepository.create(data);
+    const created = await AdventureRepository.create(data);
+    await TaskActivityService.log(created.id, assignerId, "ASSIGNED", `Assigned to ${assignee.name} (AI-generated).`);
+    return created;
   }
 
   /** Only the guild's own manager (or an admin) can spark a new team adventure — regular members complete it, they don't start it. */
@@ -230,6 +284,7 @@ class AdventureServiceImpl {
     if (!adventure.aiGenerated) {
       // Manual adventure: record the submission as PENDING and stop — no reward yet.
       await AdventureRepository.upsertProgress(adventureId, employeeId, submission, "PENDING");
+      await TaskActivityService.log(adventureId, employeeId, "SUBMITTED", "Submitted for review.");
       return { pendingApproval: true as const };
     }
 
@@ -267,7 +322,15 @@ class AdventureServiceImpl {
     const employee = await EmployeeRepository.findById(employeeId);
     if (!employee) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
 
-    return this.creditReward(employee, progress.adventure, progress.submission ?? undefined, "APPROVED", approverId);
+    const updated = await this.creditReward(
+      employee,
+      progress.adventure,
+      progress.submission ?? undefined,
+      "APPROVED",
+      approverId
+    );
+    await TaskActivityService.log(adventureId, approverId, "APPROVED", `Approved (submitted by ${employee.name}).`);
+    return updated;
   }
 
   /** Rejects a pending manual adventure completion — no reward is credited. */
@@ -280,7 +343,9 @@ class AdventureServiceImpl {
       throw new ApiError(HttpStatus.CONFLICT, "This submission is not pending approval", "Conflict");
     }
 
-    return AdventureRepository.setApproval(adventureId, employeeId, "REJECTED", approverId, note);
+    const result = await AdventureRepository.setApproval(adventureId, employeeId, "REJECTED", approverId, note);
+    await TaskActivityService.log(adventureId, approverId, "REJECTED", note ?? "Rejected — sent back for rework.");
+    return result;
   }
 
   /**
@@ -371,6 +436,126 @@ class AdventureServiceImpl {
       pending: completed.filter((c) => c.approval === "PENDING"),
       approved: completed.filter((c) => c.approval === "APPROVED"),
     };
+  }
+
+  /** ADMIN sees every guild; MANAGER sees the guild(s) they lead; EMPLOYEE sees their own guild. */
+  private async resolveViewerGuildIds(viewer: { id: string; role: string; guildId: string | null }): Promise<string[]> {
+    if (viewer.role === "ADMIN") {
+      return (await GuildRepository.findAllIds()).map((g) => g.id);
+    }
+    if (viewer.role === "MANAGER") {
+      return (await GuildRepository.findIdsManagedBy(viewer.id)).map((g) => g.id);
+    }
+    return viewer.guildId ? [viewer.guildId] : [];
+  }
+
+  /**
+   * Kanban column, derived from the SAME real fields that already drive
+   * the approvals flow — never a separate hand-maintained status. A card
+   * with no progress row yet (nobody's touched it) is "todo"; APPROVED and
+   * NONE (auto-credited, no review needed) both land in "done".
+   */
+  private deriveColumn(progress?: { completed: boolean; approval: string }): "todo" | "in_review" | "needs_rework" | "done" {
+    if (!progress || !progress.completed) return "todo";
+    if (progress.approval === "PENDING") return "in_review";
+    if (progress.approval === "REJECTED") return "needs_rework";
+    return "done";
+  }
+
+  /**
+   * The whole-team Kanban board — every real task belonging to the
+   * viewer's guild(s), not filtered down to "assigned to me". Each card
+   * still shows exactly who it's assigned to; visibility is just no
+   * longer restricted to that one person.
+   */
+  /**
+   * `sprintFilter` narrows the board: omitted keeps today's default (every
+   * recently-active task, sprinted or not); "backlog" shows only tasks with
+   * no sprint; a real sprint id shows only that sprint's tasks, regardless
+   * of how old it is — a past sprint's board should still be viewable in
+   * full, not clipped by the recency window that applies to the default view.
+   */
+  async getBoard(viewerId: string, sprintFilter?: string) {
+    const viewer = await EmployeeRepository.findById(viewerId);
+    if (!viewer) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
+
+    const guildIds = await this.resolveViewerGuildIds(viewer);
+    if (guildIds.length === 0) return [];
+
+    let adventures;
+    if (sprintFilter === "backlog") {
+      adventures = await AdventureRepository.findBoardBySprint(guildIds, null);
+    } else if (sprintFilter) {
+      adventures = await AdventureRepository.findBoardBySprint(guildIds, sprintFilter);
+    } else {
+      const since = new Date();
+      since.setDate(since.getDate() - BOARD_HISTORY_DAYS);
+      adventures = await AdventureRepository.findBoardForGuilds(guildIds, since);
+    }
+
+    return adventures.map((a) => {
+      const primaryProgress = a.progress[0];
+      return {
+        ...a,
+        assignee: primaryProgress?.employee ?? a.createdBy,
+        column: this.deriveColumn(primaryProgress),
+      };
+    });
+  }
+
+  /** Confirms `viewerId` shares a guild with this task (or is admin) before letting them open its detail view. */
+  private async assertCanViewTask(
+    viewerId: string,
+    adventure: { guildId: string | null; progress: { employeeId: string; employee: { guildId?: string | null } }[] }
+  ) {
+    const viewer = await EmployeeRepository.findById(viewerId);
+    if (!viewer) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
+    if (viewer.role === "ADMIN") return;
+    if (adventure.progress.some((p) => p.employeeId === viewerId)) return;
+
+    const guildIds = await this.resolveViewerGuildIds(viewer);
+    const relevantGuildIds = [adventure.guildId, ...adventure.progress.map((p) => p.employee.guildId ?? null)].filter(
+      (id): id is string => id !== null
+    );
+    if (!relevantGuildIds.some((id) => guildIds.includes(id))) {
+      throw new ApiError(HttpStatus.FORBIDDEN, "You don't have permission to view this task", "Forbidden");
+    }
+  }
+
+  /** Full detail for the enlarged task view — real info, comments, and complete real movement history. */
+  async getTaskDetail(viewerId: string, adventureId: string) {
+    const adventure = await AdventureRepository.findByIdWithFullDetail(adventureId);
+    if (!adventure) throw new ApiError(HttpStatus.NOT_FOUND, "Task not found", "Not Found");
+
+    await this.assertCanViewTask(viewerId, adventure);
+
+    const [comments, activity] = await Promise.all([
+      TaskCommentRepository.findForAdventure(adventureId),
+      TaskActivityService.historyFor(adventureId),
+    ]);
+
+    const primaryProgress = adventure.progress[0];
+    return {
+      adventure: {
+        ...adventure,
+        assignee: primaryProgress?.employee ?? adventure.createdBy,
+        column: this.deriveColumn(primaryProgress),
+      },
+      comments,
+      activity,
+    };
+  }
+
+  /** Adds a real comment to a task's discussion — same visibility rule as viewing the task at all. */
+  async addComment(viewerId: string, adventureId: string, body: string) {
+    const adventure = await AdventureRepository.findByIdWithFullDetail(adventureId);
+    if (!adventure) throw new ApiError(HttpStatus.NOT_FOUND, "Task not found", "Not Found");
+
+    await this.assertCanViewTask(viewerId, adventure);
+
+    const comment = await TaskCommentRepository.create(adventureId, viewerId, body);
+    await TaskActivityService.log(adventureId, viewerId, "COMMENTED", "Left a comment.");
+    return comment;
   }
 
   /** Confirms `managerId` (manager/admin) is allowed to act on `employeeId` — approve, reject, or assign a task. */
