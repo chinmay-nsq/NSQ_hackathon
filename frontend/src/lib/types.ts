@@ -119,7 +119,14 @@ export interface TaskComment {
   author: { id: string; name: string; title: string };
 }
 
-export type TaskActivityType = "CREATED" | "ASSIGNED" | "SUBMITTED" | "APPROVED" | "REJECTED" | "COMMENTED";
+export type TaskActivityType =
+  | "CREATED"
+  | "ASSIGNED"
+  | "SUBMITTED"
+  | "APPROVED"
+  | "REJECTED"
+  | "COMMENTED"
+  | "MOVED";
 
 export interface TaskActivityEntry {
   id: string;
@@ -136,11 +143,25 @@ export interface TaskDetail {
 }
 
 /** One person's real "who completed what" feed on the Standup page. */
-export interface StandupPerson {
-  employeeId: string;
+/** A standup room — one per guild. */
+export interface StandupRoom {
+  id: string;
   name: string;
-  title: string;
-  items: { adventureTitle: string; type: TaskActivityType; at: string }[];
+  department: string;
+}
+
+/** CHAT is something a person typed; EVENT is a real task movement. */
+export type StandupMessageKind = "CHAT" | "EVENT";
+
+export interface StandupMessage {
+  id: string;
+  guildId: string;
+  kind: StandupMessageKind;
+  /** EVENT bodies may contain **bold** around a task title. */
+  body: string;
+  adventureId: string | null;
+  createdAt: string;
+  author: { id: string; name: string; title: string; avatarSeed?: string | null };
 }
 
 export interface PendingApproval {

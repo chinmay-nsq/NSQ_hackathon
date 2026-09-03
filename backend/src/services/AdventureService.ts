@@ -9,6 +9,7 @@ import { AdventureFactory, QUIZ_COINS_PER_CORRECT, QUIZ_QUESTION_COUNT } from "@
 import { AIService } from "./AIService";
 import { CompanionService } from "./CompanionService";
 import { TaskActivityService } from "./TaskActivityService";
+import { StandupService } from "./StandupService";
 import { TaskCommentRepository } from "@/repositories/TaskCommentRepository";
 import { XP_PER_LEVEL, COMPANION_BOND_XP_PER_ADVENTURE } from "@/config/constants";
 import { ApiError } from "@/utils/apiError";
@@ -40,6 +41,14 @@ const BOARD_STATUS: Record<TaskColumnKey, BoardStatus> = {
 export function isTaskColumnKey(value: string): value is TaskColumnKey {
   return value in BOARD_STATUS;
 }
+
+/** Human column names, for the standup line a move posts. */
+const COLUMN_LABEL: Record<TaskColumnKey, string> = {
+  todo: "To Do",
+  in_review: "In Review",
+  needs_rework: "Needs Rework",
+  done: "Done",
+};
 
 function startOfToday(): Date {
   const d = new Date();
@@ -308,6 +317,7 @@ class AdventureServiceImpl {
       await AdventureRepository.upsertProgress(adventureId, employeeId, submission, "PENDING");
       await AdventureRepository.setBoardStatus(adventureId, "IN_REVIEW");
       await TaskActivityService.log(adventureId, employeeId, "SUBMITTED", "Submitted for review.");
+      await StandupService.postTaskEvent(adventureId, employeeId, `submitted **${adventure.title}** for review`);
       return { pendingApproval: true as const };
     }
 
@@ -330,6 +340,7 @@ class AdventureServiceImpl {
       isQuiz ? quiz : undefined
     );
     await AdventureRepository.setBoardStatus(adventureId, "DONE");
+    await StandupService.postTaskEvent(adventureId, employeeId, `completed **${adventure.title}**`);
     return { pendingApproval: false as const, employee: updatedEmployee };
   }
 
@@ -355,6 +366,7 @@ class AdventureServiceImpl {
     );
     await AdventureRepository.setBoardStatus(adventureId, "DONE");
     await TaskActivityService.log(adventureId, approverId, "APPROVED", `Approved (submitted by ${employee.name}).`);
+    await StandupService.postTaskEvent(adventureId, approverId, `approved **${progress.adventure.title}**`);
     return updated;
   }
 
@@ -362,7 +374,9 @@ class AdventureServiceImpl {
   async reject(approverId: string, adventureId: string, employeeId: string, note?: string) {
     await this.assertCanManage(approverId, employeeId);
 
-    const progress = await AdventureRepository.findProgress(adventureId, employeeId);
+    // findProgressWithAdventure (rather than findProgress) so the standup
+    // line below can name the task.
+    const progress = await AdventureRepository.findProgressWithAdventure(adventureId, employeeId);
     if (!progress) throw new ApiError(HttpStatus.NOT_FOUND, "Submission not found", "Not Found");
     if (progress.approval !== "PENDING") {
       throw new ApiError(HttpStatus.CONFLICT, "This submission is not pending approval", "Conflict");
@@ -370,6 +384,7 @@ class AdventureServiceImpl {
 
     const result = await AdventureRepository.setApproval(adventureId, employeeId, "REJECTED", approverId, note);
     await AdventureRepository.setBoardStatus(adventureId, "NEEDS_REWORK");
+    await StandupService.postTaskEvent(adventureId, approverId, `sent **${progress.adventure.title}** back for rework`);
     await TaskActivityService.log(adventureId, approverId, "REJECTED", note ?? "Rejected — sent back for rework.");
     return result;
   }
@@ -489,7 +504,19 @@ class AdventureServiceImpl {
     // Same visibility rule as opening the card — if you can see it, you can move it.
     await this.assertCanViewTask(viewerId, adventure);
 
-    return AdventureRepository.setBoardStatus(adventureId, BOARD_STATUS[column]);
+    const from = adventure.boardStatus;
+    const updated = await AdventureRepository.setBoardStatus(adventureId, BOARD_STATUS[column]);
+
+    const fromLabel = COLUMN_LABEL[BOARD_COLUMN[from]];
+    const toLabel = COLUMN_LABEL[column];
+    await TaskActivityService.log(adventureId, viewerId, "MOVED", `Moved from ${fromLabel} to ${toLabel}.`);
+    await StandupService.postTaskEvent(
+      adventureId,
+      viewerId,
+      `moved **${updated.title}** from ${fromLabel} to ${toLabel}`
+    );
+
+    return updated;
   }
 
   /**

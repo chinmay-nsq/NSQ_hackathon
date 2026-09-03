@@ -24,30 +24,5 @@ export const TaskActivityRepository = {
    * instead of the person who actually did it — they still show up in the
    * task's own detail history, just not in this per-person feed.
    */
-  findRecentForGuilds(guildIds: string[], since: Date) {
-    return prisma.taskActivityLog.findMany({
-      where: {
-        createdAt: { gte: since },
-        type: "SUBMITTED",
-        actor: { guildId: { in: guildIds } },
-      },
-      include: {
-        actor: { select: { id: true, name: true, title: true } },
-        adventure: { select: { id: true, title: true, workItemType: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-  },
 
-  /** Same as findRecentForGuilds but company-wide — admin only. */
-  findRecentAll(since: Date) {
-    return prisma.taskActivityLog.findMany({
-      where: { createdAt: { gte: since }, type: "SUBMITTED" },
-      include: {
-        actor: { select: { id: true, name: true, title: true } },
-        adventure: { select: { id: true, title: true, workItemType: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-  },
 };

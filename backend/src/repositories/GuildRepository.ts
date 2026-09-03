@@ -7,6 +7,15 @@ export const GuildRepository = {
     return prisma.guild.findMany({ select: { id: true } });
   },
 
+  /** Just enough to list standup rooms — no members, no resource columns. */
+  findRooms(where: Prisma.GuildWhereInput) {
+    return prisma.guild.findMany({
+      where,
+      select: { id: true, name: true, department: true },
+      orderBy: { name: "asc" },
+    });
+  },
+
   findAllWithMembers() {
     return prisma.guild.findMany({
       include: { members: { select: { id: true, name: true, level: true, title: true } } },

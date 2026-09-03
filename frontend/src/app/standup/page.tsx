@@ -1,98 +1,342 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Users2, CheckCircle2 } from "lucide-react";
-import { api } from "@/lib/api";
-import { StandupPerson } from "@/lib/types";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { Send, Users2, ArrowRightLeft } from "lucide-react";
+import { api, ApiRequestError } from "@/lib/api";
+import { StandupMessage, StandupRoom } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { renderMiniMarkdown } from "@/lib/miniMarkdown";
 import { PageHeader } from "@/components/PageHeader";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { PageIn } from "@/components/motion/PageIn";
-import { StaggerGrid } from "@/components/motion/StaggerGrid";
+
+/** How often to pull new messages while the tab is actually being looked at. */
+const POLL_MS = 5000;
+/** Consecutive messages from one person inside this window share a header. */
+const GROUP_WINDOW_MS = 4 * 60 * 1000;
 
 function initials(name: string) {
   return name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
 }
 
-function formatWhen(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+function formatDay(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return "Today";
+  if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
+  return d.toLocaleDateString(undefined, { month: "long", day: "numeric" });
+}
+
+/** A system line: what someone did to a task, not what they said. */
+function EventLine({ message }: { message: StandupMessage }) {
+  const inner = (
+    <span className="inline-flex flex-wrap items-baseline gap-x-1.5">
+      <ArrowRightLeft className="relative top-0.5 size-3 shrink-0 text-primary" />
+      <span className="font-medium text-foreground">{message.author.name}</span>
+      <span>{renderMiniMarkdown(message.body)}</span>
+      <span className="text-[11px] text-muted-foreground/70">{formatTime(message.createdAt)}</span>
+    </span>
+  );
+
+  return (
+    <div className="px-1 py-1 text-xs leading-relaxed text-muted-foreground">
+      {message.adventureId ? (
+        <Link
+          href={`/adventures/${message.adventureId}`}
+          className="rounded transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+        >
+          {inner}
+        </Link>
+      ) : (
+        inner
+      )}
+    </div>
+  );
+}
+
+/** Something a person typed. */
+function ChatLine({ message, showHeader }: { message: StandupMessage; showHeader: boolean }) {
+  return (
+    <div className={cn("flex gap-2.5", showHeader ? "mt-3" : "mt-0.5")}>
+      <div className="w-7 shrink-0">
+        {showHeader && (
+          <Avatar className="size-7">
+            <AvatarFallback className="bg-accent text-[10px] text-accent-foreground">
+              {initials(message.author.name)}
+            </AvatarFallback>
+          </Avatar>
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        {showHeader && (
+          <div className="flex items-baseline gap-2">
+            <span className="text-sm font-medium">{message.author.name}</span>
+            <span className="text-[11px] text-muted-foreground">{formatTime(message.createdAt)}</span>
+          </div>
+        )}
+        <p className="text-sm leading-relaxed break-words whitespace-pre-wrap">{message.body}</p>
+      </div>
+    </div>
+  );
 }
 
 /**
- * "Who completed what" — a real feed of real task submissions over the
- * last week, grouped by person. Every line here is a real SUBMITTED
- * activity-log entry (see TaskActivityService.standupFor), never a summary
- * or invented recap — just the actual real work, attributed to whoever
- * actually did it.
+ * One room's live timeline.
+ *
+ * Mounted with `key={room.id}` by the page, so switching rooms remounts this
+ * with fresh state instead of clearing it — which is what keeps the polling
+ * of an old room from ever landing in a new one.
+ */
+function RoomChat({ room }: { room: StandupRoom }) {
+  const [messages, setMessages] = useState<StandupMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // Only auto-scroll when the reader is already at the bottom — yanking the
+  // view down while someone reads scrollback is worse than missing a message.
+  const pinnedRef = useRef(true);
+  const lastIdRef = useRef<string | null>(null);
+
+  const merge = useCallback((incoming: StandupMessage[]) => {
+    if (incoming.length === 0) return;
+    setMessages((current) => {
+      const seen = new Set(current.map((m) => m.id));
+      const added = incoming.filter((m) => !seen.has(m.id));
+      if (added.length === 0) return current;
+      const next = [...current, ...added];
+      lastIdRef.current = next[next.length - 1].id;
+      return next;
+    });
+  }, []);
+
+  // Load the room, then catch up from the last message we hold. Anchoring on
+  // that id (rather than a timestamp) is what stops a message posted between
+  // two polls from being skipped.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function poll(initial: boolean) {
+      if (cancelled) return;
+      if (!initial && document.hidden) return;
+      try {
+        const after = lastIdRef.current;
+        const query = after
+          ? `?guildId=${room.id}&after=${encodeURIComponent(after)}`
+          : `?guildId=${room.id}`;
+        const data = await api.get<{ messages: StandupMessage[] }>(`/standup/messages${query}`);
+        if (cancelled) return;
+        if (initial) {
+          setMessages(data.messages);
+          lastIdRef.current = data.messages[data.messages.length - 1]?.id ?? null;
+        } else {
+          merge(data.messages);
+        }
+        setError(null);
+      } catch {
+        // A dropped poll is not worth an error banner — the next one recovers.
+        if (initial && !cancelled) setError("Could not load this room.");
+      } finally {
+        if (initial && !cancelled) setLoading(false);
+      }
+    }
+
+    void poll(true);
+    const interval = setInterval(() => void poll(false), POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [room.id, merge]);
+
+  // Runs before paint, so the list is never seen scrolled to the wrong place.
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (el && pinnedRef.current) el.scrollTop = el.scrollHeight;
+  }, [messages]);
+
+  async function handleSend(e: React.FormEvent) {
+    e.preventDefault();
+    const body = draft.trim();
+    if (!body || sending) return;
+
+    setSending(true);
+    try {
+      const data = await api.post<{ message: StandupMessage }>("/standup/messages", {
+        guildId: room.id,
+        body,
+      });
+      setDraft("");
+      pinnedRef.current = true;
+      merge([data.message]);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : "Could not send that message.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <>
+      {error && <p className="mb-3 text-sm text-destructive">{error}</p>}
+
+      <div className="flex h-[calc(100vh-16rem)] min-h-96 flex-col overflow-hidden rounded-2xl border border-border bg-card">
+        <div
+          ref={scrollRef}
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            // 48px of slack, so "basically at the bottom" still counts.
+            pinnedRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+          }}
+          className="flex-1 overflow-y-auto px-4 py-3"
+        >
+          {loading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-10 w-2/3" />
+              <Skeleton className="h-6 w-1/2" />
+              <Skeleton className="h-10 w-3/4" />
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+              <Users2 className="size-7 text-muted-foreground" strokeWidth={1.5} />
+              <p className="text-sm font-medium">{room.name} is quiet</p>
+              <p className="max-w-xs text-xs text-muted-foreground">
+                Say something, or move a task on the board — both show up here.
+              </p>
+            </div>
+          ) : (
+            messages.map((message, i) => {
+              const previous = messages[i - 1];
+              const newDay =
+                !previous ||
+                new Date(previous.createdAt).toDateString() !== new Date(message.createdAt).toDateString();
+              const showHeader =
+                newDay ||
+                !previous ||
+                previous.kind !== "CHAT" ||
+                previous.author.id !== message.author.id ||
+                new Date(message.createdAt).getTime() - new Date(previous.createdAt).getTime() > GROUP_WINDOW_MS;
+
+              return (
+                <div key={message.id}>
+                  {newDay && (
+                    <div className="my-3 flex items-center gap-3">
+                      <span className="h-px flex-1 bg-border" />
+                      <span className="text-[10px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
+                        {formatDay(message.createdAt)}
+                      </span>
+                      <span className="h-px flex-1 bg-border" />
+                    </div>
+                  )}
+                  {message.kind === "EVENT" ? (
+                    <EventLine message={message} />
+                  ) : (
+                    <ChatLine message={message} showHeader={showHeader} />
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        <form onSubmit={handleSend} className="flex items-center gap-2 border-t border-border p-3">
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={`Message ${room.name}…`}
+            maxLength={2000}
+            className="h-9 flex-1 rounded-full border border-border bg-background px-3.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          />
+          <Button type="submit" size="icon-sm" disabled={!draft.trim() || sending} className="rounded-full">
+            <Send className="size-3.5" />
+          </Button>
+        </form>
+      </div>
+
+      <p className="mt-3 text-xs text-muted-foreground">
+        Task moves post here automatically — drag a card on the board to see one appear.
+      </p>
+    </>
+  );
+}
+
+/**
+ * The team standup room — one per guild. Real conversation and real task
+ * movement share a single timeline, so "what changed" and "what we said
+ * about it" sit next to each other instead of in two places.
+ *
+ * Event lines are written server-side at the moment a task actually moves
+ * (see StandupService.postTaskEvent), so this is a record of what happened,
+ * never a generated recap.
  */
 export default function StandupPage() {
-  const [people, setPeople] = useState<StandupPerson[]>([]);
+  const [rooms, setRooms] = useState<StandupRoom[]>([]);
+  const [roomId, setRoomId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api
-      .get<{ people: StandupPerson[] }>("/standup/")
-      .then((data) => setPeople(data.people))
-      .catch(() => setError("Could not load standup."))
+      .get<{ rooms: StandupRoom[] }>("/standup/rooms")
+      .then((data) => {
+        setRooms(data.rooms);
+        setRoomId(data.rooms[0]?.id ?? null);
+      })
+      .catch(() => setError("Could not load your standup."))
       .finally(() => setLoading(false));
   }, []);
+
+  const activeRoom = rooms.find((r) => r.id === roomId);
 
   return (
     <PageIn>
       <PageHeader
         title="Standup"
-        description="Who completed what, this week — a real feed, not a summary."
+        description="Your team's room — what people say and what actually moved, in one timeline."
+        action={
+          rooms.length > 1 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {rooms.map((r) => (
+                <Button
+                  key={r.id}
+                  size="sm"
+                  variant={r.id === roomId ? "default" : "outline"}
+                  onClick={() => setRoomId(r.id)}
+                >
+                  {r.name}
+                </Button>
+              ))}
+            </div>
+          ) : undefined
+        }
       />
 
-      {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
+      {error && <p className="mb-3 text-sm text-destructive">{error}</p>}
 
       {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Skeleton className="h-40" />
-          <Skeleton className="h-40" />
-          <Skeleton className="h-40" />
-        </div>
-      ) : people.length === 0 ? (
+        <Skeleton className="h-96 rounded-2xl" />
+      ) : activeRoom ? (
+        <RoomChat key={activeRoom.id} room={activeRoom} />
+      ) : (
         <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-border py-20 text-center">
           <Users2 className="size-8 text-muted-foreground" strokeWidth={1.5} />
-          <p className="font-medium">Nothing submitted this week yet</p>
+          <p className="font-medium">No team room yet</p>
           <p className="max-w-sm text-sm text-muted-foreground">
-            Once someone submits a task, it shows up here.
+            Standup rooms belong to a team — once you join one, its room shows up here.
           </p>
         </div>
-      ) : (
-        <StaggerGrid className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" deps={[people.length]}>
-          {people.map((person) => (
-            <Card key={person.employeeId} className="border-0">
-              <CardContent className="px-5 py-4">
-                <div className="mb-3 flex items-center gap-3">
-                  <Avatar className="size-9 shrink-0">
-                    <AvatarFallback className="font-display bg-accent text-accent-foreground">
-                      {initials(person.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{person.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">{person.title}</p>
-                  </div>
-                </div>
-                <ul className="space-y-1.5">
-                  {person.items.map((item, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm">
-                      <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-success" />
-                      <span className="min-w-0 flex-1">
-                        {item.adventureTitle}
-                        <span className="ml-1.5 text-xs text-muted-foreground">{formatWhen(item.at)}</span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          ))}
-        </StaggerGrid>
       )}
     </PageIn>
   );

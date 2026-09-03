@@ -124,8 +124,12 @@ export const AdventureRepository = {
       where: { id: adventureId },
       select: {
         id: true,
+        title: true,
         guildId: true,
+        boardStatus: true,
         progress: { select: { employeeId: true, employee: { select: { guildId: true } } } },
+        // Last resort when resolving which standup room a task belongs to.
+        createdBy: { select: { guildId: true } },
       },
     });
   },
