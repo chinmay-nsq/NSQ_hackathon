@@ -11,7 +11,7 @@ export function SoundToggle() {
       type="button"
       onClick={toggle}
       aria-label={enabled ? "Mute ambient sound" : "Enable ambient sound"}
-      className="fixed right-6 top-6 z-50 flex size-10 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/80 backdrop-blur-sm transition-colors hover:border-white/30 hover:text-white"
+      className="fixed right-6 top-6 z-50 flex size-10 items-center justify-center rounded-full border border-(--line) bg-(--scrim) text-(--ash) backdrop-blur-sm transition-colors hover:border-(--line-strong) hover:text-(--ink)"
     >
       {enabled ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
     </button>

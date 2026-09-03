@@ -77,33 +77,33 @@ export function FeatureShowcase() {
 
   return (
     <section ref={scope} className="relative flex min-h-screen flex-col justify-center overflow-hidden">
-      <p className="absolute left-6 top-10 font-mono text-xs uppercase tracking-[0.25em] text-white/40 sm:left-12">
+      <p className="absolute left-6 top-10 font-mono text-xs uppercase tracking-[0.25em] text-(--smoke) sm:left-12">
         The Product
       </p>
       <div ref={trackRef} className="flex items-center gap-6 px-6 will-change-transform sm:gap-10 sm:px-12">
         {FEATURES.map((f) => (
           <div
             key={f.title}
-            className="feature-card flex h-[60vh] w-[86vw] shrink-0 flex-col justify-between rounded-3xl border border-white/10 bg-white/3 p-8 transition-[opacity,transform] duration-300 sm:w-[48vw] sm:p-12 lg:w-[38vw]"
+            className="feature-card flex h-[60vh] w-[86vw] shrink-0 flex-col justify-between rounded-3xl border border-(--line) bg-(--wash) p-8 transition-[opacity,transform] duration-300 sm:w-[48vw] sm:p-12 lg:w-[38vw]"
           >
             <div className="flex items-center justify-between">
-              <f.icon className="size-9 text-coral" strokeWidth={1.5} />
-              <span className="font-mono text-[11px] uppercase tracking-widest text-white/30">{f.stat}</span>
+              <f.icon className="size-9 text-brand" strokeWidth={1.5} />
+              <span className="font-mono text-[11px] uppercase tracking-widest text-(--faint)">{f.stat}</span>
             </div>
             <div>
-              <p className="font-mono text-xs uppercase tracking-[0.2em] text-white/40">{f.kicker}</p>
-              <h3 className="mt-3 font-display text-3xl leading-tight text-white sm:text-4xl">{f.title}</h3>
-              <p className="mt-4 max-w-sm text-base leading-relaxed text-white/55">{f.body}</p>
+              <p className="font-mono text-xs uppercase tracking-[0.2em] text-(--smoke)">{f.kicker}</p>
+              <h3 className="mt-3 font-display text-3xl leading-tight text-(--ink) sm:text-4xl">{f.title}</h3>
+              <p className="mt-4 max-w-sm text-base leading-relaxed text-(--smoke)">{f.body}</p>
             </div>
           </div>
         ))}
 
-        <div className="feature-card flex h-[60vh] w-[86vw] shrink-0 flex-col items-start justify-center gap-4 rounded-3xl border border-coral/25 bg-coral/[0.06] p-8 sm:w-[48vw] sm:p-12 lg:w-[38vw]">
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-coral/70">Meet the companion</p>
-          <h3 className="font-display text-3xl leading-tight text-white sm:text-4xl">
+        <div className="feature-card flex h-[60vh] w-[86vw] shrink-0 flex-col items-start justify-center gap-4 rounded-3xl border border-(--brand-soft) bg-brand/[0.06] p-8 sm:w-[48vw] sm:p-12 lg:w-[38vw]">
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-brand">Meet the companion</p>
+          <h3 className="font-display text-3xl leading-tight text-(--ink) sm:text-4xl">
             And it&apos;s all guided by one AI.
           </h3>
-          <p className="flex items-center gap-2 font-mono text-sm text-white/50">
+          <p className="flex items-center gap-2 font-mono text-sm text-(--smoke)">
             Keep scrolling <ArrowRight className="size-4" />
           </p>
         </div>

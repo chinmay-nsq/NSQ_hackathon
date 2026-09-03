@@ -69,7 +69,7 @@ export function MagneticCursor() {
     <>
       <div
         ref={ringRef}
-        className="pointer-events-none fixed left-0 top-0 z-[100] size-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/50 mix-blend-difference"
+        className="pointer-events-none fixed left-0 top-0 z-[100] size-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-(--line-strong) mix-blend-difference"
         aria-hidden
       />
       <div

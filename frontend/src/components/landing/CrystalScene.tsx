@@ -5,8 +5,9 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { Environment } from "@react-three/drei";
 import * as THREE from "three";
 
-const DEFAULT_COLOR = "#ff5a36";
-const CRYSTAL_LIGHT = new THREE.Color("#ffcdb8");
+const DEFAULT_COLOR = "#3b6ef5"; // the app's blue, a touch brighter so the glass still reads as blue
+const CRYSTAL_LIGHT = new THREE.Color("#8fb4ff"); // the gem's own inner light
+const DUST_COLOR = new THREE.Color("#5b8def"); // saturated enough to show against white
 
 /** The faceted glass gem — low-poly icosahedron so it reads as cut crystal, not a smooth sphere. */
 function GemMesh({
@@ -60,14 +61,14 @@ function GemMesh({
         ref={materialRef}
         flatShading
         color={color}
-        transmission={0.92}
-        thickness={1.4}
+        transmission={0.8}
+        thickness={1.8}
         roughness={0.06}
         ior={1.9}
         clearcoat={1}
         clearcoatRoughness={0.05}
         emissive={color}
-        emissiveIntensity={0.25}
+        emissiveIntensity={0.12}
         transparent
         opacity={1}
       />
@@ -163,13 +164,13 @@ function Shards({
           <meshPhysicalMaterial
             flatShading
             color={color}
-            transmission={0.85}
+            transmission={0.75}
             thickness={0.8}
             roughness={0.1}
             ior={1.8}
             clearcoat={1}
             emissive={color}
-            emissiveIntensity={0.4}
+            emissiveIntensity={0.2}
             transparent
             opacity={1}
           />
@@ -284,11 +285,11 @@ function Particles({
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
       <pointsMaterial
-        color={CRYSTAL_LIGHT}
+        color={DUST_COLOR}
         size={0.035}
         transparent
-        opacity={0.35}
-        blending={THREE.AdditiveBlending}
+        opacity={0.5}
+        blending={THREE.NormalBlending}
         depthWrite={false}
         sizeAttenuation
       />

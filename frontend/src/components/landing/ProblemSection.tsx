@@ -55,17 +55,17 @@ export function ProblemSection() {
   return (
     <section ref={scope} className="relative flex min-h-screen flex-col justify-center px-6 sm:px-12">
       <div className="mx-auto w-full max-w-7xl">
-        <p className="problem-eyebrow font-mono text-xs uppercase tracking-[0.25em] text-white/40">
+        <p className="problem-eyebrow font-mono text-xs uppercase tracking-[0.25em] text-(--smoke)">
           The Problem
         </p>
         <ScatterText
           as="h2"
           scatterRadius={220}
-          className="mt-3 block max-w-3xl font-display text-[clamp(2rem,6vw,4.2rem)] leading-[0.95] text-white"
+          className="mt-3 block max-w-3xl font-display text-[clamp(2rem,6vw,4.2rem)] leading-[0.95] text-(--ink)"
         >
           Most engagement tools engage nobody.
         </ScatterText>
-        <p className="problem-sub mt-5 max-w-lg text-base leading-relaxed text-white/50">
+        <p className="problem-sub mt-5 max-w-lg text-base leading-relaxed text-(--smoke)">
           They all follow the same curve: a burst of interest at launch, then a slow fade
           as the novelty wears off and the mechanics start feeling like homework.
         </p>
@@ -73,17 +73,17 @@ export function ProblemSection() {
         <div className="mt-12 grid gap-12 lg:grid-cols-[1fr_260px] lg:items-start lg:gap-10">
           <div className="flex flex-col gap-5">
             {SYMPTOMS.map((s) => (
-              <div key={s.text} className="symptom-row flex items-center gap-4 border-b border-white/10 pb-5">
-                <span className="w-16 shrink-0 font-mono text-[11px] uppercase tracking-widest text-white/30">
+              <div key={s.text} className="symptom-row flex items-center gap-4 border-b border-(--line) pb-5">
+                <span className="w-16 shrink-0 font-mono text-[11px] uppercase tracking-widest text-(--faint)">
                   {s.week}
                 </span>
-                <span className="max-w-xl text-xl text-white/60 sm:text-2xl">{s.text}</span>
+                <span className="max-w-xl text-xl text-(--ash) sm:text-2xl">{s.text}</span>
               </div>
             ))}
           </div>
 
           <div className="hidden flex-col gap-2 lg:flex">
-            <span className="font-mono text-[11px] uppercase tracking-widest text-white/30">
+            <span className="font-mono text-[11px] uppercase tracking-widest text-(--faint)">
               Typical engagement curve
             </span>
             <svg viewBox="0 0 200 100" className="h-32 w-full overflow-visible">

@@ -74,7 +74,7 @@ function GateScreen({ onEnter }: { onEnter: () => void }) {
   }, []);
 
   return (
-    <div ref={scope} className="landing-page relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 text-center">
+    <div ref={scope} className="landing-page deck-dark relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 text-center">
       <AmbientParticles />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_40%,rgba(255,90,54,0.14),transparent)]" />
 
@@ -702,7 +702,7 @@ function Deck({ onExit }: { onExit: () => void }) {
   const currentNotes = SLIDES[index].notes;
 
   return (
-    <div className="landing-page fixed inset-0 overflow-hidden bg-(--ink)">
+    <div className="landing-page deck-dark fixed inset-0 overflow-hidden bg-(--ink)">
       <div className="pointer-events-none absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)", backgroundSize: "48px 48px" }} />
       <LightningBurst ref={burstRef} />
 

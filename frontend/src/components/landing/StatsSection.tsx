@@ -57,17 +57,17 @@ export function StatsSection() {
   return (
     <section ref={scope} className="relative flex min-h-[70vh] flex-col justify-center px-6 sm:px-12">
       <div className="mx-auto w-full max-w-7xl">
-        <p className="stats-head font-mono text-xs uppercase tracking-[0.25em] text-white/40">By the numbers</p>
+        <p className="stats-head font-mono text-xs uppercase tracking-[0.25em] text-(--smoke)">By the numbers</p>
         <div className="mt-10 grid grid-cols-2 gap-6 sm:grid-cols-4 sm:gap-10">
           {STATS.map((s) => (
             <div key={s.label} className="stat-card flex flex-col gap-1">
-              <span className="font-display text-5xl text-white sm:text-6xl">
+              <span className="font-display text-5xl text-(--ink) sm:text-6xl">
                 <span className="stat-value" data-value={s.value}>
                   0
                 </span>
                 {s.suffix}
               </span>
-              <span className="max-w-[16ch] text-sm text-white/50">{s.label}</span>
+              <span className="max-w-[16ch] text-sm text-(--smoke)">{s.label}</span>
             </div>
           ))}
         </div>

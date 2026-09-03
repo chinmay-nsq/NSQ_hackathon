@@ -6,7 +6,7 @@ import { useGSAP } from "@gsap/react";
 import { gsap, ScrollTrigger } from "@/lib/gsap/registerPlugins";
 import { CrystalScene } from "./CrystalScene";
 
-const CRYSTAL_COLOR = "#ff5a36"; // matches --coral
+const CRYSTAL_COLOR = "#3b6ef5"; // matches --brand
 
 /**
  * The hero's companion, encased in a real Three.js glass crystal (refractive

@@ -86,7 +86,7 @@ export function PetCarousel() {
           data-cursor="magnetic"
           onClick={() => goTo(centerIndex - 1)}
           aria-label="Previous companion"
-          className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/15 text-white/50 transition-colors hover:border-white/30 hover:text-white"
+          className="flex size-9 shrink-0 items-center justify-center rounded-full border border-(--line) text-(--smoke) transition-colors hover:border-(--line-strong) hover:text-(--ink)"
         >
           <ChevronLeft className="size-4" />
         </button>
@@ -139,7 +139,7 @@ export function PetCarousel() {
           data-cursor="magnetic"
           onClick={() => goTo(centerIndex + 1)}
           aria-label="Next companion"
-          className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/15 text-white/50 transition-colors hover:border-white/30 hover:text-white"
+          className="flex size-9 shrink-0 items-center justify-center rounded-full border border-(--line) text-(--smoke) transition-colors hover:border-(--line-strong) hover:text-(--ink)"
         >
           <ChevronRight className="size-4" />
         </button>
@@ -149,7 +149,7 @@ export function PetCarousel() {
         <span className="font-mono text-[11px] uppercase tracking-widest" style={{ color: centerPet.color }}>
           {centerPet.title}
         </span>
-        <h3 className="font-display text-3xl text-white sm:text-4xl">{centerPet.name}</h3>
+        <h3 className="font-display text-3xl text-(--ink) sm:text-4xl">{centerPet.name}</h3>
 
         <div
           className="mt-1 flex items-center gap-2 rounded-full border px-4 py-1.5"
@@ -158,14 +158,14 @@ export function PetCarousel() {
           <span className="font-mono text-[10px] uppercase tracking-widest" style={{ color: centerPet.color }}>
             Ability
           </span>
-          <span className="text-sm font-medium text-white">{centerPet.ability}</span>
+          <span className="text-sm font-medium text-(--ink)">{centerPet.ability}</span>
         </div>
-        <p className="max-w-md text-sm leading-relaxed text-white/50">{centerPet.abilityDescription}</p>
+        <p className="max-w-md text-sm leading-relaxed text-(--smoke)">{centerPet.abilityDescription}</p>
 
-        <p className="mt-2 max-w-lg text-base leading-relaxed text-white/60">{centerPet.personality}</p>
-        <p className="text-sm leading-relaxed text-white/40">{centerPet.specialty}</p>
+        <p className="mt-2 max-w-lg text-base leading-relaxed text-(--ash)">{centerPet.personality}</p>
+        <p className="text-sm leading-relaxed text-(--smoke)">{centerPet.specialty}</p>
         <blockquote
-          className="mt-2 border-l-2 pl-4 font-display text-lg italic text-white/70"
+          className="mt-2 border-l-2 pl-4 font-display text-lg italic text-(--ash)"
           style={{ borderColor: centerPet.color }}
         >
           &ldquo;{centerPet.quote}&rdquo;

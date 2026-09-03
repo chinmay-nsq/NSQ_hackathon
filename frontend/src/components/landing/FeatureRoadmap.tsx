@@ -52,7 +52,7 @@ const AREAS: Area[] = [
     num: "01",
     title: "Dashboard",
     tagline: "The first thing you see, every time.",
-    color: "#ff5a36",
+    color: "#2f62ea",
     size: "md",
     features: [
       { text: "Live AI companion greeting, grounded in your real state", role: "both" },
@@ -66,7 +66,7 @@ const AREAS: Area[] = [
     num: "02",
     title: "Adventures",
     tagline: "Every task, reframed as a quest.",
-    color: "#ff5a36",
+    color: "#2f62ea",
     size: "lg",
     features: [
       { text: "One AI-generated solo quest, every single day", role: "employee" },
@@ -82,7 +82,7 @@ const AREAS: Area[] = [
     num: "03",
     title: "Teams",
     tagline: "Departments, reimagined as parties.",
-    color: "#d4a537",
+    color: "#7d5f16",
     size: "md",
     features: [
       { text: "One invite link, instant guild membership", role: "manager" },
@@ -96,7 +96,7 @@ const AREAS: Area[] = [
     num: "04",
     title: "Rewards",
     tagline: "Coin that actually spends.",
-    color: "#d4a537",
+    color: "#7d5f16",
     size: "md",
     features: [
       { text: "Real rewards — coffee, lunch, a day off", role: "both" },
@@ -110,7 +110,7 @@ const AREAS: Area[] = [
     num: "05",
     title: "Trading Post",
     tagline: "Redeemed something you don't need? Resell it.",
-    color: "#d4a537",
+    color: "#7d5f16",
     size: "md",
     features: [
       { text: "Resell anything you've already redeemed", role: "both" },
@@ -123,7 +123,7 @@ const AREAS: Area[] = [
     num: "06",
     title: "Approvals",
     tagline: "The review queue that keeps everything honest.",
-    color: "#ff5a36",
+    color: "#2f62ea",
     size: "md",
     features: [
       { text: "One-click approve, instant XP + coin credit", role: "manager" },
@@ -136,7 +136,7 @@ const AREAS: Area[] = [
     num: "07",
     title: "Kingdom",
     tagline: "One shared world every guild builds together.",
-    color: "#d4a537",
+    color: "#7d5f16",
     size: "md",
     features: [
       { text: "Company-wide goals every guild's resources feed into", role: "both" },
@@ -149,7 +149,7 @@ const AREAS: Area[] = [
     num: "08",
     title: "Admin",
     tagline: "The controls that keep the whole kingdom running.",
-    color: "#ff5a36",
+    color: "#2f62ea",
     size: "md",
     features: [
       { text: "Company-wide stats: people, teams, XP, approvals", role: "manager" },
@@ -162,7 +162,7 @@ const AREAS: Area[] = [
     num: "09",
     title: "Profile",
     tagline: "Your whole journey, in one place.",
-    color: "#ff5a36",
+    color: "#2f62ea",
     size: "md",
     features: [
       { text: "Level, XP, coins, all animated on load", role: "both" },
@@ -175,7 +175,7 @@ const AREAS: Area[] = [
     num: "10",
     title: "Onboarding",
     tagline: "From first login to your first quest.",
-    color: "#d4a537",
+    color: "#7d5f16",
     size: "lg",
     features: [
       { text: "Pick from seven AI companions, live preview", role: "both" },
@@ -190,7 +190,7 @@ const AREAS: Area[] = [
     num: "11",
     title: "Weekly Recap",
     tagline: "Your team's week, written as a story.",
-    color: "#d4a537",
+    color: "#7d5f16",
     size: "md",
     features: [
       { text: "AI-written narrative from real completed quests", role: "both" },
@@ -203,7 +203,7 @@ const AREAS: Area[] = [
     num: "12",
     title: "Companion Chat",
     tagline: "Not a mascot. A companion that actually acts.",
-    color: "#ff5a36",
+    color: "#2f62ea",
     size: "lg",
     features: [
       { text: "Ask it to create a task — it actually creates one", role: "both" },
@@ -218,7 +218,7 @@ const AREAS: Area[] = [
     num: "13",
     title: "Notifications",
     tagline: "The right nudge, at the right moment.",
-    color: "#d4a537",
+    color: "#7d5f16",
     size: "md",
     features: [
       { text: "Instant alert the moment a reward gets claimed", role: "manager" },
@@ -230,7 +230,7 @@ const AREAS: Area[] = [
     num: "14",
     title: "Systems",
     tagline: "The mechanics that make it all feel fair.",
-    color: "#ff5a36",
+    color: "#2f62ea",
     size: "md",
     features: [
       { text: "100 XP per level, always — no surprises", role: "both" },
@@ -246,7 +246,7 @@ function RoleTag({ role }: { role: Feature["role"] }) {
     <span
       className={cn(
         "shrink-0 rounded-full border px-1.5 py-0.5 font-mono text-[8.5px] uppercase tracking-widest",
-        role === "manager" ? "border-gold/30 bg-gold/10 text-gold" : "border-coral/30 bg-coral/10 text-coral",
+        role === "manager" ? "border-gold/30 bg-gold/10 text-gold" : "border-(--brand-soft) bg-brand-soft text-brand",
       )}
     >
       {role === "manager" ? "Lead" : "Member"}
@@ -297,7 +297,7 @@ function BentoCard({
       onMouseLeave={handleLeave}
       onClick={(e) => onOpen(area, e.currentTarget)}
       className={cn(
-        "roadmap-card group relative flex flex-col justify-between overflow-hidden rounded-4xl border border-white/10 bg-white/3 p-6 text-left transition-opacity duration-300 will-change-transform sm:p-7",
+        "roadmap-card group relative flex flex-col justify-between overflow-hidden rounded-4xl border border-(--line) bg-(--wash) p-6 text-left transition-opacity duration-300 will-change-transform sm:p-7",
         area.size === "lg" ? "min-h-88 sm:col-span-2" : "min-h-72",
         dimmed && "opacity-40",
       )}
@@ -321,21 +321,21 @@ function BentoCard({
         >
           <area.icon className="size-5" strokeWidth={1.5} style={{ color: area.color }} />
         </div>
-        <h3 className={cn("mt-4 font-display leading-[0.95] text-white", area.size === "lg" ? "text-3xl sm:text-4xl" : "text-2xl")}>
+        <h3 className={cn("mt-4 font-display leading-[0.95] text-(--ink)", area.size === "lg" ? "text-3xl sm:text-4xl" : "text-2xl")}>
           {area.title}
         </h3>
-        <p className="mt-2 text-sm leading-relaxed text-white/45">{area.tagline}</p>
+        <p className="mt-2 text-sm leading-relaxed text-(--smoke)">{area.tagline}</p>
       </div>
 
       <ul className="relative mt-5 flex flex-col gap-2">
         {capped.map((f) => (
-          <li key={f.text} className="flex items-start gap-2 text-[13px] leading-snug text-white/70">
+          <li key={f.text} className="flex items-start gap-2 text-[13px] leading-snug text-(--ash)">
             <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ background: area.color }} />
             <span className="flex-1">{f.text}</span>
             <RoleTag role={f.role} />
           </li>
         ))}
-        {hidden > 0 && <li className="font-mono text-[10px] uppercase tracking-widest text-white/30">+{hidden} more — tap to see all</li>}
+        {hidden > 0 && <li className="font-mono text-[10px] uppercase tracking-widest text-(--faint)">+{hidden} more — tap to see all</li>}
       </ul>
 
       <span
@@ -368,16 +368,16 @@ function DetailModal({ area, filter, onClose }: { area: Area; filter: Role | "bo
   );
 
   return (
-    <div ref={scope} className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6 backdrop-blur-sm" onClick={onClose}>
+    <div ref={scope} className="fixed inset-0 z-50 flex items-center justify-center bg-(--scrim) p-6 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="modal-panel relative max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-4xl border border-white/15 bg-(--ink) p-8 shadow-2xl sm:p-10"
+        className="modal-panel relative max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-4xl border border-(--line) bg-(--paper) p-8 shadow-2xl sm:p-10"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute top-5 right-5 flex size-9 items-center justify-center rounded-full border border-white/15 text-white/60 transition-colors hover:border-white/30 hover:text-white"
+          className="absolute top-5 right-5 flex size-9 items-center justify-center rounded-full border border-(--line) text-(--ash) transition-colors hover:border-(--line-strong) hover:text-(--ink)"
         >
           <X className="size-4" />
         </button>
@@ -388,15 +388,15 @@ function DetailModal({ area, filter, onClose }: { area: Area; filter: Role | "bo
         >
           <area.icon className="size-6" strokeWidth={1.5} style={{ color: area.color }} />
         </div>
-        <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.2em] text-white/30">{area.num} — Feature area</p>
-        <h3 className="mt-1 font-display text-4xl leading-[0.95] text-white">{area.title}</h3>
-        <p className="mt-3 text-base leading-relaxed text-white/50">{area.tagline}</p>
+        <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.2em] text-(--faint)">{area.num} — Feature area</p>
+        <h3 className="mt-1 font-display text-4xl leading-[0.95] text-(--ink)">{area.title}</h3>
+        <p className="mt-3 text-base leading-relaxed text-(--smoke)">{area.tagline}</p>
 
         <ul className="mt-7 flex flex-col gap-1">
           {features.map((f) => (
-            <li key={f.text} className="modal-feature flex items-start gap-3 border-b border-white/5 py-3 opacity-0">
+            <li key={f.text} className="modal-feature flex items-start gap-3 border-b border-(--line) py-3 opacity-0">
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: area.color }} />
-              <span className="flex-1 text-[15px] leading-relaxed text-white/75">{f.text}</span>
+              <span className="flex-1 text-[15px] leading-relaxed text-(--ash)">{f.text}</span>
               <RoleTag role={f.role} />
             </li>
           ))}
@@ -461,15 +461,15 @@ export function FeatureRoadmap() {
       <LightningBurst ref={burstRef} />
 
       <div className="roadmap-intro mx-auto max-w-3xl">
-        <p className="font-mono text-xs uppercase tracking-[0.25em] text-white/40 opacity-0">The Full Roadmap</p>
+        <p className="font-mono text-xs uppercase tracking-[0.25em] text-(--smoke) opacity-0">The Full Roadmap</p>
         <ScatterText
           as="h2"
           scatterRadius={340}
-          className="mt-3 block font-display text-[clamp(2.2rem,6.5vw,4.6rem)] leading-[0.92] text-white"
+          className="mt-3 block font-display text-[clamp(2.2rem,6.5vw,4.6rem)] leading-[0.92] text-(--ink)"
         >
           EVERY FEATURE. NOTHING HIDDEN.
         </ScatterText>
-        <p className="mt-5 max-w-xl text-base leading-relaxed text-white/50 opacity-0">
+        <p className="mt-5 max-w-xl text-base leading-relaxed text-(--smoke) opacity-0">
           Fourteen areas, tagged by who it&apos;s for. Tap any card to crack it open.
         </p>
 
@@ -489,8 +489,8 @@ export function FeatureRoadmap() {
               className={cn(
                 "rounded-full border px-4 py-2 font-mono text-xs uppercase tracking-widest transition-colors",
                 filter === opt.key
-                  ? "border-coral bg-coral text-white"
-                  : "border-white/15 text-white/50 hover:border-white/30 hover:text-white/80",
+                  ? "border-brand bg-brand text-(--paper)"
+                  : "border-(--line) text-(--smoke) hover:border-(--line-strong) hover:text-(--ash)",
               )}
             >
               {opt.label}

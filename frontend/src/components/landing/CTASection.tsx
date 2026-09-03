@@ -41,22 +41,22 @@ export function CTASection() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_50%,rgba(255,90,54,0.16),transparent)]" />
 
       <div className="cta-content relative flex max-w-2xl flex-col items-center gap-8">
-        <p className="font-mono text-xs uppercase tracking-[0.25em] text-white/40">Ready?</p>
-        <h2 className="font-display text-[clamp(2.4rem,8vw,6rem)] leading-[0.9] text-white">
+        <p className="font-mono text-xs uppercase tracking-[0.25em] text-(--smoke)">Ready?</p>
+        <h2 className="font-display text-[clamp(2.4rem,8vw,6rem)] leading-[0.9] text-(--ink)">
           BRING YOUR TEAM
           <br />
-          INTO THE <span className="text-coral">GAME.</span>
+          INTO THE <span className="text-brand">GAME.</span>
         </h2>
         <MagneticButton
           onClick={() => router.push("/login")}
-          className="rounded-full bg-coral px-10 py-5 text-lg font-semibold text-white hover:bg-(--ember)"
+          className="rounded-full bg-brand px-10 py-5 text-lg font-semibold text-(--paper) hover:bg-(--brand-deep)"
         >
           Create your kingdom
         </MagneticButton>
-        <p className="font-mono text-xs text-white/30">No credit card. Just your team.</p>
+        <p className="font-mono text-xs text-(--faint)">No credit card. Just your team.</p>
       </div>
 
-      <footer className="absolute bottom-8 flex w-full max-w-5xl items-center justify-between px-6 font-mono text-[11px] uppercase tracking-widest text-white/30 sm:px-0">
+      <footer className="absolute bottom-8 flex w-full max-w-5xl items-center justify-between px-6 font-mono text-[11px] uppercase tracking-widest text-(--faint) sm:px-0">
         <span>Skibidi-Sprint</span>
         <span>© {new Date().getFullYear()}</span>
       </footer>

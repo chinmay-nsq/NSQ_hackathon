@@ -37,7 +37,7 @@ export function SoundPrompt() {
           enable();
           handleDismiss();
         }}
-        className="flex items-center gap-2 rounded-full border border-white/15 bg-black/60 px-4 py-2.5 font-mono text-xs uppercase tracking-widest text-white/70 backdrop-blur-sm transition-colors hover:border-coral/50 hover:text-white"
+        className="flex items-center gap-2 rounded-full border border-(--line) bg-(--scrim) px-4 py-2.5 font-mono text-xs uppercase tracking-widest text-(--ash) backdrop-blur-sm transition-colors hover:border-(--brand-soft) hover:text-(--ink)"
       >
         <Volume2 className="size-3.5" />
         Turn on sound

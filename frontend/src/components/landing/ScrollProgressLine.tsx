@@ -25,10 +25,10 @@ export function ScrollProgressLine() {
   }, []);
 
   return (
-    <div className="pointer-events-none fixed left-0 right-0 top-0 z-40 h-[3px] bg-white/5">
+    <div className="pointer-events-none fixed left-0 right-0 top-0 z-40 h-[3px] bg-(--wash)">
       <div
         ref={barRef}
-        className="h-full origin-left bg-coral"
+        className="h-full origin-left bg-brand"
         style={{ transform: "scaleX(0)", boxShadow: "0 0 8px 1px var(--coral)" }}
       />
     </div>

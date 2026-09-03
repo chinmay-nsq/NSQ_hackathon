@@ -1,42 +1,104 @@
 /*
-  Skibidi-Sprint landing page — dark cinematic world, always-dark regardless
-  of the app's light/dark toggle. Scoped under .landing-page so it never
-  leaks into the dashboard's token system.
+  Skibidi-Sprint marketing surfaces ("/" and "/how-it-works").
+
+  These used to be a dark cinematic world of their own. They now carry the
+  same identity as the authenticated app: white ground, near-black neutral
+  ink, Bricolage Grotesque headings, and the same three accents — blue for
+  actions, pink for the companion and play, yellow for the economy. Every
+  value below is the app's own token value (see globals.css), so a visitor
+  crossing from the landing page into the product sees one product.
+
+  Still scoped under .landing-page because these pages set colour on a bare
+  ground rather than through the app's --background/--foreground tokens, and
+  because the pitch deck opts back out (see .deck-dark at the bottom).
 */
 
 .landing-page {
-  --ink: #0a0908;
-  --paper: #f3efe9;
-  --coral: #ff5a36;
-  --ember: #b23a1f;
-  --smoke: #8a8580;
-  --line: #232120;
-  --gold: #d4a537;
+  /* Ground and ink. --paper is the ground, --ink the text: both names kept
+     from the dark era, with their roles now the other way round. */
+  --paper: oklch(0.99 0.002 260);
+  --ink: oklch(0.17 0.008 260);
 
-  background: var(--ink);
-  color: var(--paper);
+  /* Text steps, lightest-touch last. */
+  --ash: oklch(0.34 0.01 260);
+  --smoke: oklch(0.52 0.012 260);
+  --faint: oklch(0.66 0.01 260);
+
+  /* Structure. */
+  --line: oklch(0.922 0.004 260);
+  --line-strong: oklch(0.85 0.006 260);
+  --wash: oklch(0.975 0.003 260);
+  --scrim: oklch(1 0 0 / 82%);
+  --grid-line: oklch(0.17 0.008 260 / 4.5%);
+
+  /* Accents — the app's three, unchanged. */
+  --brand: oklch(0.55 0.2 262);
+  --brand-deep: oklch(0.47 0.19 262);
+  --brand-soft: oklch(0.96 0.024 262);
+  --pink: oklch(0.65 0.2 355);
+  --pink-ink: oklch(0.47 0.18 355);
+  --pink-soft: oklch(0.96 0.026 355);
+  --gold: oklch(0.82 0.16 85);
+  --gold-ink: oklch(0.48 0.11 75);
+  --gold-soft: oklch(0.965 0.05 90);
+
+  /* Ambient dust picks from the three accents. */
+  --particle-1: oklch(0.55 0.2 262);
+  --particle-2: oklch(0.65 0.2 355);
+  --particle-3: oklch(0.82 0.16 85);
+
+  /* Kept as aliases so any call site still naming the old warm palette
+     resolves to the new accent instead of a dead variable. */
+  --coral: var(--brand);
+  --ember: var(--brand-deep);
+
+  background: var(--paper);
+  color: var(--ink);
   font-family: var(--font-inter), system-ui, sans-serif;
   cursor: default;
 }
 
 .landing-page .font-display {
-  font-family: var(--font-anton), sans-serif;
+  font-family: var(--font-bricolage), system-ui, sans-serif;
+  letter-spacing: -0.02em;
 }
 
 .landing-page .font-mono {
   font-family: var(--font-jetbrains), ui-monospace, monospace;
 }
 
-.landing-page .text-coral {
-  color: var(--coral);
+/* ---------- Accent utilities ---------- */
+
+.landing-page .text-brand {
+  color: var(--brand);
 }
 
-.landing-page .bg-coral {
-  background-color: var(--coral);
+.landing-page .bg-brand {
+  background-color: var(--brand);
+}
+
+.landing-page .border-brand {
+  border-color: var(--brand);
+}
+
+.landing-page .bg-brand-soft {
+  background-color: var(--brand-soft);
+}
+
+.landing-page .text-pink {
+  color: var(--pink);
+}
+
+.landing-page .bg-pink {
+  background-color: var(--pink);
+}
+
+.landing-page .bg-pink-soft {
+  background-color: var(--pink-soft);
 }
 
 .landing-page .text-gold {
-  color: var(--gold);
+  color: var(--gold-ink);
 }
 
 .landing-page .bg-gold {
@@ -44,17 +106,40 @@
 }
 
 .landing-page .border-gold\/30 {
-  border-color: color-mix(in oklch, var(--gold) 30%, transparent);
+  border-color: color-mix(in oklch, var(--gold) 45%, transparent);
 }
 
 .landing-page .bg-gold\/10 {
-  background-color: color-mix(in oklch, var(--gold) 10%, transparent);
+  background-color: var(--gold-soft);
+}
+
+/* Old names, same blue — see the --coral alias above. */
+.landing-page .text-coral {
+  color: var(--brand);
+}
+
+.landing-page .bg-coral {
+  background-color: var(--brand);
+}
+
+.landing-page .border-coral {
+  border-color: var(--brand);
+}
+
+/* Faint background grid, matching the app's own .bg-grid texture. */
+.landing-page .bg-hero-grid {
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 64px 64px;
 }
 
 html.has-custom-cursor,
 html.has-custom-cursor .landing-page * {
   cursor: none !important;
 }
+
+/* ---------- Ambient dust ---------- */
 
 .ambient-particle {
   position: absolute;
@@ -82,6 +167,74 @@ html.has-custom-cursor .landing-page * {
     transform: translate(var(--drift), -110vh);
     opacity: 0;
   }
+}
+
+/*
+  Dust is decoration on a dark stage but noise on a white page, so the light
+  ground keeps it at roughly a third of the presence and drops the glow —
+  a glow reads as light in a dark room, and as a smudge on white. The glow
+  is set inline per particle (it scales with size), so only !important
+  outranks it.
+*/
+.landing-page:not(.deck-dark) .ambient-particle {
+  box-shadow: none !important;
+  animation-name: ambient-drift-light;
+}
+
+@keyframes ambient-drift-light {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.2;
+  }
+  92% {
+    opacity: 0.12;
+  }
+  100% {
+    transform: translate(var(--drift), -110vh);
+    opacity: 0;
+  }
+}
+
+/*
+  ---------- The pitch deck ----------
+
+  /show-ppt is projected, where a white ground blows out the room, so it
+  stays in the original dark world. It only shares the purely visual pieces
+  (ambient dust, the lightning burst) with the landing page, so restoring
+  the old token values here is enough to restore the old look — no component
+  in the deck reads the text/line steps above.
+
+  Drop `deck-dark` from that page's wrappers to bring it onto the new
+  identity along with everything else.
+*/
+.landing-page.deck-dark {
+  --paper: #f3efe9;
+  --ink: #0a0908;
+  --line: #232120;
+  --line-strong: #232120;
+  --brand: #ff5a36;
+  --brand-deep: #b23a1f;
+  --smoke: #8a8580;
+  --gold: #d4a537;
+  --gold-ink: #d4a537;
+  --particle-1: #ff5a36;
+  --particle-2: #ffcdb8;
+  --particle-3: #ffe9a8;
+
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.landing-page.deck-dark .font-display {
+  font-family: var(--font-anton), sans-serif;
+  letter-spacing: normal;
+}
+
+.landing-page.deck-dark .text-gold {
+  color: var(--gold);
 }
 
 @media (prefers-reduced-motion: reduce) {

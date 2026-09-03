@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 
-const COLORS = ["#ff5a36", "#ffcdb8", "#ffe9a8"];
+// Driven by landing.css so the deck keeps its warm dust while the light
+// ground picks up the app's three accents (see --particle-* there).
+const COLORS = ["var(--particle-1)", "var(--particle-2)", "var(--particle-3)"];
 
 interface Particle {
   left: number;
@@ -14,10 +16,11 @@ interface Particle {
 }
 
 /**
- * Full-page ambient dust, drifting slowly upward behind all content — the
- * same warm-glow feel as the crystal's particles, but a lightweight CSS
- * layer (not WebGL) since it needs to run continuously behind the entire
- * scrollable page rather than orbiting one 3D object.
+ * Full-page ambient dust, drifting slowly upward behind all content — a
+ * lightweight CSS layer (not WebGL) since it needs to run continuously
+ * behind the entire scrollable page rather than orbiting one 3D object.
+ * On the white ground landing.css drops the glow and most of the opacity;
+ * the deck keeps both.
  */
 export function AmbientParticles({ count = 44 }: { count?: number }) {
   // Lazy one-time random init (React's documented escape hatch) — never re-runs on render.
