@@ -112,7 +112,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <NotificationBell />
           <ThemeToggle />
         </header>
-        <main className="min-w-0 flex-1 px-5 py-6 sm:px-8">
+        <main className="min-w-0 flex-1 px-6 pt-7 pb-6">
           <div className={cn("w-full min-w-0", !isWideRoute && "mx-auto max-w-6xl")}>{children}</div>
         </main>
       </SidebarInset>
