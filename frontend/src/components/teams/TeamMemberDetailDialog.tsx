@@ -58,7 +58,7 @@ function StatTile({
 
 function DeltaBadge({ deltaPct }: { deltaPct: number | null }) {
   if (deltaPct === null) {
-    return <span className="font-mono text-xs text-muted-foreground">— no trend yet</span>;
+    return <span className="font-mono text-xs text-muted-foreground">- no trend yet</span>;
   }
   const isGood = deltaPct >= 0;
   const sign = deltaPct > 0 ? "+" : "";

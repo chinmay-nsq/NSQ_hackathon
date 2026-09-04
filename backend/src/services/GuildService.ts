@@ -78,17 +78,22 @@ class GuildServiceImpl {
 
   /**
    * Guilds (with members) led by this manager/admin — used to populate the
-   * "assign a task" member picker. Managers see companion identity only;
-   * admins see real names.
+   * "assign a task" member picker. Unlike the Teams roster view, real names
+   * are always shown here: a manager assigning real work needs to know who
+   * they're actually assigning it to, not just a companion identity.
    */
   async listManagedBy(managerId: string) {
-    const viewer = await EmployeeRepository.findById(managerId);
     const guilds = await GuildRepository.findManagedByWithMembers(managerId);
-    if (viewer?.role !== "MANAGER") return guilds;
-
     return guilds.map((g) => ({
       ...g,
-      members: g.members.map((m) => anonymizeMember(m, Role.MANAGER)),
+      members: g.members.map((m) => ({
+        id: m.id,
+        name: m.name,
+        title: m.title,
+        level: m.level,
+        companionName: m.companion?.name ?? null,
+        species: m.companion?.species ?? null,
+      })),
     }));
   }
 

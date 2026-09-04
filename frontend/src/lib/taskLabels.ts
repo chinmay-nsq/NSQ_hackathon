@@ -11,3 +11,15 @@ export function taskWord(role: Role | undefined, opts?: { plural?: boolean }): s
   if (isManager) return opts?.plural === false ? "Task" : "Tasks";
   return "Sprint";
 }
+
+/**
+ * The account's designation, shown wherever the UI used to show the
+ * gamification rank (e.g. "Novice") — that rank never actually changes as
+ * someone levels up, so it read as a stale placeholder. This is real and
+ * always accurate instead, derived straight from role.
+ */
+export function roleLabel(role: Role | undefined): string {
+  if (role === "MANAGER") return "Leader";
+  if (role === "ADMIN") return "Admin";
+  return "Member";
+}

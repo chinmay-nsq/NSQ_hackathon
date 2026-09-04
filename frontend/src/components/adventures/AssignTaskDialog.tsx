@@ -162,52 +162,51 @@ export function AssignTaskDialog({
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle className="font-display text-xl tracking-wide uppercase">Create a task</DialogTitle>
-            <DialogDescription>
-              Hand-write a task and assign it to one or more of your team&apos;s companions. Members
-              are shown by companion name only.
-            </DialogDescription>
+            <DialogDescription>Hand-write a task and assign it to one or more of your team&apos;s members.</DialogDescription>
           </DialogHeader>
 
           <div className="mt-5 space-y-4">
-            <div className="space-y-1.5">
-              <Label className="font-mono text-xs tracking-wide uppercase">Type</Label>
-              <div className="flex gap-1.5">
-                {WORK_ITEM_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setWorkItemType(opt.value)}
-                    className={cn(
-                      "flex-1 rounded-lg border px-3 py-2 text-center font-mono text-xs tracking-wide uppercase transition-colors",
-                      workItemType === opt.value
-                        ? "border-primary bg-accent font-medium text-primary"
-                        : "border-border text-muted-foreground hover:bg-muted/50"
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="font-mono text-xs tracking-wide uppercase">Type</Label>
+                <div className="flex gap-1.5">
+                  {WORK_ITEM_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setWorkItemType(opt.value)}
+                      className={cn(
+                        "flex-1 rounded-lg border px-2 py-2 text-center font-mono text-xs tracking-wide uppercase transition-colors",
+                        workItemType === opt.value
+                          ? "border-primary bg-accent font-medium text-primary"
+                          : "border-border text-muted-foreground hover:bg-muted/50"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="assign-sprint" className="font-mono text-xs tracking-wide uppercase">
-                Sprint
-              </Label>
-              <select
-                id="assign-sprint"
-                value={sprintId}
-                onChange={(e) => setSprintId(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-              >
-                <option value="">Backlog (no sprint)</option>
-                {sprints.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                    {s.isCurrent ? " · Current" : ""}
-                  </option>
-                ))}
-              </select>
+              <div className="space-y-1.5">
+                <Label htmlFor="assign-sprint" className="font-mono text-xs tracking-wide uppercase">
+                  Sprint
+                </Label>
+                <select
+                  id="assign-sprint"
+                  value={sprintId}
+                  onChange={(e) => setSprintId(e.target.value)}
+                  className="h-9.5 w-full rounded-md border border-border bg-background px-3 text-sm"
+                >
+                  <option value="">Backlog (no sprint)</option>
+                  {sprints.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                      {s.isCurrent ? " · Current" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -237,7 +236,7 @@ export function AssignTaskDialog({
                       <div
                         key={m.id}
                         className={cn(
-                          "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                          "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
                           checked ? "bg-accent text-accent-foreground" : "hover:bg-muted/60"
                         )}
                       >
@@ -254,8 +253,13 @@ export function AssignTaskDialog({
                           {m.species && (
                             <CompanionViewer species={m.species} interactive={false} className="size-8 shrink-0" />
                           )}
-                          <span className="min-w-0 flex-1 truncate">{m.name}</span>
-                          <span className="ml-2 shrink-0 text-xs text-muted-foreground">{m.guildName}</span>
+                          <span className="min-w-0 flex-1 truncate">
+                            <span className="font-medium">{m.name}</span>
+                            {m.companionName && <span className="text-muted-foreground"> · {m.companionName}</span>}
+                          </span>
+                          {guilds.length > 1 && (
+                            <span className="shrink-0 text-xs text-muted-foreground">{m.guildName}</span>
+                          )}
                         </button>
                         <Button
                           type="button"
@@ -264,7 +268,7 @@ export function AssignTaskDialog({
                           disabled={generatingId === m.id}
                           onClick={() => handleGenerateWithAI(m.id)}
                           className="h-7 shrink-0 px-2 font-mono text-[10px] tracking-wide uppercase"
-                          title="Generate a task for this companion with AI, based on their profile"
+                          title="Generate a task for this person with AI, based on their profile"
                         >
                           <Sparkles className="size-3" />
                           {generatingId === m.id ? "…" : "AI"}

@@ -78,7 +78,7 @@ export function TeamMemberPerformanceCard({
             Skill accuracy
           </span>
           <span className="tabular font-display text-lg">
-            {skill.currentPct !== null ? `${skill.currentPct}%` : "—"}
+            {skill.currentPct !== null ? `${skill.currentPct}%` : "-"}
           </span>
         </div>
         <GrowthSparkline points={skill.weekly} color="var(--chart-1)" valueSuffix="%" className="mt-1 h-16" />

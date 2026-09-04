@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuthStore } from "@/store/authStore";
-import { taskWord } from "@/lib/taskLabels";
+import { taskWord, roleLabel } from "@/lib/taskLabels";
 
 const NAV_ITEMS = [
   { href: "/app", label: "Dashboard", icon: LayoutDashboard },
@@ -137,7 +137,7 @@ export function AppSidebar() {
             </Avatar>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{employee.name}</p>
-              <p className="truncate text-xs text-muted-foreground">{employee.title}</p>
+              <p className="truncate text-xs text-muted-foreground">{roleLabel(employee.role)}</p>
             </div>
           </div>
         )}

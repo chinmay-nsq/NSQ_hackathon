@@ -50,7 +50,7 @@ function StatTile({
 
 function DeltaBadge({ deltaPct, invert = false }: { deltaPct: number | null; invert?: boolean }) {
   if (deltaPct === null) {
-    return <span className="font-mono text-xs text-muted-foreground">— no trend yet</span>;
+    return <span className="font-mono text-xs text-muted-foreground">- no trend yet</span>;
   }
   // `invert`: for turnaround hours, a NEGATIVE delta (faster) is the good direction.
   const isGood = invert ? deltaPct <= 0 : deltaPct >= 0;
@@ -124,7 +124,7 @@ function MyGrowthTab() {
               : "Approval rate"
           }
           value={growth.approval.ratePct ?? 0}
-          suffix={growth.approval.ratePct !== null ? "%" : " — no reviews yet"}
+          suffix={growth.approval.ratePct !== null ? "%" : " - no reviews yet"}
           accent="var(--success)"
         />
       </div>
@@ -254,7 +254,7 @@ function TeamGrowthTab() {
           icon={TrendingUp}
           label="Sprint completion"
           value={growth.sprintCompletion.currentPct ?? 0}
-          suffix={growth.sprintCompletion.sprintCount > 0 ? "%" : " — no sprints yet"}
+          suffix={growth.sprintCompletion.sprintCount > 0 ? "%" : " - no sprints yet"}
           accent="var(--chart-2)"
         />
         <StatTile
@@ -265,7 +265,7 @@ function TeamGrowthTab() {
               : "Approval rate"
           }
           value={growth.approval.ratePct ?? 0}
-          suffix={growth.approval.ratePct !== null ? "%" : " — no reviews yet"}
+          suffix={growth.approval.ratePct !== null ? "%" : " - no reviews yet"}
           accent="var(--success)"
         />
       </div>

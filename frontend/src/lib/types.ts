@@ -223,6 +223,8 @@ export interface GuildMember {
   xp?: number;
   /** Present when the current viewer sees this member anonymized (by companion identity, not real name) — a manager viewing their own team. */
   species?: string | null;
+  /** The member's companion name — set on the "assign a task" member picker, alongside the real `name`. */
+  companionName?: string | null;
 }
 
 export interface Guild {
