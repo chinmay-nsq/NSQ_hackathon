@@ -116,7 +116,7 @@ export function OnboardingTour() {
 
   // Auto-navigate to wherever the current step's target actually lives.
   // Steps with `route: null` are "just watch, don't redirect" (e.g. the
-  // quiz-in-progress step, which lives on a dynamic /adventures/[id] the
+  // quiz-in-progress step, which lives on a dynamic /assignments/[id] the
   // tour has no fixed route for).
   useEffect(() => {
     if (!step || step.route === null) return;
@@ -190,7 +190,7 @@ export function OnboardingTour() {
   const spotHeight = rect ? rect.height + pad * 2 : 0;
   const radius = 14;
 
-  const species = employee?.companion?.species ?? "barbarian";
+  const species = employee?.companion?.species ?? "michael";
   const portraitSrc = COMPANION_IMAGE_PATH[species];
   const accent = COMPANION_FALLBACK_COLOR[species] ?? "var(--primary)";
   const isLastStep = stepIndex >= steps.length - 1;

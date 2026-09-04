@@ -258,7 +258,7 @@ function TaskSubmissionsSection() {
   const load = useCallback(() => {
     return api
       .get<{ pending: PendingApproval[]; approved: PendingApproval[]; assigned: AssignedTask[] }>(
-        "/adventures/pending"
+        "/assignments/pending"
       )
       .then((data) => {
         setPending(data.pending);
@@ -276,7 +276,7 @@ function TaskSubmissionsSection() {
   async function handleApprove(item: PendingApproval) {
     setActingId(item.id);
     try {
-      await api.post(`/adventures/${item.adventureId}/approve/${item.employeeId}`);
+      await api.post(`/assignments/${item.assignmentId}/approve/${item.employeeId}`);
 
       const btn = rowRefs.current[item.id];
       if (btn) {
@@ -284,11 +284,11 @@ function TaskSubmissionsSection() {
         flyCoinsToBalance({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }, 8);
       }
 
-      toast.success(`Approved ${item.adventure.title}`, {
-        description: `${item.employee.name} earned +${item.adventure.xpReward} XP, +${item.adventure.coinReward} coins.`,
+      toast.success(`Approved ${item.assignment.title}`, {
+        description: `${item.employee.name} earned +${item.assignment.xpReward} XP, +${item.assignment.coinReward} coins.`,
       });
       setPending((prev) => prev.filter((p) => p.id !== item.id));
-      setApproved((prev) => [{ ...item, adventure: item.adventure }, ...prev]);
+      setApproved((prev) => [{ ...item, assignment: item.assignment }, ...prev]);
       await fetchMe();
     } catch (err) {
       toast.error(err instanceof ApiRequestError ? err.message : "Could not approve this submission.");
@@ -300,10 +300,10 @@ function TaskSubmissionsSection() {
   async function handleReject(item: PendingApproval) {
     setActingId(item.id);
     try {
-      await api.post(`/adventures/${item.adventureId}/reject/${item.employeeId}`, {
+      await api.post(`/assignments/${item.assignmentId}/reject/${item.employeeId}`, {
         note: "Not approved — try again with more detail.",
       });
-      toast.success(`Rejected ${item.adventure.title}`);
+      toast.success(`Rejected ${item.assignment.title}`);
       setPending((prev) => prev.filter((p) => p.id !== item.id));
     } catch (err) {
       toast.error(err instanceof ApiRequestError ? err.message : "Could not reject this submission.");
@@ -396,12 +396,12 @@ function TaskSubmissionsSection() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
-                          {item.adventure.title}
+                          {item.assignment.title}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <span className="tabular font-mono text-xs text-primary">
-                          +{item.adventure.xpReward} XP · +{item.adventure.coinReward} coins
+                          +{item.assignment.xpReward} XP · +{item.assignment.coinReward} coins
                         </span>
                       </TableCell>
                       <TableCell className="max-w-xs text-sm whitespace-normal text-muted-foreground">
@@ -461,16 +461,16 @@ function TaskSubmissionsSection() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="font-mono text-[10px] tracking-wide uppercase">
-                          {item.adventure.title}
+                          {item.assignment.title}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <span className="tabular font-mono text-xs text-primary">
-                          +{item.adventure.xpReward} XP · +{item.adventure.coinReward} coins
+                          +{item.assignment.xpReward} XP · +{item.assignment.coinReward} coins
                         </span>
                       </TableCell>
                       <TableCell className="max-w-xs truncate text-sm whitespace-normal text-muted-foreground">
-                        {item.adventure.description}
+                        {item.assignment.description}
                       </TableCell>
                       <TableCell className="text-right">
                         <span className="font-mono text-[10px] tracking-wide text-success uppercase">Approved</span>

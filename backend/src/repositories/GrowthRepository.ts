@@ -2,20 +2,20 @@ import { prisma } from "@/config/db";
 
 export const GrowthRepository = {
   /**
-   * Every completed AdventureProgress row for one employee within a date
-   * window, with just enough Adventure data to compute quiz accuracy,
+   * Every completed AssignmentProgress row for one employee within a date
+   * window, with just enough Assignment data to compute quiz accuracy,
    * output volume, and consistency — one shared query, since all three
    * employee-growth dimensions read from the same rows.
    */
   findCompletedProgressForEmployee(employeeId: string, since: Date) {
-    return prisma.adventureProgress.findMany({
+    return prisma.assignmentProgress.findMany({
       where: { employeeId, completed: true, completedAt: { gte: since } },
       select: {
         completedAt: true,
         quizAnswers: true,
         quizCorrectCount: true,
         approval: true,
-        adventure: {
+        assignment: {
           select: { id: true, xpReward: true, quiz: true, dailyQuizDate: true, type: true },
         },
       },
@@ -23,13 +23,13 @@ export const GrowthRepository = {
     });
   },
 
-  /** Same shape, but for every member of the given guild ids at once — the team-growth aggregate. */
-  findCompletedProgressForGuilds(guildIds: string[], since: Date) {
-    return prisma.adventureProgress.findMany({
+  /** Same shape, but for every member of the given team ids at once — the team-growth aggregate. */
+  findCompletedProgressForTeams(teamIds: string[], since: Date) {
+    return prisma.assignmentProgress.findMany({
       where: {
         completed: true,
         completedAt: { gte: since },
-        employee: { guildId: { in: guildIds } },
+        employee: { teamId: { in: teamIds } },
       },
       select: {
         employeeId: true,
@@ -37,7 +37,7 @@ export const GrowthRepository = {
         quizAnswers: true,
         quizCorrectCount: true,
         approval: true,
-        adventure: {
+        assignment: {
           select: { id: true, xpReward: true, quiz: true, dailyQuizDate: true, type: true },
         },
       },
@@ -47,17 +47,17 @@ export const GrowthRepository = {
 
   /**
    * Manager's own review-turnaround + assignment-volume source data — same
-   * filter shape as AdventureRepository's assigned-history methods, scoped
+   * filter shape as AssignmentRepository's assigned-history methods, scoped
    * to a date window and trimmed to only the fields the leadership
    * computation needs (createdAt = assigned time, progress[].completedAt/
    * approvedAt/approvedById/approval).
    */
-  findAssignedHistoryForGuildsSince(guildIds: string[], since: Date) {
-    return prisma.adventure.findMany({
+  findAssignedHistoryForTeamsSince(teamIds: string[], since: Date) {
+    return prisma.assignment.findMany({
       where: {
         type: "SOLO",
         assignedById: { not: null },
-        guildId: { in: guildIds },
+        teamId: { in: teamIds },
         createdAt: { gte: since },
       },
       select: {
@@ -72,9 +72,9 @@ export const GrowthRepository = {
     });
   },
 
-  /** Same as findAssignedHistoryForGuildsSince but company-wide, for admins acting as their own "self growth" leader view. */
+  /** Same as findAssignedHistoryForTeamsSince but company-wide, for admins acting as their own "self growth" leader view. */
   findAllAssignedHistorySince(since: Date) {
-    return prisma.adventure.findMany({
+    return prisma.assignment.findMany({
       where: { type: "SOLO", assignedById: { not: null }, createdAt: { gte: since } },
       select: {
         id: true,
@@ -96,7 +96,7 @@ export const GrowthRepository = {
    */
   /** One row per task planned into any of the given sprints, with just enough to compute a per-sprint completion rate. */
   findTasksForSprints(sprintIds: string[]) {
-    return prisma.adventure.findMany({
+    return prisma.assignment.findMany({
       where: { sprintId: { in: sprintIds } },
       select: {
         sprintId: true,
@@ -106,14 +106,14 @@ export const GrowthRepository = {
   },
 
   findTaskActivityForEmployee(employeeId: string, since: Date, until: Date) {
-    return prisma.adventureProgress.findMany({
+    return prisma.assignmentProgress.findMany({
       where: { employeeId, completed: true, completedAt: { gte: since, lt: until } },
       select: {
         completedAt: true,
         approval: true,
         quizAnswers: true,
         quizCorrectCount: true,
-        adventure: {
+        assignment: {
           select: { id: true, title: true, type: true, xpReward: true, quiz: true, dailyQuizDate: true },
         },
       },

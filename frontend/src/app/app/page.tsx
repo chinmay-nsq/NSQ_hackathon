@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { Adventure, DialogueAction, EmployeeGrowth, TeamGrowth, GrowthInsight, WeeklyPoint } from "@/lib/types";
+import { Assignment, DialogueAction, EmployeeGrowth, TeamGrowth, GrowthInsight, WeeklyPoint } from "@/lib/types";
 import { useAuthStore } from "@/store/authStore";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
@@ -40,7 +40,7 @@ const FALLBACK_DIALOGUE = "I'm here with you — let's see what today brings!";
 const XP_PER_LEVEL = 100;
 
 const DIALOGUE_ACTION_ROUTE: Record<DialogueAction["topic"], string> = {
-  adventures: "/adventures",
+  assignments: "/assignments",
   approvals: "/approvals",
   teams: "/teams",
 };
@@ -164,8 +164,8 @@ export default function DashboardPage() {
   const [dialogue, setDialogue] = useState<string | null>(null);
   const [dialogueAction, setDialogueAction] = useState<DialogueAction | undefined>(undefined);
   const [dialogueLoading, setDialogueLoading] = useState(!isManager);
-  const [adventures, setAdventures] = useState<Adventure[]>([]);
-  const [adventuresLoading, setAdventuresLoading] = useState(true);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [assignmentsLoading, setAssignmentsLoading] = useState(true);
   const [myGrowth, setMyGrowth] = useState<EmployeeGrowth | null>(null);
   const [teamGrowth, setTeamGrowth] = useState<TeamGrowth | null>(null);
   const [growthInsight, setGrowthInsight] = useState<GrowthInsight | null>(null);
@@ -173,7 +173,7 @@ export default function DashboardPage() {
   const [pendingClaimsCount, setPendingClaimsCount] = useState(0);
   const [pendingSubmissionsCount, setPendingSubmissionsCount] = useState(0);
   const burstRef = useRef<LightningBurstHandle>(null);
-  const stillLoading = dialogueLoading || adventuresLoading;
+  const stillLoading = dialogueLoading || assignmentsLoading;
 
   // A compact preview of the same real analytics the Growth page shows in
   // full — managers see their team's rollup, everyone else sees their own.
@@ -201,7 +201,7 @@ export default function DashboardPage() {
     if (!employee || !isManager) return;
     Promise.all([
       api.get<{ claims: unknown[] }>("/marketplace/claims/pending"),
-      api.get<{ pending: unknown[] }>("/adventures/pending"),
+      api.get<{ pending: unknown[] }>("/assignments/pending"),
     ])
       .then(([claims, tasks]) => {
         setPendingClaimsCount(claims.claims.length);
@@ -211,7 +211,7 @@ export default function DashboardPage() {
   }, [employee, isManager]);
 
   // While this page's own data is still loading (companion dialogue +
-  // today's adventures), a click anywhere strikes a real lightning bolt at
+  // today's assignments), a click anywhere strikes a real lightning bolt at
   // the click point instead of silently doing nothing on the skeletons.
   useEffect(() => {
     if (!THUNDERBOLT_ENABLED || !stillLoading) return;
@@ -230,12 +230,12 @@ export default function DashboardPage() {
     // pending" right before the quiz silently appears a moment later.
     // Managers skip the daily quiz entirely (no personal daily task).
     api
-      .get<{ adventures: Adventure[] }>("/adventures/")
-      .then((data) => (isManager ? data.adventures : ensureDailyQuiz(data.adventures)))
-      .catch(() => [] as Adventure[])
-      .then((adventures) => {
-        setAdventures(adventures);
-        setAdventuresLoading(false);
+      .get<{ assignments: Assignment[] }>("/assignments/")
+      .then((data) => (isManager ? data.assignments : ensureDailyQuiz(data.assignments)))
+      .catch(() => [] as Assignment[])
+      .then((assignments) => {
+        setAssignments(assignments);
+        setAssignmentsLoading(false);
 
         if (isManager) return;
 
@@ -250,13 +250,13 @@ export default function DashboardPage() {
       });
   }, [employee, isManager]);
 
-  const pendingAdventures = adventures.filter((a) => !a.progress?.[0]?.completed && a.status === "ACTIVE");
+  const pendingAssignments = assignments.filter((a) => !a.progress?.[0]?.completed && a.status === "ACTIVE");
   const level = employee?.level ?? 1;
   const xpIntoLevel = (employee?.xp ?? 0) % XP_PER_LEVEL;
   const pendingApprovals = pendingClaimsCount + pendingSubmissionsCount;
   const taskLabel = taskWord(employee?.role);
   const tourQuestId =
-    pendingAdventures.find((a) => a.quiz && a.quiz.length > 0)?.id ?? pendingAdventures[0]?.id;
+    pendingAssignments.find((a) => a.quiz && a.quiz.length > 0)?.id ?? pendingAssignments[0]?.id;
 
   return (
     <PageIn>
@@ -386,7 +386,7 @@ export default function DashboardPage() {
             <StatTile
               icon={ListChecks}
               label={`Pending ${taskLabel.toLowerCase()}`}
-              value={pendingAdventures.length}
+              value={pendingAssignments.length}
               tone="pink"
             />
           </>
@@ -463,7 +463,7 @@ export default function DashboardPage() {
         ) : myGrowth === null ? (
           <Card className="border border-dashed border-border bg-transparent">
             <CardContent className="p-8 text-center text-sm text-muted-foreground">
-              Complete a quest to start tracking your growth.
+              Complete an assignment to start tracking your growth.
             </CardContent>
           </Card>
         ) : (
@@ -513,7 +513,7 @@ export default function DashboardPage() {
             size="sm"
             className="group text-muted-foreground"
             render={
-              <Link href="/adventures">
+              <Link href="/assignments">
                 View all
                 <ArrowRight className="transition-transform group-hover:translate-x-0.5" />
               </Link>
@@ -521,12 +521,12 @@ export default function DashboardPage() {
           />
         </div>
 
-        {adventuresLoading ? (
+        {assignmentsLoading ? (
           <div className="grid gap-4 sm:grid-cols-2">
             <Skeleton className="h-28" />
             <Skeleton className="h-28" />
           </div>
-        ) : pendingAdventures.length === 0 ? (
+        ) : pendingAssignments.length === 0 ? (
           <Card className="border border-dashed border-border bg-transparent">
             <CardContent className="p-8 text-center text-sm text-muted-foreground">
               {isManager ? (
@@ -534,8 +534,8 @@ export default function DashboardPage() {
               ) : (
                 <>
                   Nothing queued up for today.{" "}
-                  <Link href="/adventures" className="font-medium text-primary underline-offset-2 hover:underline">
-                    Generate an adventure
+                  <Link href="/assignments" className="font-medium text-primary underline-offset-2 hover:underline">
+                    Generate an assignment
                   </Link>
                   .
                 </>
@@ -543,9 +543,9 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         ) : (
-          <StaggerGrid className="grid gap-4 sm:grid-cols-2" deps={[pendingAdventures.length]}>
-            {pendingAdventures.slice(0, 4).map((a) => (
-              <Link key={a.id} href={`/adventures/${a.id}`} data-tour={a.id === tourQuestId ? "quest-card" : undefined}>
+          <StaggerGrid className="grid gap-4 sm:grid-cols-2" deps={[pendingAssignments.length]}>
+            {pendingAssignments.slice(0, 4).map((a) => (
+              <Link key={a.id} href={`/assignments/${a.id}`} data-tour={a.id === tourQuestId ? "assignment-card" : undefined}>
                 <HoverLift>
                   <Card className="h-full border border-border transition-colors hover:border-primary/40">
                     <CardContent className="p-5">

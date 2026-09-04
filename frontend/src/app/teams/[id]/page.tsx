@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { ArrowLeft, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiRequestError } from "@/lib/api";
-import { Guild } from "@/lib/types";
+import { Team } from "@/lib/types";
 import { useAuthStore } from "@/store/authStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -27,24 +27,24 @@ const RESOURCES = ["knowledge", "gold", "influence", "materials"] as const;
 export default function TeamDetailPage() {
   const params = useParams<{ id: string }>();
   const { employee } = useAuthStore();
-  const [guild, setGuild] = useState<Guild | null>(null);
+  const [team, setTeam] = useState<Team | null>(null);
   const [loading, setLoading] = useState(true);
   const [copyingInvite, setCopyingInvite] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api
-      .get<{ guild: Guild }>(`/guilds/${params.id}`)
-      .then((data) => setGuild(data.guild))
+      .get<{ team: Team }>(`/teams/${params.id}`)
+      .then((data) => setTeam(data.team))
       .catch((err) => setError(err instanceof ApiRequestError ? err.message : "Failed to load team"))
       .finally(() => setLoading(false));
   }, [params.id]);
 
   async function handleCopyInvite() {
-    if (!guild) return;
+    if (!team) return;
     setCopyingInvite(true);
     try {
-      const data = await api.get<{ inviteCode: string }>(`/guilds/${guild.id}/invite`);
+      const data = await api.get<{ inviteCode: string }>(`/teams/${team.id}/invite`);
       const link = `${window.location.origin}/login?invite=${data.inviteCode}`;
       await navigator.clipboard.writeText(link);
       toast.success("Invite link copied", { description: "Share it with your team." });
@@ -57,10 +57,10 @@ export default function TeamDetailPage() {
 
   if (loading) return <p className="text-sm text-muted-foreground">Loading team…</p>;
   if (error) return <p className="text-sm text-destructive">{error}</p>;
-  if (!guild) return null;
+  if (!team) return null;
 
   // The backend is the real gate (403s if this viewer doesn't actually lead
-  // this guild) — this just decides whether to show the button at all.
+  // this team) — this just decides whether to show the button at all.
   const canInvite = employee?.role === "MANAGER" || employee?.role === "ADMIN";
 
   return (
@@ -77,14 +77,14 @@ export default function TeamDetailPage() {
         <div className="flex items-center gap-3">
           <Avatar className="glow-primary size-13 ring-1 ring-primary/20">
             <AvatarFallback className="font-display bg-accent text-lg text-accent-foreground">
-              {guild.name.charAt(0)}
+              {team.name.charAt(0)}
             </AvatarFallback>
           </Avatar>
           <div>
             <p className="font-mono text-xs font-medium tracking-wide text-muted-foreground uppercase">
-              {guild.department}
+              {team.department}
             </p>
-            <h1 className="font-display text-2xl tracking-wide uppercase">{guild.name}</h1>
+            <h1 className="font-display text-2xl tracking-wide uppercase">{team.name}</h1>
           </div>
         </div>
         <div className="flex shrink-0 gap-2">
@@ -110,11 +110,11 @@ export default function TeamDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 px-4">
-            <p className="tabular font-display text-3xl">{guild.level}</p>
+            <p className="tabular font-display text-3xl">{team.level}</p>
             <Separator />
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Reputation</span>
-              <span className="tabular text-primary">{guild.reputation}</span>
+              <span className="tabular text-primary">{team.reputation}</span>
             </div>
           </CardContent>
         </Card>
@@ -133,7 +133,7 @@ export default function TeamDetailPage() {
                     {RESOURCE_LABEL[r]}
                   </p>
                   <p className="tabular font-display text-xl">
-                    <CountUp value={guild[r]} />
+                    <CountUp value={team[r]} />
                   </p>
                 </div>
               ))}
@@ -146,9 +146,9 @@ export default function TeamDetailPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="font-mono text-xs tracking-widest text-muted-foreground uppercase">
-              Members ({guild.members.length})
+              Members ({team.members.length})
             </CardTitle>
-            {guild.members.some((m) => m.species !== undefined) && (
+            {team.members.some((m) => m.species !== undefined) && (
               <span className="font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
                 Shown by companion
               </span>
@@ -156,11 +156,11 @@ export default function TeamDetailPage() {
           </div>
         </CardHeader>
         <CardContent className="px-4">
-          {guild.members.length === 0 ? (
+          {team.members.length === 0 ? (
             <p className="text-sm text-muted-foreground">No members yet.</p>
           ) : (
             <div className="divide-y divide-border/60">
-              {guild.members.map((m) => (
+              {team.members.map((m) => (
                 <div key={m.id} className="flex items-center justify-between py-2.5 text-sm">
                   <span>{m.name}</span>
                   <span className="text-muted-foreground">

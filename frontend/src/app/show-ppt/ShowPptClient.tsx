@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Maximize, X, Swords, Users, ClipboardCheck, MessageCircle, Store, Crown, TrendingUp, Flame, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, Maximize, X, ClipboardList, Users, ClipboardCheck, MessageCircle, Store, Building2, TrendingUp, Flame, type LucideIcon } from "lucide-react";
 import "../landing.css";
 import { gsap, MorphSVGPlugin, SplitText } from "@/lib/gsap/registerPlugins";
 import { AmbientParticles } from "@/components/landing/AmbientParticles";
@@ -121,12 +121,12 @@ interface SlideDef {
 }
 
 const FEATURE_HIGHLIGHTS: { icon: LucideIcon; title: string; body: string }[] = [
-  { icon: Swords, title: "Adventures", body: "A fresh AI-written quest lands every single day — solo, or for the whole guild. Managers can hand-write and assign work too, to one person or the whole team at once." },
-  { icon: Users, title: "Guilds", body: "Every department becomes a guild with four shared resources — Knowledge, Gold, Influence, Materials — and a reputation score that climbs automatically as the team ships." },
-  { icon: ClipboardCheck, title: "Approvals", body: "Managers review submitted work in one queue — approve credits XP and coins instantly, reject sends it back with a note. AI-generated quests skip this entirely." },
+  { icon: ClipboardList, title: "Assignments", body: "A fresh AI-written assignment lands every single day — solo, or for the whole team. Managers can hand-write and assign work too, to one person or the whole team at once." },
+  { icon: Users, title: "Teams", body: "Every department becomes a team with four shared resources — Knowledge, Gold, Influence, Materials — and a reputation score that climbs automatically as the team ships." },
+  { icon: ClipboardCheck, title: "Approvals", body: "Managers review submitted work in one queue — approve credits XP and coins instantly, reject sends it back with a note. AI-generated assignments skip this entirely." },
   { icon: MessageCircle, title: "Companion Chat", body: "A real, persistent conversation with your companion. Ask it to create a task, assign work, or take you anywhere in the app — and it actually does it, live." },
   { icon: Store, title: "Rewards Marketplace", body: "Coins redeem for real perks — coffee, lunch, a day off — with a confirm-before-you-spend dialog and a full purchase history." },
-  { icon: Crown, title: "Kingdom", body: "Every guild's resources feed into shared, company-wide project goals — visible progress everyone can watch fill up together." },
+  { icon: Building2, title: "Company", body: "Every team's resources feed into shared, company-wide project goals — visible progress everyone can watch fill up together." },
 ];
 
 const SLIDES: SlideDef[] = [
@@ -140,10 +140,10 @@ const SLIDES: SlideDef[] = [
         <h2 className="slide-title mt-5 font-display text-[clamp(3.2rem,9vw,7.5rem)] leading-[0.88] text-(--ink)">
           WORK, AS AN
           <br />
-          <span className="text-brand">ADVENTURE.</span>
+          <span className="text-brand">ASSIGNMENT.</span>
         </h2>
         <p className="slide-body mt-8 max-w-2xl text-2xl leading-snug text-(--ash)">
-          A workplace engagement platform that turns real tasks into quests, real teams into guilds, and gives every
+          A workplace engagement platform that turns real tasks into assignments, real teams into teams, and gives every
           employee an AI companion that actually knows what&apos;s going on.
         </p>
       </div>
@@ -185,7 +185,7 @@ const SLIDES: SlideDef[] = [
     render: () => (
       <div className="flex h-full flex-col items-center justify-center text-center">
         <h2 className="slide-title font-display text-[clamp(2.4rem,5.5vw,4.4rem)] leading-[0.95] text-(--ink)">
-          Tasks become <span className="text-brand">quests.</span>
+          Tasks become <span className="text-brand">assignments.</span>
         </h2>
         <svg viewBox="0 0 100 100" className="morph-stage mt-10 h-64 w-64 sm:h-80 sm:w-80">
           <path id="morph-path-a" d={MORPH_SHAPES.checklist} fill="var(--brand)" />
@@ -204,14 +204,14 @@ const SLIDES: SlideDef[] = [
     render: () => (
       <div className="flex h-full flex-col items-center justify-center text-center">
         <h2 className="slide-title font-display text-[clamp(2.4rem,5.5vw,4.4rem)] leading-[0.95] text-(--ink)">
-          Departments become <span className="text-brand">guilds.</span>
+          Departments become <span className="text-brand">teams.</span>
         </h2>
         <svg viewBox="0 0 100 100" className="morph-stage mt-10 h-64 w-64 sm:h-80 sm:w-80">
           <path id="morph-path-b" d={MORPH_SHAPES_2.boxes} fill="var(--gold)" />
         </svg>
         <p className="slide-body mt-8 max-w-xl text-xl text-(--smoke)">
-          Same team, same manager, same reporting line. Just a shared identity to fight under — a guild banner, a
-          guardian that levels up with the whole team, and resources everyone contributes to together.
+          Same team, same manager, same reporting line. Just a shared identity to fight under — a team banner, a
+          mascot that levels up with the whole team, and resources everyone contributes to together.
         </p>
       </div>
     ),
@@ -223,10 +223,10 @@ const SLIDES: SlideDef[] = [
     render: () => (
       <div className="flex h-full flex-col justify-center">
         <h2 className="slide-title font-display text-[clamp(2.4rem,5.5vw,4.2rem)] leading-[0.95] text-(--ink)">
-          Not a mascot. <span className="text-brand">A real conversation.</span>
+          Not a chatbot. <span className="text-brand">A real conversation.</span>
         </h2>
         <p className="slide-body mt-6 max-w-2xl text-xl leading-relaxed text-(--ash)">
-          Every employee gets one AI companion, grounded in their real level, coins, guild, and pending work.
+          Every employee gets one AI companion, grounded in their real level, coins, team, and pending work.
           It&apos;s a persistent chat, not a one-off popup — full history, live on every page.
         </p>
         <div className="slide-body mt-8 flex flex-col gap-3 max-w-2xl">
@@ -425,7 +425,7 @@ const SLIDES: SlideDef[] = [
           Coins that move, <span className="text-brand">even after you spend them.</span>
         </h2>
         <p className="slide-body mt-5 max-w-2xl text-xl text-(--smoke)">
-          Earn from approved quests and quiz answers. Spend in the marketplace. Resell what you don&apos;t need on
+          Earn from approved assignments and quiz answers. Spend in the marketplace. Resell what you don&apos;t need on
           the Trading Post. Coins keep circulating — they don&apos;t just vanish into a leaderboard.
         </p>
         <div className="slide-body mt-8 grid grid-cols-2 gap-4 max-w-2xl sm:grid-cols-4">
@@ -457,8 +457,8 @@ const SLIDES: SlideDef[] = [
           {[
             { value: 7, label: "AI companion species" },
             { value: 15, label: "product areas, shipped" },
-            { value: 4, label: "guild resource types" },
-            { value: 100, label: "% of adventures AI-generated" },
+            { value: 4, label: "team resource types" },
+            { value: 100, label: "% of assignments AI-generated" },
           ].map((s) => (
             <div key={s.label} className="flex flex-col gap-1">
               <span className="stat-num font-display text-6xl text-brand sm:text-7xl" data-value={s.value}>
@@ -481,7 +481,7 @@ const SLIDES: SlideDef[] = [
           Gamification that serves <span className="text-brand">collaboration</span>, not competition.
         </h2>
         <p className="slide-body mt-6 max-w-2xl text-xl leading-relaxed text-(--smoke)">
-          No public leaderboards ranking people against each other. Guild resources are shared, not individually
+          No public leaderboards ranking people against each other. Team resources are shared, not individually
           hoarded. The AI companion is structural to every feature, not a bolted-on chatbot. And managers see their
           team by companion identity first — recognition without the awkwardness of a name on every review.
         </p>

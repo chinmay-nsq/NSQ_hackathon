@@ -5,7 +5,6 @@ import {
   UserPlus,
   Sparkles,
   ClipboardList,
-  Swords,
   Users,
   Gift,
   ShieldPlus,
@@ -32,7 +31,7 @@ const EMPLOYEE_STEPS: Step[] = [
     icon: UserPlus,
     kicker: "Step 1",
     title: "Join your team",
-    body: "Sign up with your team lead's invite link and you're dropped straight into their guild — no setup, no waiting for approval.",
+    body: "Sign up with your team lead's invite link and you're dropped straight into their team — no setup, no waiting for approval.",
   },
   {
     icon: Sparkles,
@@ -44,19 +43,19 @@ const EMPLOYEE_STEPS: Step[] = [
     icon: ClipboardList,
     kicker: "Step 3",
     title: "Tell it what you do",
-    body: "Your role, level, and skills — so every quest it writes actually fits the work you do, not a generic checklist.",
+    body: "Your role, level, and skills — so every assignment it writes actually fits the work you do, not a generic checklist.",
   },
   {
-    icon: Swords,
+    icon: ClipboardList,
     kicker: "Step 4",
-    title: "Run daily quests",
-    body: "Each day brings a fresh solo or team quest from your companion. Finish it, earn XP and coins, level up your title.",
+    title: "Run daily assignments",
+    body: "Each day brings a fresh solo or team assignment from your companion. Finish it, earn XP and coins, level up your title.",
   },
   {
     icon: Users,
     kicker: "Step 5",
     title: "Grow the team, then the company",
-    body: "Your XP feeds your guild's resources. Guilds pool those resources into shared company-wide goals everyone can watch fill up.",
+    body: "Your XP feeds your team's resources. Teams pool those resources into shared company-wide goals everyone can watch fill up.",
   },
   {
     icon: Gift,
@@ -71,13 +70,13 @@ const LEAD_STEPS: Step[] = [
     icon: ShieldPlus,
     kicker: "Step 1",
     title: "Create your team",
-    body: "Sign up as a team lead and start your guild — you're set as its manager automatically, no separate setup step.",
+    body: "Sign up as a team lead and start your team — you're set as its manager automatically, no separate setup step.",
   },
   {
     icon: Link2,
     kicker: "Step 2",
     title: "Invite your people",
-    body: "Share one link. Anyone who signs up with it lands straight in your guild — no approval queue, no manual adding.",
+    body: "Share one link. Anyone who signs up with it lands straight in your team — no approval queue, no manual adding.",
   },
   {
     icon: UserCog,
@@ -95,7 +94,7 @@ const LEAD_STEPS: Step[] = [
     icon: Users,
     kicker: "Step 5",
     title: "Watch the team grow",
-    body: "Every approved task feeds your guild's resources and reputation — visible progress you and your team both see.",
+    body: "Every approved task feeds your team's resources and reputation — visible progress you and your team both see.",
   },
   {
     icon: Sparkles,
@@ -112,7 +111,7 @@ const PERSONA_COPY: Record<Persona, { eyebrow: string; heading: React.ReactNode;
       <>
         From invite link to
         <br />
-        your first quest.
+        your first assignment.
       </>
     ),
     sub: "Six steps, most of them one click. Here's the whole path from getting invited to spending what you've earned.",
@@ -121,7 +120,7 @@ const PERSONA_COPY: Record<Persona, { eyebrow: string; heading: React.ReactNode;
     eyebrow: "How It Works — Team Leads",
     heading: (
       <>
-        From new guild to
+        From new team to
         <br />
         a team that runs itself.
       </>

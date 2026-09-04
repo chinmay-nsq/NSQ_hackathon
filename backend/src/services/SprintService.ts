@@ -1,5 +1,5 @@
 import { SprintRepository } from "@/repositories/SprintRepository";
-import { GuildRepository } from "@/repositories/GuildRepository";
+import { TeamRepository } from "@/repositories/TeamRepository";
 import { EmployeeRepository } from "@/repositories/EmployeeRepository";
 import { ApiError } from "@/utils/apiError";
 import { HttpStatus } from "@/utils/httpStatus";
@@ -12,38 +12,38 @@ function isCurrent(sprint: { startDate: Date; endDate: Date }): boolean {
 }
 
 class SprintServiceImpl {
-  /** Same guild-visibility rule the Kanban board uses: admin sees every guild, a manager sees the guild(s) they lead, an employee sees their own guild. */
-  private async resolveViewerGuildIds(viewer: { id: string; role: string; guildId: string | null }): Promise<string[]> {
+  /** Same team-visibility rule the Kanban board uses: admin sees every team, a manager sees the team(s) they lead, an employee sees their own team. */
+  private async resolveViewerTeamIds(viewer: { id: string; role: string; teamId: string | null }): Promise<string[]> {
     if (viewer.role === "ADMIN") {
-      return (await GuildRepository.findAllIds()).map((g) => g.id);
+      return (await TeamRepository.findAllIds()).map((g) => g.id);
     }
     if (viewer.role === "MANAGER") {
-      return (await GuildRepository.findIdsManagedBy(viewer.id)).map((g) => g.id);
+      return (await TeamRepository.findIdsManagedBy(viewer.id)).map((g) => g.id);
     }
-    return viewer.guildId ? [viewer.guildId] : [];
+    return viewer.teamId ? [viewer.teamId] : [];
   }
 
   async listForViewer(viewerId: string) {
     const viewer = await EmployeeRepository.findById(viewerId);
     if (!viewer) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
 
-    const guildIds = await this.resolveViewerGuildIds(viewer);
-    if (guildIds.length === 0) return [];
+    const teamIds = await this.resolveViewerTeamIds(viewer);
+    if (teamIds.length === 0) return [];
 
-    const sprints = await SprintRepository.findRecentForGuilds(guildIds, RECENT_SPRINTS_LIMIT);
+    const sprints = await SprintRepository.findRecentForTeams(teamIds, RECENT_SPRINTS_LIMIT);
     return sprints.map((s) => ({
       id: s.id,
-      guildId: s.guildId,
+      teamId: s.teamId,
       name: s.name,
       startDate: s.startDate,
       endDate: s.endDate,
-      taskCount: s._count.adventures,
+      taskCount: s._count.assignments,
       isCurrent: isCurrent(s),
     }));
   }
 
-  /** Manager/admin creates a new sprint for a guild they lead. */
-  async create(creatorId: string, guildId: string, name: string, startDate: Date, endDate: Date) {
+  /** Manager/admin creates a new sprint for a team they lead. */
+  async create(creatorId: string, teamId: string, name: string, startDate: Date, endDate: Date) {
     if (endDate <= startDate) {
       throw new ApiError(HttpStatus.BAD_REQUEST, "End date must be after the start date", "Bad Request");
     }
@@ -52,13 +52,13 @@ class SprintServiceImpl {
     if (!creator) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
 
     if (creator.role !== "ADMIN") {
-      const managed = await GuildRepository.findIdsManagedBy(creatorId);
-      if (!managed.some((g) => g.id === guildId)) {
+      const managed = await TeamRepository.findIdsManagedBy(creatorId);
+      if (!managed.some((g) => g.id === teamId)) {
         throw new ApiError(HttpStatus.FORBIDDEN, "You don't lead this team", "Forbidden");
       }
     }
 
-    return SprintRepository.create(guildId, name, startDate, endDate);
+    return SprintRepository.create(teamId, name, startDate, endDate);
   }
 }
 

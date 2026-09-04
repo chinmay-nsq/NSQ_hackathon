@@ -8,7 +8,7 @@ import { gsap } from "@/lib/gsap/registerPlugins";
 import { GrowthInsight } from "@/lib/types";
 
 const TOPIC_LABEL: Record<string, string> = {
-  adventures: "Go to Adventures",
+  assignments: "Go to Assignments",
   teams: "Go to Teams",
   approvals: "Go to Approvals",
   growth: "See more",

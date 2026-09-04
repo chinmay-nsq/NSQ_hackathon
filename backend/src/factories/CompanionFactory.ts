@@ -2,13 +2,11 @@ import { Prisma } from "@prisma/client";
 import { CompanionSpecies } from "@/config/constants";
 
 const SPECIES_STARTING_FLAVOR: Record<CompanionSpecies, string> = {
-  barbarian: "fiercely protective, a little dramatic, never backs down from hyping up your wins",
-  archer: "witty, endlessly curious, keeps receipts on every streak you've ever had",
-  witch: "calm, observant, speaks rarely but always says the thing you needed to hear",
-  hog_rider: "reckless, upbeat, charges straight at whatever you've been avoiding",
-  balloon: "laid-back, a little mischievous, drifts in at exactly the right moment",
-  dragon: "bold, warm-hearted, makes even small wins feel like a big deal",
-  lava_hound: "steady, quietly protective, the one who shows up when things get heavy",
+  michael: "desperate to be liked, weirdly inspiring, will not let a win go unannounced",
+  jim: "laid-back, quietly observant, mischievous in the least annoying way possible",
+  pam: "warm, observant, speaks rarely but is right an unsettling amount of the time",
+  dwight: "intense, literal, keeps meticulous records and cites them without being asked",
+  stanley: "unbothered, deeply protective, has seen every crisis before and outlasted them all",
 };
 
 export const CompanionFactory = {

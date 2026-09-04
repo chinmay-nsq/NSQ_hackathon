@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Users, UsersRound, BarChart3 } from "lucide-react";
 import { api, ApiRequestError } from "@/lib/api";
-import { Guild, TeamMemberGrowth } from "@/lib/types";
+import { Team, TeamMemberGrowth } from "@/lib/types";
 import { useAuthStore } from "@/store/authStore";
 import { useOnboardingTourStore } from "@/store/onboardingTourStore";
 import { PageHeader } from "@/components/PageHeader";
@@ -13,39 +13,39 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageIn } from "@/components/motion/PageIn";
 import { StaggerGrid } from "@/components/motion/StaggerGrid";
-import { CreateGuildDialog } from "@/components/guilds/CreateGuildDialog";
+import { CreateTeamDialog } from "@/components/teams/CreateTeamDialog";
 import { TeamMemberPerformanceCard } from "@/components/teams/TeamMemberPerformanceCard";
 import { TeamMemberDetailDialog } from "@/components/teams/TeamMemberDetailDialog";
 
 export default function TeamsPage() {
   const { employee } = useAuthStore();
-  const canCreateGuild = employee?.role === "MANAGER" || employee?.role === "ADMIN";
-  const [guilds, setGuilds] = useState<Guild[]>([]);
+  const canCreateTeam = employee?.role === "MANAGER" || employee?.role === "ADMIN";
+  const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [members, setMembers] = useState<TeamMemberGrowth[]>([]);
-  const [membersLoading, setMembersLoading] = useState(canCreateGuild);
+  const [membersLoading, setMembersLoading] = useState(canCreateTeam);
   const [detailMember, setDetailMember] = useState<TeamMemberGrowth | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
   const load = useCallback(() => {
     return api
-      .get<{ guilds: Guild[] }>("/guilds/")
-      .then((data) => setGuilds(data.guilds))
+      .get<{ teams: Team[] }>("/teams/")
+      .then((data) => setTeams(data.teams))
       .catch((err) => setError(err instanceof ApiRequestError ? err.message : "Failed to load teams"))
       .finally(() => setLoading(false));
   }, []);
 
   const loadMembers = useCallback(() => {
-    if (!canCreateGuild) return Promise.resolve();
+    if (!canCreateTeam) return Promise.resolve();
     return api
       .get<{ members: TeamMemberGrowth[] }>("/growth/team-members")
       .then((data) => setMembers(data.members))
       .catch(() => setMembers([]))
       .finally(() => setMembersLoading(false));
-  }, [canCreateGuild]);
+  }, [canCreateTeam]);
 
-  function handleGuildCreated() {
+  function handleTeamCreated() {
     useOnboardingTourStore.getState().signalAction("create-team");
     void load();
     void loadMembers();
@@ -64,16 +64,16 @@ export default function TeamsPage() {
       <PageHeader
         title="Teams"
         description={
-          canCreateGuild
+          canCreateTeam
             ? "Teams you lead, with their resources and roster."
             : "Your team, its resources, and its roster."
         }
-        action={canCreateGuild ? <CreateGuildDialog onCreated={handleGuildCreated} /> : undefined}
+        action={canCreateTeam ? <CreateTeamDialog onCreated={handleTeamCreated} /> : undefined}
       />
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      {canCreateGuild && (
+      {canCreateTeam && (
         <div className="mb-10">
           <div className="mb-4 flex items-center gap-2">
             <BarChart3 className="size-4.5 text-muted-foreground" />
@@ -106,7 +106,7 @@ export default function TeamsPage() {
         </div>
       )}
 
-      {canCreateGuild && !loading && guilds.length > 0 && (
+      {canCreateTeam && !loading && teams.length > 0 && (
         <div className="mb-4 flex items-center gap-2">
           <Users className="size-4.5 text-muted-foreground" />
           <h2 className="font-display text-xl tracking-wide uppercase">Your teams</h2>
@@ -118,7 +118,7 @@ export default function TeamsPage() {
           <Skeleton className="h-20" />
           <Skeleton className="h-20" />
         </div>
-      ) : guilds.length === 0 ? (
+      ) : teams.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-border py-20 text-center">
           <UsersRound className="size-8 text-muted-foreground" strokeWidth={1.5} />
           <p className="font-medium">You haven&apos;t joined a team yet</p>
@@ -127,37 +127,37 @@ export default function TeamsPage() {
           </p>
         </div>
       ) : (
-        <StaggerGrid className="divide-y divide-border/60 border-t border-border/60" deps={[guilds.length]}>
-          {guilds.map((guild) => (
+        <StaggerGrid className="divide-y divide-border/60 border-t border-border/60" deps={[teams.length]}>
+          {teams.map((team) => (
             <Link
-              key={guild.id}
-              href={`/teams/${guild.id}`}
+              key={team.id}
+              href={`/teams/${team.id}`}
               className="group/row flex items-center gap-4 py-4 transition-colors hover:bg-muted/40"
             >
               <Avatar className="glow-primary size-11 shrink-0 ring-1 ring-primary/20">
                 <AvatarFallback className="font-display bg-accent text-accent-foreground">
-                  {guild.name.charAt(0)}
+                  {team.name.charAt(0)}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline gap-2">
                   <p className="truncate font-medium transition-colors group-hover/row:text-primary">
-                    {guild.name}
+                    {team.name}
                   </p>
                   <Badge variant="secondary" className="shrink-0 font-mono text-[10px] tracking-wide uppercase">
-                    Lvl {guild.level}
+                    Lvl {team.level}
                   </Badge>
                 </div>
                 <p className="font-mono text-xs tracking-wide text-muted-foreground uppercase">
-                  {guild.department}
+                  {team.department}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-5 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <Users className="size-3.5" />
-                  {guild.members.length}
+                  {team.members.length}
                 </span>
-                <span className="tabular text-primary">{guild.reputation} rep</span>
+                <span className="tabular text-primary">{team.reputation} rep</span>
               </div>
             </Link>
           ))}

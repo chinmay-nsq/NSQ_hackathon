@@ -1,7 +1,7 @@
 import type { Role } from "@/lib/types";
 
 /**
- * "Adventures" is renamed per role: managers see "Tasks", everyone else
+ * "Assignments" is renamed per role: managers see "Tasks", everyone else
  * sees "Sprint" — same underlying feature/routes, just different labels.
  * Centralized here so every surface (nav, page headers, buttons) stays
  * consistent instead of hand-rolling the same role check everywhere.

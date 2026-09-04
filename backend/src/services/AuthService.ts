@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import { Role } from "@prisma/client";
 import { env } from "@/config/env";
 import { EmployeeRepository } from "@/repositories/EmployeeRepository";
-import { GuildRepository } from "@/repositories/GuildRepository";
+import { TeamRepository } from "@/repositories/TeamRepository";
 import { NotificationService } from "./NotificationService";
 import { CompanionService } from "./CompanionService";
 import { ApiError } from "@/utils/apiError";
@@ -43,20 +43,20 @@ class AuthServiceImpl {
       throw new ApiError(HttpStatus.BAD_REQUEST, "Invalid role", "Bad Request");
     }
 
-    let guildId: string | undefined;
+    let teamId: string | undefined;
     // Invite links join the invitee to a team as a member — only meaningful
     // for employees. A manager signing up leads their own team, never joins
     // one via someone else's invite link.
     if (inviteCode && role === Role.EMPLOYEE) {
-      const guild = await GuildRepository.findByInviteCode(inviteCode);
-      if (!guild) {
+      const team = await TeamRepository.findByInviteCode(inviteCode);
+      if (!team) {
         throw new ApiError(HttpStatus.BAD_REQUEST, "Invite link is invalid or expired", "Bad Request");
       }
-      guildId = guild.id;
+      teamId = team.id;
     }
 
     const passwordHash = await this.hashPassword(password);
-    const employee = await EmployeeRepository.create({ email, passwordHash, name, role, guildId });
+    const employee = await EmployeeRepository.create({ email, passwordHash, name, role, teamId });
     const token = this.signToken({ employeeId: employee.id });
 
     // Managers skip companion selection entirely — see

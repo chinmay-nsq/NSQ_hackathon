@@ -34,7 +34,7 @@ const jetbrainsMono = JetBrains_Mono({
 const SITE_URL = "https://skibidi-sprint.vercel.app";
 const TITLE = "Skibidi-Sprint — Team Engagement, Reinvented";
 const DESCRIPTION =
-  "Every task becomes a quest. Every team, a party. Every company, a world worth showing up for — powered by an AI that actually pays attention.";
+  "Every task becomes an assignment. Every team, a crew. Every company, a world worth showing up for — powered by an AI that actually pays attention.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

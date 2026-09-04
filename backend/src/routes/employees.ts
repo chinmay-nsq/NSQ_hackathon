@@ -12,7 +12,7 @@ router.get("/", requireAuth, requireRole(Role.ADMIN), asyncHandler(EmployeeContr
 router.post("/:id/role", requireAuth, requireRole(Role.ADMIN), asyncHandler(EmployeeController.setRole));
 router.post("/me/profile", requireAuth, asyncHandler(EmployeeController.completeProfile));
 router.post("/me/suggest-profile", requireAuth, asyncHandler(EmployeeController.suggestProfile));
-router.get("/me/guild-welcome", requireAuth, asyncHandler(EmployeeController.guildWelcome));
+router.get("/me/team-welcome", requireAuth, asyncHandler(EmployeeController.teamWelcome));
 router.post("/me/onboarding-tour-done", requireAuth, asyncHandler(EmployeeController.completeOnboardingTour));
 
 export default router;

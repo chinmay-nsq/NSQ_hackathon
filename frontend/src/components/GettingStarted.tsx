@@ -3,8 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Check, X, type LucideIcon } from "lucide-react";
-import { Sparkles, ClipboardList, Swords, Users, Store, ShieldPlus, Link2, UserPlus } from "lucide-react";
-import { Employee, Adventure, Guild, AssignedTask, PendingApproval } from "@/lib/types";
+import { Sparkles, ClipboardList, Users, Store, ShieldPlus, Link2, UserPlus } from "lucide-react";
+import { Employee, Assignment, Team, AssignedTask, PendingApproval } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { AnimatedBar } from "@/components/motion/AnimatedBar";
 import { StaggerGrid } from "@/components/motion/StaggerGrid";
@@ -23,7 +23,7 @@ interface JourneyStep<T> {
 
 interface EmployeeCtx {
   employee: Employee;
-  adventures: Adventure[];
+  assignments: Assignment[];
 }
 
 const EMPLOYEE_STEPS: JourneyStep<EmployeeCtx>[] = [
@@ -42,18 +42,18 @@ const EMPLOYEE_STEPS: JourneyStep<EmployeeCtx>[] = [
     done: ({ employee }) => Boolean(employee.profileCompletedAt),
   },
   {
-    key: "quest",
-    icon: Swords,
-    label: "Finish your first quest",
-    href: "/adventures",
-    done: ({ adventures }) => adventures.some((a) => a.progress?.[0]?.completed),
+    key: "assignment",
+    icon: ClipboardList,
+    label: "Finish your first assignment",
+    href: "/assignments",
+    done: ({ assignments }) => assignments.some((a) => a.progress?.[0]?.completed),
   },
   {
     key: "team",
     icon: Users,
     label: "Join or create a team",
     href: "/teams",
-    done: ({ employee }) => Boolean(employee.guildId),
+    done: ({ employee }) => Boolean(employee.teamId),
   },
   {
     key: "rewards",
@@ -66,7 +66,7 @@ const EMPLOYEE_STEPS: JourneyStep<EmployeeCtx>[] = [
 
 interface LeadCtx {
   employee: Employee;
-  managedGuilds: Guild[];
+  managedTeams: Team[];
   assignedTasks: AssignedTask[];
   pendingApprovals: PendingApproval[];
 }
@@ -84,20 +84,20 @@ const LEAD_STEPS: JourneyStep<LeadCtx>[] = [
     icon: ShieldPlus,
     label: "Create your team",
     href: "/teams",
-    done: ({ managedGuilds }) => managedGuilds.length > 0,
+    done: ({ managedTeams }) => managedTeams.length > 0,
   },
   {
     key: "invite",
     icon: Link2,
     label: "Invite your first member",
     href: "/teams",
-    done: ({ managedGuilds }) => managedGuilds.some((g) => g.members.length > 0),
+    done: ({ managedTeams }) => managedTeams.some((g) => g.members.length > 0),
   },
   {
     key: "assign",
     icon: UserPlus,
     label: "Assign your first task",
-    href: "/adventures",
+    href: "/assignments",
     done: ({ assignedTasks, pendingApprovals }) => assignedTasks.length > 0 || pendingApprovals.length > 0,
   },
 ];
@@ -176,20 +176,20 @@ function JourneyCard<T>({
 
 /**
  * Role-aware onboarding checklist: an employee sees the "join → companion →
- * profile → quest → rewards" path, a manager/admin sees the lead-specific
+ * profile → assignment → rewards" path, a manager/admin sees the lead-specific
  * path ("create team → invite → assign a task") since they never join a
  * team or browse the marketplace as their first action.
  */
 export function GettingStarted({
   employee,
-  adventures,
-  managedGuilds,
+  assignments,
+  managedTeams,
   assignedTasks,
   pendingApprovals,
 }: {
   employee: Employee;
-  adventures: Adventure[];
-  managedGuilds: Guild[];
+  assignments: Assignment[];
+  managedTeams: Team[];
   assignedTasks: AssignedTask[];
   pendingApprovals: PendingApproval[];
 }) {
@@ -200,7 +200,7 @@ export function GettingStarted({
       <JourneyCard
         title="Getting Started"
         steps={LEAD_STEPS}
-        ctx={{ employee, managedGuilds, assignedTasks, pendingApprovals }}
+        ctx={{ employee, managedTeams, assignedTasks, pendingApprovals }}
         dismissKey={DISMISS_KEY_LEAD}
       />
     );
@@ -210,7 +210,7 @@ export function GettingStarted({
     <JourneyCard
       title="Getting Started"
       steps={EMPLOYEE_STEPS}
-      ctx={{ employee, adventures }}
+      ctx={{ employee, assignments }}
       dismissKey={DISMISS_KEY_EMPLOYEE}
     />
   );

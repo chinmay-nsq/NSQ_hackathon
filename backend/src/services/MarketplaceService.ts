@@ -1,6 +1,6 @@
 import { MarketplaceRepository } from "@/repositories/MarketplaceRepository";
 import { EmployeeRepository } from "@/repositories/EmployeeRepository";
-import { GuildRepository } from "@/repositories/GuildRepository";
+import { TeamRepository } from "@/repositories/TeamRepository";
 import { NotificationService } from "./NotificationService";
 import { ApiError } from "@/utils/apiError";
 import { HttpStatus } from "@/utils/httpStatus";
@@ -32,7 +32,7 @@ class MarketplaceServiceImpl {
     await NotificationService.notifyRewardClaimed({
       employeeName: employee.name,
       employeeId,
-      managerId: employee.guild?.managerId,
+      managerId: employee.team?.managerId,
       itemName: item.name,
     }).catch(() => {});
 
@@ -46,23 +46,23 @@ class MarketplaceServiceImpl {
   async pendingClaims(managerId: string) {
     const manager = await EmployeeRepository.findById(managerId);
     if (!manager) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
-    if (manager.role === "ADMIN") return MarketplaceRepository.findPendingAllGuilds();
+    if (manager.role === "ADMIN") return MarketplaceRepository.findPendingAllTeams();
 
-    const guilds = await GuildRepository.findIdsManagedBy(managerId);
-    if (guilds.length === 0) return [];
-    return MarketplaceRepository.findPendingForGuilds(guilds.map((g) => g.id));
+    const teams = await TeamRepository.findIdsManagedBy(managerId);
+    if (teams.length === 0) return [];
+    return MarketplaceRepository.findPendingForTeams(teams.map((g) => g.id));
   }
 
   async recentDecisions(managerId: string) {
     const manager = await EmployeeRepository.findById(managerId);
     if (!manager) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
     if (manager.role === "ADMIN") {
-      return MarketplaceRepository.findRecentlyDecidedAllGuilds(RECENT_DECISIONS_LIMIT);
+      return MarketplaceRepository.findRecentlyDecidedAllTeams(RECENT_DECISIONS_LIMIT);
     }
 
-    const guilds = await GuildRepository.findIdsManagedBy(managerId);
-    if (guilds.length === 0) return [];
-    return MarketplaceRepository.findRecentlyDecidedForGuilds(guilds.map((g) => g.id), RECENT_DECISIONS_LIMIT);
+    const teams = await TeamRepository.findIdsManagedBy(managerId);
+    if (teams.length === 0) return [];
+    return MarketplaceRepository.findRecentlyDecidedForTeams(teams.map((g) => g.id), RECENT_DECISIONS_LIMIT);
   }
 
   /** Confirms `managerId` (manager/admin) is allowed to decide on this purchase's claim. */
@@ -75,11 +75,11 @@ class MarketplaceServiceImpl {
     }
 
     const employee = await EmployeeRepository.findById(purchase.employeeId);
-    if (!employee?.guildId) {
+    if (!employee?.teamId) {
       throw new ApiError(HttpStatus.FORBIDDEN, "You don't have permission to do that", "Forbidden");
     }
-    const managedGuilds = await GuildRepository.findIdsManagedBy(managerId);
-    if (!managedGuilds.some((g) => g.id === employee.guildId)) {
+    const managedTeams = await TeamRepository.findIdsManagedBy(managerId);
+    if (!managedTeams.some((g) => g.id === employee.teamId)) {
       throw new ApiError(HttpStatus.FORBIDDEN, "You don't have permission to do that", "Forbidden");
     }
   }

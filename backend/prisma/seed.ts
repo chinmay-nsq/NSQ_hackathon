@@ -6,81 +6,81 @@ const prisma = new PrismaClient();
 const SEED_PASSWORD = "Pass@123";
 
 async function main() {
-  const guildSeeds = [
+  const teamSeeds = [
     {
-      name: "Iron Forge Guild",
+      name: "Scranton Engineering",
       department: "Engineering",
-      emblem: "hammer",
-      guardianSpecies: "dragon",
-      guardianName: "Forge Dragon",
+      emblem: "wrench",
+      mascotKind: "stapler",
+      mascotName: "The Stapler",
     },
     {
-      name: "Wisdom Guild",
+      name: "Scranton People Ops",
       department: "HR",
       emblem: "book",
-      guardianSpecies: "owl",
-      guardianName: "Ancient Owl",
+      mascotKind: "plant",
+      mascotName: "The Desk Plant",
     },
     {
-      name: "Golden Treasury",
+      name: "Scranton Finance",
       department: "Finance",
       emblem: "coin",
-      guardianSpecies: "turtle",
-      guardianName: "Golden Turtle",
+      mascotKind: "coffee",
+      mascotName: "The Coffee Pot",
     },
     {
-      name: "Phoenix Guild",
+      name: "Scranton Marketing",
       department: "Marketing",
-      emblem: "flame",
-      guardianSpecies: "phoenix",
-      guardianName: "Phoenix",
+      emblem: "megaphone",
+      mascotKind: "printer",
+      mascotName: "The Printer",
     },
   ];
 
-  const guilds = [];
-  for (const guild of guildSeeds) {
-    const created = await prisma.guild.upsert({
-      where: { name: guild.name },
+  const teams = [];
+  for (const team of teamSeeds) {
+    const created = await prisma.team.upsert({
+      where: { name: team.name },
       update: {},
-      create: guild,
+      create: team,
     });
-    guilds.push(created);
+    teams.push(created);
   }
-  console.log(`Seeded ${guildSeeds.length} guilds`);
+  console.log(`Seeded ${teamSeeds.length} teams`);
 
-  const kingdom = await prisma.kingdom.findFirst();
-  const kingdomRecord = kingdom ?? (await prisma.kingdom.create({ data: { name: "The Kingdom" } }));
+  const company = await prisma.company.findFirst();
+  const companyRecord = company ?? (await prisma.company.create({ data: { name: "The Company" } }));
 
-  const existingProject = await prisma.kingdomProject.findFirst({
-    where: { kingdomId: kingdomRecord.id, name: "Crystal University" },
+  const existingProject = await prisma.companyProject.findFirst({
+    where: { companyId: companyRecord.id, name: "The Training Center" },
   });
 
   if (!existingProject) {
-    await prisma.kingdomProject.create({
+    await prisma.companyProject.create({
       data: {
-        kingdomId: kingdomRecord.id,
-        name: "Crystal University",
-        description: "A grand hall of learning, unlocked when all guilds pool their resources.",
+        companyId: companyRecord.id,
+        name: "The Training Center",
+        description: "A shared training space, unlocked once every team pools its resources.",
         knowledgeNeeded: 200,
         goldNeeded: 100,
         influenceNeeded: 80,
         materialsNeeded: 120,
       },
     });
-    console.log("Seeded Crystal University kingdom project");
+    console.log("Seeded The Training Center company project");
   }
 
   const marketplaceItems = [
     // Small, frequent — easy first purchases.
-    { name: "Coffee Voucher", description: "One free coffee, on the kingdom.", cost: 50, icon: "coffee" },
-    { name: "Sticker Pack", description: "A pack of limited-edition kingdom stickers.", cost: 60, icon: "sparkle" },
+    { name: "Coffee Voucher", description: "One free coffee, on the company.", cost: 50, icon: "coffee" },
+    { name: "Sticker Pack", description: "A pack of limited-edition company stickers.", cost: 60, icon: "sparkle" },
     { name: "Mystery Chest", description: "A chest of random rewards.", cost: 100, icon: "gift" },
     { name: "Desk Plant", description: "A little green companion for your desk.", cost: 120, icon: "sprout" },
     { name: "Playlist Takeover", description: "Control the office playlist for a day.", cost: 130, icon: "music" },
     { name: "Pizza Lunch", description: "A team pizza lunch voucher.", cost: 150, icon: "pizza" },
 
-    // Mid-tier — a week or two of quests away.
-    { name: "Company Merchandise", description: "Redeem for kingdom-branded swag.", cost: 200, icon: "shirt" },
+    // Mid-tier — a week or two of assignments away.
+    { name: "Company Merchandise", description: "Redeem for company-branded swag.", cost: 200, icon: "shirt" },
     { name: "Late Start Pass", description: "Roll in two hours late, guilt-free.", cost: 220, icon: "sunrise" },
     { name: "Learning Credit", description: "Credit toward a course or book.", cost: 250, icon: "book" },
     { name: "Reserved Parking Spot", description: "The best spot in the lot, for one week.", cost: 280, icon: "car" },
@@ -107,13 +107,13 @@ async function main() {
   const byName = (name: string) => items.find((i) => i.name === name)!;
 
   const passwordHash = await bcrypt.hash(SEED_PASSWORD, 10);
-  const [ironForge, wisdom, goldenTreasury, phoenix] = guilds;
+  const [engineering, peopleOps, finance, marketing] = teams;
 
   type EmployeeSeed = {
     email: string;
     name: string;
     role: Role;
-    guildId: string | null;
+    teamId: string | null;
     managerOf?: string;
     xp: number;
     level: number;
@@ -131,138 +131,138 @@ async function main() {
       email: "admin@weatherline.dev",
       name: "Priya Sharma",
       role: Role.ADMIN,
-      guildId: null,
+      teamId: null,
       xp: 4200,
       level: 12,
       coins: 900,
       reputation: 500,
-      title: "Kingdom Overseer",
+      title: "Corporate",
       jobRole: "Head of Operations",
       seniority: "LEAD",
       skills: ["leadership", "strategy", "operations"],
-      companion: { species: "dragon", name: "Ashfang", bondLevel: 8, bondXp: 60 },
+      companion: { species: "michael", name: "Michael", bondLevel: 8, bondXp: 60 },
     },
     {
       email: "arjun.lead@weatherline.dev",
       name: "Arjun Mehta",
       role: Role.MANAGER,
-      guildId: ironForge.id,
-      managerOf: ironForge.id,
+      teamId: engineering.id,
+      managerOf: engineering.id,
       xp: 3100,
       level: 9,
       coins: 620,
       reputation: 340,
-      title: "Guildmaster",
+      title: "Regional Manager",
       jobRole: "Engineering Manager",
       seniority: "LEAD",
       skills: ["backend", "architecture", "mentoring"],
-      companion: { species: "lava_hound", name: "Cindercoal", bondLevel: 6, bondXp: 40 },
+      companion: { species: "stanley", name: "Stanley", bondLevel: 6, bondXp: 40 },
     },
     {
       email: "sara.lead@weatherline.dev",
       name: "Sara Fernandes",
       role: Role.MANAGER,
-      guildId: wisdom.id,
-      managerOf: wisdom.id,
+      teamId: peopleOps.id,
+      managerOf: peopleOps.id,
       xp: 2800,
       level: 8,
       coins: 540,
       reputation: 300,
-      title: "Guildmaster",
+      title: "Regional Manager",
       jobRole: "HR Manager",
       seniority: "LEAD",
       skills: ["people-ops", "coaching", "onboarding"],
-      companion: { species: "witch", name: "Moonveil", bondLevel: 5, bondXp: 20 },
+      companion: { species: "pam", name: "Pam", bondLevel: 5, bondXp: 20 },
     },
     {
       email: "devansh@weatherline.dev",
       name: "Devansh Rao",
       role: Role.EMPLOYEE,
-      guildId: ironForge.id,
+      teamId: engineering.id,
       xp: 1450,
       level: 5,
       coins: 380,
       reputation: 120,
-      title: "Journeyman",
+      title: "Senior Associate",
       jobRole: "Backend Engineer",
       seniority: "MID",
       skills: ["node", "postgres", "typescript"],
-      companion: { species: "barbarian", name: "Brakkon", bondLevel: 4, bondXp: 55 },
+      companion: { species: "dwight", name: "Dwight", bondLevel: 4, bondXp: 55 },
     },
     {
       email: "meera@weatherline.dev",
       name: "Meera Iyer",
       role: Role.EMPLOYEE,
-      guildId: ironForge.id,
+      teamId: engineering.id,
       xp: 980,
       level: 4,
       coins: 260,
       reputation: 90,
-      title: "Apprentice",
+      title: "Associate",
       jobRole: "Frontend Engineer",
       seniority: "MID",
       skills: ["react", "typescript", "design-systems"],
-      companion: { species: "archer", name: "Fletch", bondLevel: 3, bondXp: 10 },
+      companion: { species: "jim", name: "Jim", bondLevel: 3, bondXp: 10 },
     },
     {
       email: "kabir@weatherline.dev",
       name: "Kabir Singh",
       role: Role.EMPLOYEE,
-      guildId: ironForge.id,
+      teamId: engineering.id,
       xp: 520,
       level: 3,
       coins: 340,
       reputation: 55,
-      title: "Apprentice",
+      title: "Associate",
       jobRole: "DevOps Engineer",
       seniority: "JUNIOR",
       skills: ["docker", "ci-cd", "aws"],
-      companion: { species: "balloon", name: "Puffshade", bondLevel: 2, bondXp: 5 },
+      companion: { species: "jim", name: "Jim H.", bondLevel: 2, bondXp: 5 },
     },
     {
       email: "ananya@weatherline.dev",
       name: "Ananya Gupta",
       role: Role.EMPLOYEE,
-      guildId: wisdom.id,
+      teamId: peopleOps.id,
       xp: 1120,
       level: 4,
       coins: 410,
       reputation: 100,
-      title: "Apprentice",
+      title: "Associate",
       jobRole: "People Ops Associate",
       seniority: "MID",
       skills: ["recruiting", "culture", "events"],
-      companion: { species: "witch", name: "Emberlyn", bondLevel: 3, bondXp: 35 },
+      companion: { species: "pam", name: "Pam B.", bondLevel: 3, bondXp: 35 },
     },
     {
       email: "rohan@weatherline.dev",
       name: "Rohan Kapoor",
       role: Role.EMPLOYEE,
-      guildId: goldenTreasury.id,
+      teamId: finance.id,
       xp: 760,
       level: 3,
       coins: 500,
       reputation: 70,
-      title: "Apprentice",
+      title: "Associate",
       jobRole: "Financial Analyst",
       seniority: "JUNIOR",
       skills: ["excel", "forecasting", "reporting"],
-      companion: { species: "hog_rider", name: "Grumblehoof", bondLevel: 2, bondXp: 15 },
+      companion: { species: "dwight", name: "Dwight S.", bondLevel: 2, bondXp: 15 },
     },
     {
       email: "isha@weatherline.dev",
       name: "Isha Chatterjee",
       role: Role.EMPLOYEE,
-      guildId: phoenix.id,
+      teamId: marketing.id,
       xp: 640,
       level: 3,
       coins: 290,
       reputation: 60,
-      title: "Apprentice",
+      title: "Associate",
       jobRole: "Marketing Associate",
       seniority: "JUNIOR",
       skills: ["content", "seo", "social"],
-      companion: { species: "dragon", name: "Solvane", bondLevel: 2, bondXp: 25 },
+      companion: { species: "michael", name: "Michael S.", bondLevel: 2, bondXp: 25 },
     },
   ];
 
@@ -277,7 +277,7 @@ async function main() {
         passwordHash,
         name: seed.name,
         role: seed.role,
-        guildId: seed.guildId,
+        teamId: seed.teamId,
         xp: seed.xp,
         level: seed.level,
         coins: seed.coins,
@@ -292,7 +292,7 @@ async function main() {
     employees[seed.email] = { id: employee.id, coins: seed.coins };
 
     if (seed.managerOf) {
-      await prisma.guild.update({ where: { id: seed.managerOf }, data: { managerId: employee.id } });
+      await prisma.team.update({ where: { id: seed.managerOf }, data: { managerId: employee.id } });
     }
 
     const existingCompanion = await prisma.companion.findUnique({ where: { employeeId: employee.id } });

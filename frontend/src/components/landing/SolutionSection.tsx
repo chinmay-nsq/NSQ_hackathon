@@ -7,7 +7,7 @@ import { gsap, ScrollTrigger } from "@/lib/gsap/registerPlugins";
 import { ScatterText } from "./ScatterText";
 
 const LOOP = [
-  { label: "Employee", detail: "grows through daily quests", icon: User, metric: "+40 XP / quest" },
+  { label: "Employee", detail: "grows through daily assignments", icon: User, metric: "+40 XP / assignment" },
   { label: "Team", detail: "levels up together", icon: Users, metric: "4 resource types" },
   { label: "Company", detail: "unlocks new ground", icon: Building2, metric: "1 shared world" },
 ];

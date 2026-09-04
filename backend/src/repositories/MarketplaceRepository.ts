@@ -24,17 +24,17 @@ export const MarketplaceRepository = {
     });
   },
 
-  /** Reward claims (PENDING) ordered by employees across the given guilds — what a manager sees to act on. */
-  findPendingForGuilds(guildIds: string[]) {
+  /** Reward claims (PENDING) ordered by employees across the given teams — what a manager sees to act on. */
+  findPendingForTeams(teamIds: string[]) {
     return prisma.purchase.findMany({
-      where: { approval: "PENDING", employee: { guildId: { in: guildIds } } },
+      where: { approval: "PENDING", employee: { teamId: { in: teamIds } } },
       include: { item: true, employee: { select: { id: true, name: true, title: true } } },
       orderBy: { createdAt: "asc" },
     });
   },
 
-  /** Same as findPendingForGuilds but company-wide — admin only. */
-  findPendingAllGuilds() {
+  /** Same as findPendingForTeams but company-wide — admin only. */
+  findPendingAllTeams() {
     return prisma.purchase.findMany({
       where: { approval: "PENDING" },
       include: { item: true, employee: { select: { id: true, name: true, title: true } } },
@@ -42,18 +42,18 @@ export const MarketplaceRepository = {
     });
   },
 
-  /** Recently decided claims (APPROVED/REJECTED) across the given guilds — recent history for the manager view. */
-  findRecentlyDecidedForGuilds(guildIds: string[], limit: number) {
+  /** Recently decided claims (APPROVED/REJECTED) across the given teams — recent history for the manager view. */
+  findRecentlyDecidedForTeams(teamIds: string[], limit: number) {
     return prisma.purchase.findMany({
-      where: { approval: { in: ["APPROVED", "REJECTED"] }, employee: { guildId: { in: guildIds } } },
+      where: { approval: { in: ["APPROVED", "REJECTED"] }, employee: { teamId: { in: teamIds } } },
       include: { item: true, employee: { select: { id: true, name: true, title: true } } },
       orderBy: { approvedAt: "desc" },
       take: limit,
     });
   },
 
-  /** Same as findRecentlyDecidedForGuilds but company-wide — admin only. */
-  findRecentlyDecidedAllGuilds(limit: number) {
+  /** Same as findRecentlyDecidedForTeams but company-wide — admin only. */
+  findRecentlyDecidedAllTeams(limit: number) {
     return prisma.purchase.findMany({
       where: { approval: { in: ["APPROVED", "REJECTED"] } },
       include: { item: true, employee: { select: { id: true, name: true, title: true } } },

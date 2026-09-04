@@ -17,11 +17,11 @@ export const EmployeeRepository = {
   findByIdWithRelations(id: string) {
     return prisma.employee.findUnique({
       where: { id },
-      include: { companion: true, guild: true },
+      include: { companion: true, team: true },
     });
   },
 
-  create(data: { email: string; passwordHash: string; name: string; role?: Role; guildId?: string }) {
+  create(data: { email: string; passwordHash: string; name: string; role?: Role; teamId?: string }) {
     return prisma.employee.create({ data });
   },
 
@@ -29,7 +29,7 @@ export const EmployeeRepository = {
     return prisma.employee.update({ where: { id }, data });
   },
 
-  setGuild(id: string, guildId: string) {
-    return prisma.employee.update({ where: { id }, data: { guildId } });
+  setTeam(id: string, teamId: string) {
+    return prisma.employee.update({ where: { id }, data: { teamId } });
   },
 };

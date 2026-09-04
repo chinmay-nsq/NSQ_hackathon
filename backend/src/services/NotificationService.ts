@@ -9,7 +9,7 @@ import { HttpStatus } from "@/utils/httpStatus";
 const ONBOARDING_STALL_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
 
 class NotificationServiceImpl {
-  /** Fire-and-forget: an employee's guild manager (if any) is notified they ordered a reward — this is what surfaces it on the manager's Approvals page. */
+  /** Fire-and-forget: an employee's team manager (if any) is notified they ordered a reward — this is what surfaces it on the manager's Approvals page. */
   async notifyRewardClaimed(params: {
     employeeName: string;
     employeeId: string;
@@ -69,7 +69,7 @@ class NotificationServiceImpl {
         recipientId: employeeId,
         type: "ONBOARDING_STALLED",
         title: "Finish setting up",
-        body: `${employee.companion.name} is ready to help — just finish your work profile to start getting daily adventures.`,
+        body: `${employee.companion.name} is ready to help — just finish your work profile to start getting daily assignments.`,
       });
       await EmployeeRepository.update(employeeId, { onboardingNudgeSentAt: new Date() });
     } catch {

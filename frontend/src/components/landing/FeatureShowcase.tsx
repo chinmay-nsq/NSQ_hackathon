@@ -1,23 +1,23 @@
 "use client";
 
 import { useRef } from "react";
-import { Swords, Users, Sparkles, Store, ArrowRight } from "lucide-react";
+import { ClipboardList, Users, Sparkles, Store, ArrowRight } from "lucide-react";
 import { useGSAP } from "@gsap/react";
 import { gsap, ScrollTrigger } from "@/lib/gsap/registerPlugins";
 
 const FEATURES = [
   {
-    icon: Swords,
-    kicker: "01 — Adventures",
-    title: "Daily quests, written by AI",
+    icon: ClipboardList,
+    kicker: "01 — Assignments",
+    title: "Daily assignments, written by AI",
     body: "Every morning, a fresh challenge shows up — solo or with your team. Finish it, earn XP and coin.",
-    stat: "New quest every 24h",
+    stat: "New assignment every 24h",
   },
   {
     icon: Users,
     kicker: "02 — Teams",
-    title: "Departments become guilds",
-    body: "Engineering. Sales. Support. Each one a party with its own guardian, its own resources, its own reputation.",
+    title: "Departments become teams",
+    body: "Engineering. Sales. Support. Each one a crew with its own mascot, its own resources, its own reputation.",
     stat: "Unlimited members",
   },
   {

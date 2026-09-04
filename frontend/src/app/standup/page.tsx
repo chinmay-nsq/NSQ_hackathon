@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Send, Users2, ArrowRightLeft } from "lucide-react";
 import { api, ApiRequestError } from "@/lib/api";
 import { StandupMessage, StandupRoom } from "@/lib/types";
+import { useAuthStore } from "@/store/authStore";
 import { cn } from "@/lib/utils";
 import { renderMiniMarkdown } from "@/lib/miniMarkdown";
 import { PageHeader } from "@/components/PageHeader";
@@ -36,54 +37,93 @@ function formatDay(iso: string): string {
   return d.toLocaleDateString(undefined, { month: "long", day: "numeric" });
 }
 
-/** A system line: what someone did to a task, not what they said. */
-function EventLine({ message }: { message: StandupMessage }) {
-  const inner = (
-    <span className="inline-flex flex-wrap items-baseline gap-x-1.5">
-      <ArrowRightLeft className="relative top-0.5 size-3 shrink-0 text-primary" />
-      <span className="font-medium text-foreground">{message.author.name}</span>
-      <span>{renderMiniMarkdown(message.body)}</span>
-      <span className="text-[11px] text-muted-foreground/70">{formatTime(message.createdAt)}</span>
-    </span>
-  );
-
+/** Who is speaking, and when. */
+function SenderLine({ message, mine }: { message: StandupMessage; mine: boolean }) {
   return (
-    <div className="px-1 py-1 text-xs leading-relaxed text-muted-foreground">
-      {message.adventureId ? (
-        <Link
-          href={`/adventures/${message.adventureId}`}
-          className="rounded transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
-        >
-          {inner}
-        </Link>
-      ) : (
-        inner
-      )}
+    <div className={cn("mb-1 flex items-center gap-1.5 px-1", mine && "flex-row-reverse")}>
+      <span className="text-xs font-semibold">{mine ? "You" : message.author.name}</span>
+      <span className="text-[10px] text-muted-foreground">{formatTime(message.createdAt)}</span>
     </div>
   );
 }
 
-/** Something a person typed. */
-function ChatLine({ message, showHeader }: { message: StandupMessage; showHeader: boolean }) {
+/**
+ * One bubble in the room.
+ *
+ * Typed messages and task movements share this shape on purpose — the server
+ * writes movements as first-person lines ("Hi team, X is up for review"), so
+ * they belong in the conversation rather than in a log underneath it. The
+ * tint is the only thing that separates them, and a movement links back to
+ * its card so it stays recognisable as something that actually happened.
+ */
+function MessageBubble({
+  message,
+  mine,
+  showHeader,
+}: {
+  message: StandupMessage;
+  mine: boolean;
+  showHeader: boolean;
+}) {
+  const isEvent = message.kind === "EVENT";
+
+  const bubble = (
+    <div
+      className={cn(
+        "w-fit max-w-full rounded-2xl px-3.5 py-2 text-sm leading-relaxed break-words",
+        isEvent
+          ? "border border-primary/25 bg-accent/60 text-foreground"
+          : mine
+            ? "bg-primary text-primary-foreground"
+            : "bg-muted text-foreground",
+        // The flat corner points back at the speaker — only on the first
+        // bubble of a run, so a group still reads as one turn.
+        showHeader && (mine ? "rounded-tr-sm" : "rounded-tl-sm"),
+        isEvent && message.assignmentId && "transition-colors hover:border-primary/60 hover:bg-accent"
+      )}
+    >
+      {isEvent ? (
+        <>
+          <span className="mb-0.5 flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.1em] text-accent-foreground uppercase">
+            <ArrowRightLeft className="size-3" />
+            Task update
+          </span>
+          {renderMiniMarkdown(message.body)}
+        </>
+      ) : (
+        <span className="whitespace-pre-wrap">{message.body}</span>
+      )}
+    </div>
+  );
+
   return (
-    <div className={cn("flex gap-2.5", showHeader ? "mt-3" : "mt-0.5")}>
-      <div className="w-7 shrink-0">
-        {showHeader && (
-          <Avatar className="size-7">
-            <AvatarFallback className="bg-accent text-[10px] text-accent-foreground">
-              {initials(message.author.name)}
-            </AvatarFallback>
-          </Avatar>
+    <div className={cn("flex gap-2.5", mine && "flex-row-reverse", showHeader ? "mt-4" : "mt-1")}>
+      {/* Kept open even when the avatar is hidden, so a grouped run stays
+          lined up with the bubble above it. */}
+      {!mine && (
+        <div className="w-8 shrink-0">
+          {showHeader && (
+            <Avatar className="size-8">
+              <AvatarFallback className="bg-accent text-[10px] text-accent-foreground">
+                {initials(message.author.name)}
+              </AvatarFallback>
+            </Avatar>
+          )}
+        </div>
+      )}
+
+      <div className={cn("flex min-w-0 max-w-[80%] flex-col", mine && "items-end")}>
+        {showHeader && <SenderLine message={message} mine={mine} />}
+        {isEvent && message.assignmentId ? (
+          <Link
+            href={`/assignments/${message.assignmentId}`}
+            className="max-w-full rounded-2xl focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+          >
+            {bubble}
+          </Link>
+        ) : (
+          bubble
         )}
-      </div>
-      <div className="min-w-0 flex-1">
-        {showHeader && (
-          <div className="flex items-baseline gap-2">
-            <span className="text-sm font-medium">{message.author.name}</span>
-            <span className="text-[11px] text-muted-foreground">{formatTime(message.createdAt)}</span>
-          </div>
-        )}
-        <p className="text-sm leading-relaxed break-words whitespace-pre-wrap">{message.body}</p>
       </div>
     </div>
   );
@@ -97,6 +137,7 @@ function ChatLine({ message, showHeader }: { message: StandupMessage; showHeader
  * of an old room from ever landing in a new one.
  */
 function RoomChat({ room }: { room: StandupRoom }) {
+  const viewerId = useAuthStore((s) => s.employee?.id);
   const [messages, setMessages] = useState<StandupMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -133,8 +174,8 @@ function RoomChat({ room }: { room: StandupRoom }) {
       try {
         const after = lastIdRef.current;
         const query = after
-          ? `?guildId=${room.id}&after=${encodeURIComponent(after)}`
-          : `?guildId=${room.id}`;
+          ? `?teamId=${room.id}&after=${encodeURIComponent(after)}`
+          : `?teamId=${room.id}`;
         const data = await api.get<{ messages: StandupMessage[] }>(`/standup/messages${query}`);
         if (cancelled) return;
         if (initial) {
@@ -174,7 +215,7 @@ function RoomChat({ room }: { room: StandupRoom }) {
     setSending(true);
     try {
       const data = await api.post<{ message: StandupMessage }>("/standup/messages", {
-        guildId: room.id,
+        teamId: room.id,
         body,
       });
       setDraft("");
@@ -204,9 +245,9 @@ function RoomChat({ room }: { room: StandupRoom }) {
         >
           {loading ? (
             <div className="space-y-3">
-              <Skeleton className="h-10 w-2/3" />
-              <Skeleton className="h-6 w-1/2" />
-              <Skeleton className="h-10 w-3/4" />
+              <Skeleton className="h-14 w-2/3 rounded-2xl" />
+              <Skeleton className="ml-auto h-12 w-1/2 rounded-2xl" />
+              <Skeleton className="h-14 w-3/4 rounded-2xl" />
             </div>
           ) : messages.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
@@ -225,7 +266,7 @@ function RoomChat({ room }: { room: StandupRoom }) {
               const showHeader =
                 newDay ||
                 !previous ||
-                previous.kind !== "CHAT" ||
+                previous.kind !== message.kind ||
                 previous.author.id !== message.author.id ||
                 new Date(message.createdAt).getTime() - new Date(previous.createdAt).getTime() > GROUP_WINDOW_MS;
 
@@ -240,11 +281,11 @@ function RoomChat({ room }: { room: StandupRoom }) {
                       <span className="h-px flex-1 bg-border" />
                     </div>
                   )}
-                  {message.kind === "EVENT" ? (
-                    <EventLine message={message} />
-                  ) : (
-                    <ChatLine message={message} showHeader={showHeader} />
-                  )}
+                  <MessageBubble
+                    message={message}
+                    mine={message.author.id === viewerId}
+                    showHeader={showHeader}
+                  />
                 </div>
               );
             })
@@ -273,7 +314,7 @@ function RoomChat({ room }: { room: StandupRoom }) {
 }
 
 /**
- * The team standup room — one per guild. Real conversation and real task
+ * The team standup room — one per team. Real conversation and real task
  * movement share a single timeline, so "what changed" and "what we said
  * about it" sit next to each other instead of in two places.
  *

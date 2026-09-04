@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { api, ApiRequestError } from "@/lib/api";
-import { Kingdom, KingdomProject } from "@/lib/types";
+import { Company, CompanyProject } from "@/lib/types";
 import { PageHeader } from "@/components/PageHeader";
 import { ResourceMeter } from "@/components/ResourceMeter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,16 +17,16 @@ import { HoverLift } from "@/components/motion/HoverLift";
 const RESOURCES = ["knowledge", "gold", "influence", "materials"] as const;
 
 export default function CompanyPage() {
-  const [kingdom, setKingdom] = useState<Kingdom | null>(null);
-  const [projects, setProjects] = useState<KingdomProject[]>([]);
+  const [company, setCompany] = useState<Company | null>(null);
+  const [projects, setProjects] = useState<CompanyProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api
-      .get<{ kingdom: Kingdom; projects: KingdomProject[] }>("/kingdom/")
+      .get<{ company: Company; projects: CompanyProject[] }>("/company/")
       .then((data) => {
-        setKingdom(data.kingdom);
+        setCompany(data.company);
         setProjects(data.projects);
       })
       .catch((err) => setError(err instanceof ApiRequestError ? err.message : "Failed to load company goals"))
@@ -36,8 +36,8 @@ export default function CompanyPage() {
   return (
     <PageIn>
       <PageHeader
-        title={kingdom?.name ?? "Company Goals"}
-        description="Teams contribute resources earned from adventures toward shared company-wide goals."
+        title={company?.name ?? "Company Goals"}
+        description="Teams contribute resources earned from assignments toward shared company-wide goals."
       />
 
       {error && <p className="text-sm text-destructive">{error}</p>}

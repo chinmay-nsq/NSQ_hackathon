@@ -1,24 +1,24 @@
 import { api } from "@/lib/api";
-import { Adventure } from "@/lib/types";
+import { Assignment } from "@/lib/types";
 
 /**
  * If the employee doesn't have today's AI-generated solo quiz yet, silently
- * generates it and returns the adventures list with it included — so the
+ * generates it and returns the assignments list with it included — so the
  * daily quiz is just waiting whenever a user lands on the dashboard or
- * Adventures page, no manual "New Solo Adventure" click required.
+ * Assignments page, no manual "New Solo Assignment" click required.
  * `generateSolo` is idempotent (returns the existing one if already
  * generated today), so calling this on every page load is safe.
  */
-export async function ensureDailyQuiz(adventures: Adventure[]): Promise<Adventure[]> {
-  const hasSoloToday = adventures.some((a) => a.type === "SOLO" && a.aiGenerated);
-  if (hasSoloToday) return adventures;
+export async function ensureDailyQuiz(assignments: Assignment[]): Promise<Assignment[]> {
+  const hasSoloToday = assignments.some((a) => a.type === "SOLO" && a.aiGenerated);
+  if (hasSoloToday) return assignments;
 
   try {
-    const generated = await api.post<{ adventure: Adventure }>("/adventures/solo/generate");
-    return [generated.adventure, ...adventures];
+    const generated = await api.post<{ assignment: Assignment }>("/assignments/solo/generate");
+    return [generated.assignment, ...assignments];
   } catch {
-    // Silent — the page just won't show a daily quiz yet; the Adventures
-    // page's manual "New Solo Adventure" button still works as a fallback.
-    return adventures;
+    // Silent — the page just won't show a daily quiz yet; the Assignments
+    // page's manual "New Solo Assignment" button still works as a fallback.
+    return assignments;
   }
 }

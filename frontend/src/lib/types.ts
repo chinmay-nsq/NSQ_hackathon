@@ -20,14 +20,14 @@ export interface Employee {
   coins: number;
   reputation: number;
   title: string;
-  guildId: string | null;
+  teamId: string | null;
   jobRole?: string | null;
   seniority?: Seniority | null;
   skills?: string[];
   profileCompletedAt?: string | null;
   onboardingTourDone: boolean;
   companion?: Companion | null;
-  guild?: Guild | null;
+  team?: Team | null;
 }
 
 export interface Companion {
@@ -49,13 +49,13 @@ export interface ChatMessage {
   createdAt: string;
 }
 
-export type AdventureType = "SOLO" | "GUILD" | "CROSS_GUILD";
-export type AdventureStatus = "ACTIVE" | "COMPLETED" | "EXPIRED";
+export type AssignmentType = "SOLO" | "TEAM" | "CROSS_TEAM";
+export type AssignmentStatus = "ACTIVE" | "COMPLETED" | "EXPIRED";
 export type ApprovalStatus = "NONE" | "PENDING" | "APPROVED" | "REJECTED";
 export type WorkItemType = "TASK" | "STORY" | "BUG";
 export type TaskColumn = "todo" | "in_review" | "needs_rework" | "done";
 
-export interface AdventureProgress {
+export interface AssignmentProgress {
   id?: string;
   employeeId?: string;
   completed?: boolean;
@@ -73,31 +73,31 @@ export interface QuizQuestion {
   number: string;
 }
 
-export interface Adventure {
+export interface Assignment {
   id: string;
-  type: AdventureType;
+  type: AssignmentType;
   workItemType?: WorkItemType;
   title: string;
   description: string;
-  status: AdventureStatus;
+  status: AssignmentStatus;
   xpReward: number;
   coinReward: number;
   knowledgeReward: number;
   goldReward: number;
   influenceReward: number;
   materialsReward: number;
-  guildId?: string | null;
+  teamId?: string | null;
   sprintId?: string | null;
   aiGenerated?: boolean;
   createdAt: string;
-  progress: AdventureProgress[];
+  progress: AssignmentProgress[];
   quiz?: QuizQuestion[] | null;
 }
 
 /** A time-boxed iteration tasks can be planned into — Azure DevOps-style sprints, scoped to one team. */
 export interface Sprint {
   id: string;
-  guildId: string;
+  teamId: string;
   name: string;
   startDate: string;
   endDate: string;
@@ -106,14 +106,14 @@ export interface Sprint {
 }
 
 /** One card on the whole-team Kanban board — real assignee, always shown (visibility is team-wide, not filtered to "mine"). */
-export interface BoardTask extends Adventure {
+export interface BoardTask extends Assignment {
   assignee: AssigneeIdentity | null;
   column: TaskColumn;
 }
 
 export interface TaskComment {
   id: string;
-  adventureId: string;
+  assignmentId: string;
   body: string;
   createdAt: string;
   author: { id: string; name: string; title: string };
@@ -137,13 +137,13 @@ export interface TaskActivityEntry {
 }
 
 export interface TaskDetail {
-  adventure: BoardTask;
+  assignment: BoardTask;
   comments: TaskComment[];
   activity: TaskActivityEntry[];
 }
 
 /** One person's real "who completed what" feed on the Standup page. */
-/** A standup room — one per guild. */
+/** A standup room — one per team. */
 export interface StandupRoom {
   id: string;
   name: string;
@@ -155,22 +155,22 @@ export type StandupMessageKind = "CHAT" | "EVENT";
 
 export interface StandupMessage {
   id: string;
-  guildId: string;
+  teamId: string;
   kind: StandupMessageKind;
   /** EVENT bodies may contain **bold** around a task title. */
   body: string;
-  adventureId: string | null;
+  assignmentId: string | null;
   createdAt: string;
   author: { id: string; name: string; title: string; avatarSeed?: string | null };
 }
 
 export interface PendingApproval {
   id: string;
-  adventureId: string;
+  assignmentId: string;
   employeeId: string;
   submission: string | null;
   completedAt: string | null;
-  adventure: Adventure;
+  assignment: Assignment;
   employee: { id: string; name: string; title: string; avatarSeed: string };
 }
 
@@ -199,13 +199,13 @@ export interface AssignedTaskHistoryItem {
   id: string;
   title: string;
   description: string;
-  status: AdventureStatus;
+  status: AssignmentStatus;
   xpReward: number;
   coinReward: number;
   createdAt: string;
   createdBy: { id: string; name: string; title: string; avatarSeed: string };
   assignee: AssigneeIdentity;
-  progress: AdventureProgress[];
+  progress: AssignmentProgress[];
 }
 
 /** One row in an employee's own "completed" history — pending review or approved. */
@@ -215,7 +215,7 @@ export interface MyHistoryItem {
   submission: string | null;
   quizCorrectCount: number | null;
   approval: ApprovalStatus;
-  adventure: Adventure & { assignedBy?: { id: string; name: string; title: string; avatarSeed: string } | null };
+  assignment: Assignment & { assignedBy?: { id: string; name: string; title: string; avatarSeed: string } | null };
 }
 
 /** A task assigned to the current employee that they haven't completed yet. */
@@ -231,12 +231,12 @@ export interface MyAssignedTask {
 
 export interface CompanyOverview {
   employeeCount: number;
-  guildCount: number;
+  teamCount: number;
   pendingApprovals: number;
   totalXp: number;
 }
 
-export interface GuildMember {
+export interface TeamMember {
   id: string;
   name: string;
   level: number;
@@ -246,30 +246,30 @@ export interface GuildMember {
   species?: string | null;
 }
 
-export interface Guild {
+export interface Team {
   id: string;
   name: string;
   department: string;
   emblem: string;
   level: number;
   reputation: number;
-  guardianSpecies: string;
-  guardianName: string;
-  guardianLevel: number;
+  mascotKind: string;
+  mascotName: string;
+  mascotLevel: number;
   knowledge: number;
   gold: number;
   influence: number;
   materials: number;
-  members: GuildMember[];
+  members: TeamMember[];
   managerId?: string;
 }
 
-export interface Kingdom {
+export interface Company {
   id: string;
   name: string;
 }
 
-export interface KingdomProject {
+export interface CompanyProject {
   id: string;
   name: string;
   description: string;
@@ -289,9 +289,9 @@ export interface WeeklyPoint {
   value: number;
 }
 
-export type GrowthObservationTopic = "adventures" | "teams" | "approvals" | "growth";
+export type GrowthObservationTopic = "assignments" | "teams" | "approvals" | "growth";
 
-export type DialogueActionTopic = "adventures" | "approvals" | "teams";
+export type DialogueActionTopic = "assignments" | "approvals" | "teams";
 
 export interface DialogueAction {
   topic: DialogueActionTopic;

@@ -17,16 +17,14 @@ import { CompanionViewer } from "@/components/companion3d/CompanionViewer";
 import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
 
 const SPECIES_META: Record<string, { label: string; title: string }> = {
-  barbarian: { label: "Barb", title: "The Loyal Flame" },
-  archer: { label: "Hawk", title: "The Steady Aim" },
-  witch: { label: "Raven", title: "The Quiet Wisdom" },
-  hog_rider: { label: "Charger", title: "The Reckless Push" },
-  balloon: { label: "Drift", title: "The Perfect Timing" },
-  dragon: { label: "Ember", title: "The Big Hype" },
-  lava_hound: { label: "Basalt", title: "The Steady Shield" },
+  michael: { label: "Michael", title: "The World's Best Boss" },
+  jim: { label: "Jim", title: "The Perfect Timing" },
+  pam: { label: "Pam", title: "The Quiet Wisdom" },
+  dwight: { label: "Dwight", title: "Assistant to the Regional Manager" },
+  stanley: { label: "Stanley", title: "The Steady Shield" },
 };
 
-const FALLBACK_SPECIES = ["barbarian", "archer", "witch", "hog_rider", "balloon", "dragon", "lava_hound"];
+const FALLBACK_SPECIES = ["michael", "jim", "pam", "dwight", "stanley"];
 
 export default function OnboardingPage() {
   const [species, setSpecies] = useState<string[]>([]);
@@ -36,6 +34,9 @@ export default function OnboardingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nameAvailable, setNameAvailable] = useState<boolean | null>(null);
+  // Once the employee edits the name themselves we stop overwriting it when
+  // they browse to a different character.
+  const [nameEdited, setNameEdited] = useState(false);
   const [fetchingAvailability, setFetchingAvailability] = useState(false);
   const cardRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
@@ -77,6 +78,14 @@ export default function OnboardingPage() {
 
   function handleSelect(s: string) {
     setSelected(s);
+    // The character's own name is the sensible default, but names are unique
+    // across the workspace so it stays editable — the second person who wants
+    // Dwight has to make it theirs.
+    if (!nameEdited) {
+      setName(SPECIES_META[s]?.label ?? "");
+      setNameAvailable(null);
+      setFetchingAvailability(true);
+    }
     const el = cardRefs.current[s];
     if (el) {
       gsap.fromTo(el, { scale: 0.9 }, { scale: 1, duration: 0.4, ease: "back.out(3)" });
@@ -130,7 +139,7 @@ export default function OnboardingPage() {
         {loadingSpecies ? (
           <p className="text-center text-sm text-muted-foreground">Loading companions…</p>
         ) : (
-          <StaggerGrid className="mx-auto grid max-w-lg grid-cols-4 gap-3" deps={[species.length]}>
+          <StaggerGrid className="mx-auto grid max-w-lg grid-cols-5 gap-3" deps={[species.length]}>
             {species.map((s) => {
               const meta = SPECIES_META[s] ?? { label: s, title: "" };
               const isSelected = selected === s;
@@ -179,10 +188,11 @@ export default function OnboardingPage() {
                 value={name}
                 onChange={(e) => {
                   setName(e.target.value);
+                  setNameEdited(true);
                   setNameAvailable(null);
                   setFetchingAvailability(true);
                 }}
-                placeholder="e.g. Nova"
+                placeholder="e.g. Dwight"
                 maxLength={30}
                 className="pr-9"
               />

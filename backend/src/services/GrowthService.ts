@@ -1,5 +1,5 @@
 import { GrowthRepository } from "@/repositories/GrowthRepository";
-import { GuildRepository } from "@/repositories/GuildRepository";
+import { TeamRepository } from "@/repositories/TeamRepository";
 import { EmployeeRepository } from "@/repositories/EmployeeRepository";
 import { SprintRepository } from "@/repositories/SprintRepository";
 import { AIService, GrowthInsight, GrowthObservationTopic } from "./AIService";
@@ -12,7 +12,7 @@ import { HttpStatus } from "@/utils/httpStatus";
 // AIService's growth-insight prompts) to a real route, reusing the same
 // allow-list the companion chat's navigate tool already trusts.
 const GROWTH_TOPIC_ROUTES: Record<GrowthObservationTopic, string> = {
-  adventures: NAVIGABLE_ROUTES.adventures,
+  assignments: NAVIGABLE_ROUTES.assignments,
   teams: NAVIGABLE_ROUTES.teams,
   approvals: NAVIGABLE_ROUTES.approvals,
   growth: NAVIGABLE_ROUTES.growth,
@@ -84,7 +84,7 @@ export interface ManagerSelfGrowth {
   volume: { assignedByWeek: WeeklyPoint[]; approvedByWeek: WeeklyPoint[] };
 }
 
-interface QuizAdventureRef {
+interface QuizAssignmentRef {
   quiz: unknown;
   dailyQuizDate: string | null;
   xpReward: number;
@@ -95,7 +95,7 @@ interface ProgressRow {
   quizAnswers: unknown;
   quizCorrectCount: number | null;
   approval: string;
-  adventure: QuizAdventureRef;
+  assignment: QuizAssignmentRef;
 }
 
 interface TaskActivityRow {
@@ -103,7 +103,7 @@ interface TaskActivityRow {
   approval: string;
   quizAnswers: unknown;
   quizCorrectCount: number | null;
-  adventure: QuizAdventureRef & { id: string; title: string; type: string };
+  assignment: QuizAssignmentRef & { id: string; title: string; type: string };
 }
 
 export interface TaskActivityDetail {
@@ -125,7 +125,7 @@ export interface WeekDetail {
   insight: string;
 }
 
-interface AssignedAdventureRow {
+interface AssignedAssignmentRow {
   id: string;
   createdAt: Date;
   assignedById: string | null;
@@ -187,9 +187,9 @@ function emptyConsistency(): TeamGrowth["consistency"] {
 
 /** Per-submission accuracy % for quiz-type rows only — decodes the real answer key and compares index-by-index, falling back to the stored aggregate if raw data is missing/malformed. */
 function submissionAccuracyPct(row: ProgressRow): number | null {
-  if (!row.adventure.dailyQuizDate) return null; // not a quiz submission
+  if (!row.assignment.dailyQuizDate) return null; // not a quiz submission
 
-  const quiz = row.adventure.quiz as { string: string; number: string }[] | null;
+  const quiz = row.assignment.quiz as { string: string; number: string }[] | null;
   const answers = row.quizAnswers as number[] | null;
 
   if (Array.isArray(quiz) && Array.isArray(answers) && quiz.length > 0 && quiz.length === answers.length) {
@@ -223,7 +223,7 @@ function describeTaskActivity(row: TaskActivityRow): TaskActivityDetail {
   const pct = submissionAccuracyPct(row);
   let detail: string;
   if (pct !== null) {
-    const quiz = row.adventure.quiz as unknown[] | null;
+    const quiz = row.assignment.quiz as unknown[] | null;
     const total = Array.isArray(quiz) ? quiz.length : 0;
     const correct = total > 0 ? Math.round((pct / 100) * total) : 0;
     detail = total > 0 ? `${correct}/${total} correct (${Math.round(pct)}%)` : `${Math.round(pct)}% accuracy`;
@@ -232,9 +232,9 @@ function describeTaskActivity(row: TaskActivityRow): TaskActivityDetail {
   }
 
   return {
-    title: row.adventure.title,
-    type: row.adventure.type,
-    xpReward: row.adventure.xpReward,
+    title: row.assignment.title,
+    type: row.assignment.type,
+    xpReward: row.assignment.xpReward,
     completedAt: row.completedAt ? row.completedAt.toISOString() : null,
     detail,
   };
@@ -328,7 +328,7 @@ function computeOutputVolume(rows: ProgressRow[]): EmployeeGrowth["output"] {
   for (const row of rows) {
     if (!row.completedAt) continue;
     const key = bucketKeyFor(row.completedAt);
-    if (sums.has(key)) sums.set(key, sums.get(key)! + row.adventure.xpReward);
+    if (sums.has(key)) sums.set(key, sums.get(key)! + row.assignment.xpReward);
   }
 
   const xpByWeek = buckets.map((d) => ({ weekStart: dateKey(d), value: sums.get(dateKey(d))! }));
@@ -364,14 +364,14 @@ function computeApprovalRate(rows: ProgressRow[]): ApprovalRate {
  * reviewing" trend. A LOWER number, and a NEGATIVE delta, means faster
  * (an improvement) — callers must not describe a negative delta as decline.
  */
-function computeTurnaround(history: AssignedAdventureRow[]): ManagerSelfGrowth["turnaround"] {
+function computeTurnaround(history: AssignedAssignmentRow[]): ManagerSelfGrowth["turnaround"] {
   const buckets = buildWeekBuckets();
   const sums = new Map<string, { total: number; count: number }>();
   buckets.forEach((d) => sums.set(dateKey(d), { total: 0, count: 0 }));
 
   let sampleSize = 0;
-  for (const adventure of history) {
-    for (const p of adventure.progress) {
+  for (const assignment of history) {
+    for (const p of assignment.progress) {
       if ((p.approval !== "APPROVED" && p.approval !== "REJECTED") || !p.completedAt || !p.approvedAt) continue;
       const hours = (p.approvedAt.getTime() - p.completedAt.getTime()) / (1000 * 60 * 60);
       if (hours < 0) continue; // clock skew guard, not a real case
@@ -405,7 +405,7 @@ function computeTurnaround(history: AssignedAdventureRow[]): ManagerSelfGrowth["
 /**
  * Per-sprint task completion rate — approved tasks / all tasks planned into
  * that sprint. `sprints` must already be ordered oldest-first (chronological,
- * matching the week-bucket charts) and `tasks` is every Adventure whose
+ * matching the week-bucket charts) and `tasks` is every Assignment whose
  * sprintId is one of those sprints, each with its lone progress row's
  * approval status (a SOLO task has exactly one assignee).
  */
@@ -445,7 +445,7 @@ function computeSprintCompletion(
   };
 }
 
-function computeAssignmentVolume(history: AssignedAdventureRow[]): ManagerSelfGrowth["volume"] {
+function computeAssignmentVolume(history: AssignedAssignmentRow[]): ManagerSelfGrowth["volume"] {
   const buckets = buildWeekBuckets();
   const assigned = new Map<string, number>();
   const approved = new Map<string, number>();
@@ -454,11 +454,11 @@ function computeAssignmentVolume(history: AssignedAdventureRow[]): ManagerSelfGr
     approved.set(dateKey(d), 0);
   });
 
-  for (const adventure of history) {
-    const key = bucketKeyFor(adventure.createdAt);
+  for (const assignment of history) {
+    const key = bucketKeyFor(assignment.createdAt);
     if (assigned.has(key)) assigned.set(key, assigned.get(key)! + 1);
 
-    for (const p of adventure.progress) {
+    for (const p of assignment.progress) {
       if (p.approval === "APPROVED" && p.approvedAt) {
         const approvedKey = bucketKeyFor(p.approvedAt);
         if (approved.has(approvedKey)) approved.set(approvedKey, approved.get(approvedKey)! + 1);
@@ -486,8 +486,8 @@ class GrowthServiceImpl {
   }
 
   async getTeamGrowth(managerId: string): Promise<TeamGrowth> {
-    const guildIds = (await GuildRepository.findIdsManagedBy(managerId)).map((g) => g.id);
-    if (guildIds.length === 0) {
+    const teamIds = (await TeamRepository.findIdsManagedBy(managerId)).map((g) => g.id);
+    if (teamIds.length === 0) {
       return {
         memberCount: 0,
         skill: emptySkill(),
@@ -500,8 +500,8 @@ class GrowthServiceImpl {
     }
     const since = weeksAgo(GROWTH_WEEKS);
     const [rows, sprintsDesc] = await Promise.all([
-      GrowthRepository.findCompletedProgressForGuilds(guildIds, since),
-      SprintRepository.findRecentForGuilds(guildIds, GROWTH_WEEKS),
+      GrowthRepository.findCompletedProgressForTeams(teamIds, since),
+      SprintRepository.findRecentForTeams(teamIds, GROWTH_WEEKS),
     ]);
     const sprints = [...sprintsDesc].reverse(); // oldest -> newest, matching the week-bucket charts
     const tasks = sprints.length > 0 ? await GrowthRepository.findTasksForSprints(sprints.map((s) => s.id)) : [];
@@ -520,14 +520,14 @@ class GrowthServiceImpl {
   /**
    * Per-member breakdown for the manager's Teams dashboard — same
    * skill/consistency/output computation getEmployeeGrowth already does,
-   * just run once per member of every guild this manager leads. "Current"
+   * just run once per member of every team this manager leads. "Current"
    * (currentPct / thisWeekXp) reads as the recent snapshot, deltaPct as the
    * trend since the start of the 6-week window — that's the "this month vs
    * overall" comparison the dashboard shows.
    */
   async getTeamMemberBreakdown(managerId: string): Promise<TeamMemberGrowth[]> {
-    const guilds = await GuildRepository.findManagedByWithMembers(managerId);
-    const members = guilds.flatMap((g) => g.members);
+    const teams = await TeamRepository.findManagedByWithMembers(managerId);
+    const members = teams.flatMap((g) => g.members);
     if (members.length === 0) return [];
 
     const breakdown = await Promise.all(
@@ -552,11 +552,11 @@ class GrowthServiceImpl {
     }
 
     const employee = await EmployeeRepository.findById(employeeId);
-    if (!employee?.guildId) {
+    if (!employee?.teamId) {
       throw new ApiError(HttpStatus.FORBIDDEN, "You don't have permission to do that", "Forbidden");
     }
-    const managedGuilds = await GuildRepository.findIdsManagedBy(managerId);
-    if (!managedGuilds.some((g) => g.id === employee.guildId)) {
+    const managedTeams = await TeamRepository.findIdsManagedBy(managerId);
+    if (!managedTeams.some((g) => g.id === employee.teamId)) {
       throw new ApiError(HttpStatus.FORBIDDEN, "You don't have permission to do that", "Forbidden");
     }
   }
@@ -607,7 +607,7 @@ class GrowthServiceImpl {
     // actually review, so quiz completions are excluded entirely (not just
     // hidden from the list — they don't count toward this period's XP or
     // active-day totals either).
-    const rows = allRows.filter((r) => r.adventure.dailyQuizDate === null);
+    const rows = allRows.filter((r) => r.assignment.dailyQuizDate === null);
     const tasks = rows.map(describeTaskActivity);
 
     const xpThisPeriod = tasks.reduce((sum, t) => sum + t.xpReward, 0);
@@ -637,8 +637,8 @@ class GrowthServiceImpl {
     const since = weeksAgo(GROWTH_WEEKS);
     const history = isAdmin
       ? await GrowthRepository.findAllAssignedHistorySince(since)
-      : await GrowthRepository.findAssignedHistoryForGuildsSince(
-          (await GuildRepository.findIdsManagedBy(managerId)).map((g) => g.id),
+      : await GrowthRepository.findAssignedHistoryForTeamsSince(
+          (await TeamRepository.findIdsManagedBy(managerId)).map((g) => g.id),
           since
         );
     return {

@@ -43,7 +43,7 @@ export function PetGallery() {
     >
       <div className="mx-auto w-full max-w-7xl">
         <div className="gallery-head mb-16 max-w-2xl">
-          <p className="font-mono text-xs uppercase tracking-[0.25em] text-(--smoke)">Meet the Party</p>
+          <p className="font-mono text-xs uppercase tracking-[0.25em] text-(--smoke)">Meet the Crew</p>
           <h2 className="mt-3 font-display text-[clamp(2rem,6vw,4.2rem)] leading-[0.95] text-(--ink)">
             Seven companions. Find yours.
           </h2>

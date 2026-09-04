@@ -54,9 +54,9 @@ export const EmployeeController = {
     return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Profile suggested", { suggestion }));
   },
 
-  async guildWelcome(req: AuthedRequest, res: Response) {
-    const message = await EmployeeService.guildWelcomeMessage(req.employeeId!);
-    return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Guild welcome fetched", { message }));
+  async teamWelcome(req: AuthedRequest, res: Response) {
+    const message = await EmployeeService.teamWelcomeMessage(req.employeeId!);
+    return res.status(HttpStatus.OK).json(new ApiResponse(HttpStatus.OK, "Team welcome fetched", { message }));
   },
 
   async completeOnboardingTour(req: AuthedRequest, res: Response) {

@@ -110,7 +110,7 @@ function MyGrowthTab() {
   );
 
   if (loading) return <LoadingBlock />;
-  if (!growth) return <EmptyState message="Complete a quest to start tracking your growth." />;
+  if (!growth) return <EmptyState message="Complete an assignment to start tracking your growth." />;
 
   return (
     <div className="flex flex-col gap-6">
@@ -206,7 +206,7 @@ function TeamGrowthTab() {
 
   if (loading) return <LoadingBlock />;
   if (!growth || growth.memberCount === 0) {
-    return <EmptyState message="Once your team has completed some quests, their collective growth will show up here." />;
+    return <EmptyState message="Once your team has completed some assignments, their collective growth will show up here." />;
   }
 
   return (

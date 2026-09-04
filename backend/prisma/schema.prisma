@@ -39,7 +39,7 @@ model Employee {
   title      String @default("Novice")
 
   // Work profile — captured once after onboarding, feeds AI task generation
-  // (both the employee's own daily solo adventures and a manager's
+  // (both the employee's own daily solo assignments and a manager's
   // "generate with AI" for a team member). profileCompletedAt gates the
   // mandatory post-onboarding profile step.
   jobRole            String?
@@ -47,7 +47,7 @@ model Employee {
   skills             String[]   @default([])
   profileCompletedAt DateTime?
 
-  // Set once, the first time this employee's welcome quest is generated
+  // Set once, the first time this employee's welcome assignment is generated
   // (right after they complete their profile) — guards it from ever being
   // generated a second time, alongside their normal daily quiz.
   welcomeQuestGeneratedAt DateTime?
@@ -61,20 +61,20 @@ model Employee {
   // employee across browsers/devices and never re-triggers once done.
   onboardingTourDone Boolean @default(false)
 
-  guildId String?
-  guild   Guild?  @relation("GuildMember", fields: [guildId], references: [id])
+  teamId String?
+  team   Team?  @relation("TeamMember", fields: [teamId], references: [id])
 
-  // Guild(s) this employee manages, if role is MANAGER or ADMIN.
-  managedGuilds Guild[] @relation("GuildManager")
+  // Team(s) this employee manages, if role is MANAGER or ADMIN.
+  managedTeams Team[] @relation("TeamManager")
 
   companion         Companion?
-  adventureProgress AdventureProgress[]
+  assignmentProgress AssignmentProgress[]
   purchases         Purchase[]
   reflections       Reflection[]
 
-  createdAdventures  Adventure[]         @relation("AdventureCreator")
-  assignedAdventures Adventure[]         @relation("AdventureAssigner")
-  approvedProgress   AdventureProgress[] @relation("ProgressApprover")
+  createdAssignments  Assignment[]         @relation("AssignmentCreator")
+  assignedAssignments Assignment[]         @relation("AssignmentAssigner")
+  approvedProgress   AssignmentProgress[] @relation("ProgressApprover")
   approvedPurchases  Purchase[]          @relation("PurchaseApprover")
   taskComments       TaskComment[]
   taskActivity       TaskActivityLog[]
@@ -93,7 +93,7 @@ model Companion {
   employeeId String   @unique
   employee   Employee @relation(fields: [employeeId], references: [id])
 
-  species        String // barbarian, archer, witch
+  species        String // michael, jim, pam, dwight, stanley
   name           String    @unique
   bondLevel      Int       @default(1)
   bondXp         Int       @default(0)
@@ -111,7 +111,7 @@ model CompanionMemory {
   companionId String
   companion   Companion @relation(fields: [companionId], references: [id])
 
-  // e.g. "completed_adventure", "leveled_up", "guild_milestone"
+  // e.g. "completed_assignment", "leveled_up", "team_milestone"
   eventType String
   summary   String   @db.Text
   createdAt DateTime @default(now())
@@ -140,76 +140,76 @@ model ChatMessage {
   @@index([companionId, createdAt])
 }
 
-// ---------- Guilds (teams) ----------
+// ---------- Teams ----------
 
-model Guild {
+model Team {
   id         String @id @default(cuid())
-  name       String @unique // e.g. "Iron Forge Guild"
+  name       String @unique // e.g. "Scranton Engineering"
   department String // e.g. "Engineering"
-  emblem     String @default("shield")
+  emblem     String @default("building")
 
   level      Int @default(1)
   reputation Int @default(0)
 
-  guardianSpecies String @default("dragon")
-  guardianName    String @default("Guardian")
-  guardianLevel   Int    @default(1)
+  mascotKind  String @default("stapler")
+  mascotName  String @default("Mascot")
+  mascotLevel Int    @default(1)
 
   knowledge Int @default(0)
   gold      Int @default(0)
   influence Int @default(0)
   materials Int @default(0)
 
-  // The manager (or admin) who leads this guild and approves its members' tasks.
+  // The manager (or admin) who leads this team and approves its members' tasks.
   managerId String?
-  manager   Employee? @relation("GuildManager", fields: [managerId], references: [id])
+  manager   Employee? @relation("TeamManager", fields: [managerId], references: [id])
 
   // Shareable signup code — anyone who registers with ?invite=<inviteCode>
-  // auto-joins this guild. Unique per guild, generated on creation.
+  // auto-joins this team. Unique per team, generated on creation.
   inviteCode String @unique @default(cuid())
 
-  members       Employee[]            @relation("GuildMember")
-  adventures    Adventure[]           @relation("AdventureGuild")
-  contributions KingdomContribution[]
+  members       Employee[]            @relation("TeamMember")
+  assignments    Assignment[]           @relation("AssignmentTeam")
+  contributions CompanyContribution[]
   sprints       Sprint[]
-  standup       StandupMessage[]      @relation("GuildStandup")
+  standup       StandupMessage[]      @relation("TeamStandup")
   createdAt     DateTime              @default(now())
 }
 
 // A time-boxed iteration (Azure DevOps-style) that a team's tasks can be
-// planned into. Scoped to one guild — each team runs its own sprints.
+// planned into. Scoped to one team — each team runs its own sprints.
 // Whether a sprint is "current" is derived from startDate/endDate against
 // today, never a separate hand-maintained status field.
 model Sprint {
   id        String   @id @default(cuid())
-  guildId   String
-  guild     Guild    @relation(fields: [guildId], references: [id])
+  teamId   String
+  team     Team    @relation(fields: [teamId], references: [id])
   name      String
   startDate DateTime
   endDate   DateTime
   createdAt DateTime @default(now())
 
-  adventures Adventure[]
+  assignments Assignment[]
 
-  @@index([guildId, startDate])
+  @@index([teamId, startDate])
 }
 
-// ---------- Kingdom ----------
+// ---------- Company ----------
 
-model Kingdom {
+model Company {
   id        String   @id @default(cuid())
-  name      String   @default("The Kingdom")
+  name      String   @default("The Company")
   createdAt DateTime @default(now())
 
-  projects KingdomProject[]
+  projects CompanyProject[]
 }
 
-model KingdomProject {
+model CompanyProject {
   id        String  @id @default(cuid())
-  kingdomId String
-  kingdom   Kingdom @relation(fields: [kingdomId], references: [id])
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
 
-  name        String // e.g. "Crystal University"
+  name        String // e.g. "The Training Center"
   description String
   unlocked    Boolean @default(false)
 
@@ -223,39 +223,39 @@ model KingdomProject {
   influenceContributed Int @default(0)
   materialsContributed Int @default(0)
 
-  contributions KingdomContribution[]
+  contributions CompanyContribution[]
   createdAt     DateTime              @default(now())
 }
 
-model KingdomContribution {
+model CompanyContribution {
   id        String         @id @default(cuid())
   projectId String
-  project   KingdomProject @relation(fields: [projectId], references: [id])
-  guildId   String
-  guild     Guild          @relation(fields: [guildId], references: [id])
+  project   CompanyProject @relation(fields: [projectId], references: [id])
+  teamId   String
+  team     Team          @relation(fields: [teamId], references: [id])
 
   resourceType String // knowledge | gold | influence | materials
   amount       Int
   createdAt    DateTime @default(now())
 }
 
-// ---------- Adventures ----------
+// ---------- Assignments ----------
 
-enum AdventureType {
+enum AssignmentType {
   SOLO
-  GUILD
-  CROSS_GUILD
+  TEAM
+  CROSS_TEAM
 }
 
-enum AdventureStatus {
+enum AssignmentStatus {
   ACTIVE
   COMPLETED
   EXPIRED
 }
 
 /// Where a card sits on the Kanban board. Deliberately separate from
-/// AdventureStatus (which is lifecycle: active/completed/expired) and from
-/// the approval fields on AdventureProgress, so a card can be dragged
+/// AssignmentStatus (which is lifecycle: active/completed/expired) and from
+/// the approval fields on AssignmentProgress, so a card can be dragged
 /// freely between columns without touching rewards. The approval actions
 /// still write their result here, so in normal use the two agree.
 enum BoardStatus {
@@ -265,15 +265,15 @@ enum BoardStatus {
   DONE
 }
 
-model Adventure {
+model Assignment {
   id          String          @id @default(cuid())
-  type        AdventureType
+  type        AssignmentType
   title       String
   description String          @db.Text
-  status      AdventureStatus @default(ACTIVE)
+  status      AssignmentStatus @default(ACTIVE)
 
   // Work-item kind for the Kanban board — orthogonal to `type` (which is
-  // about WHO it's for: solo/guild/cross-guild). A manager picks this when
+  // about WHO it's for: solo/team/cross-team). A manager picks this when
   // creating a task, the same way Azure DevOps has Task/User Story/Bug.
   workItemType WorkItemType @default(TASK)
 
@@ -288,10 +288,10 @@ model Adventure {
   influenceReward Int @default(0)
   materialsReward Int @default(0)
 
-  // SOLO: assigned to one employee. GUILD: scoped to one guild.
-  // CROSS_GUILD: open to multiple guilds, tracked via participants.
-  guildId String?
-  guild   Guild?  @relation("AdventureGuild", fields: [guildId], references: [id])
+  // SOLO: assigned to one employee. TEAM: scoped to one team.
+  // CROSS_TEAM: open to multiple teams, tracked via participants.
+  teamId String?
+  team   Team?  @relation("AssignmentTeam", fields: [teamId], references: [id])
 
   // Which sprint this task is planned into — null means it's in the
   // backlog (unplanned). Only ever set on manager-assigned tasks; a manager
@@ -301,13 +301,13 @@ model Adventure {
   sprint   Sprint? @relation(fields: [sprintId], references: [id])
 
   createdById String?
-  createdBy   Employee? @relation("AdventureCreator", fields: [createdById], references: [id])
+  createdBy   Employee? @relation("AssignmentCreator", fields: [createdById], references: [id])
 
-  // Set only for SOLO adventures a manager/admin assigned to someone else —
+  // Set only for SOLO assignments a manager/admin assigned to someone else —
   // distinguishes "my manager gave me this" from an employee's own
   // self-authored task, both of which otherwise look identical (aiGenerated: false).
   assignedById String?
-  assignedBy   Employee? @relation("AdventureAssigner", fields: [assignedById], references: [id])
+  assignedBy   Employee? @relation("AssignmentAssigner", fields: [assignedById], references: [id])
 
   aiGenerated Boolean   @default(true)
   expiresAt   DateTime?
@@ -321,14 +321,14 @@ model Adventure {
   // check-then-create in application code.
   dailyQuizDate String?
 
-  // Set only for the self-serve daily solo quest, which is a 5-question
+  // Set only for the self-serve daily solo assignment, which is a 5-question
   // skill quiz rather than a plain text task. Each entry: { question,
   // options: string[], string: string, number: string } — the correct
   // option's index is never stored directly; it's derivable by reducing
   // `number` to a single digit and indexing into `string` at that position.
   quiz Json?
 
-  progress AdventureProgress[]
+  progress AssignmentProgress[]
   comments TaskComment[]
   activity TaskActivityLog[]
   standup  StandupMessage[]  @relation("StandupTask")
@@ -349,10 +349,10 @@ enum ApprovalStatus {
   REJECTED // manager/admin sent it back; not credited
 }
 
-model AdventureProgress {
+model AssignmentProgress {
   id          String    @id @default(cuid())
-  adventureId String
-  adventure   Adventure @relation(fields: [adventureId], references: [id])
+  assignmentId String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
   employeeId  String
   employee    Employee  @relation(fields: [employeeId], references: [id])
 
@@ -361,14 +361,14 @@ model AdventureProgress {
   completedAt DateTime?
   createdAt   DateTime  @default(now())
 
-  // Set only when completing a quiz-type solo adventure — the option index
+  // Set only when completing a quiz-type solo assignment — the option index
   // the employee picked per question, and how many were graded correct
   // (client-reported; coins are credited 5 per correct answer).
   quizAnswers      Json?
   quizCorrectCount Int?
 
-  // Approval workflow — AI-generated adventures skip straight to APPROVED
-  // (crediting on completion, same as before); manually-created adventures
+  // Approval workflow — AI-generated assignments skip straight to APPROVED
+  // (crediting on completion, same as before); manually-created assignments
   // go PENDING until a manager/admin approves or rejects them.
   approval      ApprovalStatus @default(NONE)
   approvedById  String?
@@ -376,20 +376,20 @@ model AdventureProgress {
   approvedAt    DateTime?
   rejectionNote String?        @db.Text
 
-  @@unique([adventureId, employeeId])
+  @@unique([assignmentId, employeeId])
 }
 
 // Real discussion on a task, shown in its enlarged detail view.
 model TaskComment {
   id          String    @id @default(cuid())
-  adventureId String
-  adventure   Adventure @relation(fields: [adventureId], references: [id])
+  assignmentId String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
   authorId    String
   author      Employee  @relation(fields: [authorId], references: [id])
   body        String    @db.Text
   createdAt   DateTime  @default(now())
 
-  @@index([adventureId, createdAt])
+  @@index([assignmentId, createdAt])
 }
 
 enum TaskActivityType {
@@ -410,15 +410,15 @@ enum TaskActivityType {
 // true record of what happened and when.
 model TaskActivityLog {
   id          String            @id @default(cuid())
-  adventureId String
-  adventure   Adventure         @relation(fields: [adventureId], references: [id])
+  assignmentId String
+  assignment   Assignment         @relation(fields: [assignmentId], references: [id])
   actorId     String
   actor       Employee          @relation(fields: [actorId], references: [id])
   type        TaskActivityType
   detail      String
   createdAt   DateTime          @default(now())
 
-  @@index([adventureId, createdAt])
+  @@index([assignmentId, createdAt])
   @@index([actorId, createdAt])
 }
 
@@ -430,18 +430,18 @@ enum StandupMessageKind {
   EVENT
 }
 
-// The team standup room — one per guild. Holds both what people type and
+// The team standup room — one per team. Holds both what people type and
 // the system lines posted when a task actually moves, in one ordered
 // timeline, so the conversation and the work sit in the same place.
 //
 // EVENT rows store their sentence already rendered: the room is a log of
 // what was true when it happened, so a task later being renamed must not
-// silently rewrite history. `adventureId` is kept alongside so the UI can
+// silently rewrite history. `assignmentId` is kept alongside so the UI can
 // still link through to the task as it is now.
 model StandupMessage {
   id      String @id @default(cuid())
-  guildId String
-  guild   Guild  @relation("GuildStandup", fields: [guildId], references: [id])
+  teamId String
+  team   Team  @relation("TeamStandup", fields: [teamId], references: [id])
 
   // Set for both kinds: an EVENT still has the person who caused it.
   authorId String
@@ -450,12 +450,12 @@ model StandupMessage {
   kind StandupMessageKind
   body String             @db.Text
 
-  adventureId String?
-  adventure   Adventure? @relation("StandupTask", fields: [adventureId], references: [id])
+  assignmentId String?
+  assignment   Assignment? @relation("StandupTask", fields: [assignmentId], references: [id])
 
   createdAt DateTime @default(now())
 
-  @@index([guildId, createdAt])
+  @@index([teamId, createdAt])
 }
 
 model Reflection {

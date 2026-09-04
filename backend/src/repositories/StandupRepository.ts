@@ -6,24 +6,24 @@ const PAGE_SIZE = 100;
 
 const MESSAGE_SHAPE = {
   id: true,
-  guildId: true,
+  teamId: true,
   kind: true,
   body: true,
-  adventureId: true,
+  assignmentId: true,
   createdAt: true,
   author: { select: { id: true, name: true, title: true, avatarSeed: true } },
 } as const;
 
 export const StandupRepository = {
   create(
-    guildId: string,
+    teamId: string,
     authorId: string,
     kind: StandupMessageKind,
     body: string,
-    adventureId?: string
+    assignmentId?: string
   ) {
     return prisma.standupMessage.create({
-      data: { guildId, authorId, kind, body, adventureId },
+      data: { teamId, authorId, kind, body, assignmentId },
       select: MESSAGE_SHAPE,
     });
   },
@@ -33,9 +33,9 @@ export const StandupRepository = {
    * newest PAGE_SIZE and reversing (rather than the oldest) keeps an
    * established room opening on the live end of the conversation.
    */
-  async findRecent(guildId: string) {
+  async findRecent(teamId: string) {
     const rows = await prisma.standupMessage.findMany({
-      where: { guildId },
+      where: { teamId },
       orderBy: { createdAt: "desc" },
       take: PAGE_SIZE,
       select: MESSAGE_SHAPE,
@@ -48,18 +48,18 @@ export const StandupRepository = {
    * that message's createdAt rather than on "now minus interval", so a
    * message landing between two polls can never be skipped.
    */
-  async findAfter(guildId: string, afterId: string) {
+  async findAfter(teamId: string, afterId: string) {
     const anchor = await prisma.standupMessage.findUnique({
       where: { id: afterId },
       select: { createdAt: true },
     });
-    if (!anchor) return this.findRecent(guildId);
+    if (!anchor) return this.findRecent(teamId);
 
     return prisma.standupMessage.findMany({
       // Ties on createdAt are broken by id so a message posted in the same
       // millisecond as the anchor is not returned forever, nor lost.
       where: {
-        guildId,
+        teamId,
         OR: [{ createdAt: { gt: anchor.createdAt } }, { createdAt: anchor.createdAt, id: { gt: afterId } }],
       },
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
