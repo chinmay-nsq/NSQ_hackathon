@@ -8,7 +8,7 @@ import { useGSAP } from "@gsap/react";
 import { gsap } from "@/lib/gsap/registerPlugins";
 import {
   LayoutDashboard,
-  Swords,
+  ClipboardList,
   Users,
   Users2,
   Store,
@@ -36,7 +36,7 @@ import { taskWord, roleLabel } from "@/lib/taskLabels";
 
 const NAV_ITEMS = [
   { href: "/app", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/adventures", label: "Adventures", icon: Swords, tourKey: "nav-adventures" },
+  { href: "/assignments", label: "Assignments", icon: ClipboardList, tourKey: "nav-assignments" },
   { href: "/standup", label: "Standup", icon: Users2 },
   { href: "/teams", label: "Teams", icon: Users, tourKey: "nav-teams" },
   // { href: "/company", label: "Company", icon: Sparkles }, // temporarily hidden
@@ -67,10 +67,10 @@ export function AppSidebar() {
   const isManager = employee?.role === "MANAGER" || employee?.role === "ADMIN";
 
   const navItems = [
-    // "Adventures" is renamed per role (Tasks for managers, Sprint for
+    // "Assignments" is renamed per role (Tasks for managers, Sprint for
     // everyone else — see taskLabels.ts); Rewards is hidden for managers.
     ...NAV_ITEMS.filter((item) => !(isManager && item.href === "/rewards")).map((item) =>
-      item.href === "/adventures" ? { ...item, label: taskWord(employee?.role) } : item
+      item.href === "/assignments" ? { ...item, label: taskWord(employee?.role) } : item
     ),
     ...(isManager ? [MANAGER_NAV_ITEM] : []),
     ...(employee?.role === "ADMIN" ? [ADMIN_NAV_ITEM] : []),

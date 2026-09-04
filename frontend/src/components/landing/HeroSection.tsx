@@ -116,7 +116,7 @@ export function HeroSection({ onEnter }: { onEnter: () => void }) {
           </h1>
 
           <p className="hero-sub mt-8 max-w-md text-lg leading-relaxed text-(--ash)">
-            Every task becomes a quest. Every team, a party. Every company, a
+            Every task becomes an assignment. Every team, a crew. Every company, a
             world worth showing up for — powered by an AI that actually pays
             attention.
           </p>
@@ -126,7 +126,7 @@ export function HeroSection({ onEnter }: { onEnter: () => void }) {
               onClick={onEnter}
               className="rounded-full bg-brand px-8 py-4 font-semibold text-(--paper) hover:bg-(--brand-deep)"
             >
-              Start your first quest
+              Start your first assignment
             </MagneticButton>
             <button
               type="button"

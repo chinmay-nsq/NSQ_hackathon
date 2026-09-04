@@ -125,7 +125,7 @@ export default function ProfileOnboardingPage() {
       // would yank the user to /app before they ever see the companion's
       // welcome message.
       const welcome = await api
-        .get<{ message: string | null }>("/employees/me/guild-welcome")
+        .get<{ message: string | null }>("/employees/me/team-welcome")
         .catch(() => ({ message: null }));
 
       if (welcome.message) {
@@ -169,7 +169,7 @@ export default function ProfileOnboardingPage() {
             size="lg"
             className="glow-primary mt-8 w-full font-mono text-xs tracking-widest uppercase"
           >
-            Enter the kingdom
+            Enter the company
           </Button>
         </PageIn>
       </div>
@@ -188,7 +188,7 @@ export default function ProfileOnboardingPage() {
           <p className="mt-3 text-sm text-muted-foreground">
             {isManager
               ? "Your role and experience help tailor task suggestions for your team."
-              : "Your role, level, and skills shape the daily adventures your companion generates for you."}
+              : "Your role, level, and skills shape the daily assignments your companion generates for you."}
           </p>
         </div>
 

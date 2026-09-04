@@ -104,10 +104,10 @@ export function HeroCrystal({ sectionRef }: { sectionRef: React.RefObject<HTMLEl
       {/* The character, dimmed while caged */}
       <div ref={imageWrapRef} className="relative h-[80%] w-[80%]">
         <Image
-          src="/barb.png"
+          src="/michael.png"
           alt="Skibidi-Sprint's companion"
-          width={1301}
-          height={1599}
+          width={850}
+          height={1000}
           priority
           onLoad={() => ScrollTrigger.refresh()}
           className="relative h-full w-full object-contain brightness-[0.65] saturate-50"

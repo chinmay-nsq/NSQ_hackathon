@@ -51,7 +51,7 @@ export function CTASection() {
           onClick={() => router.push("/login")}
           className="rounded-full bg-brand px-10 py-5 text-lg font-semibold text-(--paper) hover:bg-(--brand-deep)"
         >
-          Create your kingdom
+          Create your company
         </MagneticButton>
         <p className="font-mono text-xs text-(--faint)">No credit card. Just your team.</p>
       </div>

@@ -4,7 +4,7 @@ export interface TourStep {
    * Which route the target lives on — the tour navigates here first if the
    * user isn't already on it. `null` means "don't force-navigate", for a
    * step that just floats over wherever the user currently is (e.g. mid-quiz
-   * on a dynamic `/adventures/[id]` route the tour can't know ahead of time).
+   * on a dynamic `/assignments/[id]` route the tour can't know ahead of time).
    */
   route: string | null;
   /**
@@ -19,37 +19,37 @@ export interface TourStep {
    * If true, the bubble's Next button stays disabled (Skip still works)
    * until the page that owns the real action calls
    * `useOnboardingTourStore.getState().signalAction(step.key)` — right when
-   * the real thing actually finishes (e.g. the guild create API call
+   * the real thing actually finishes (e.g. the team create API call
    * resolves), not just when a button is clicked. No polling: it's a direct
    * signal from the place where the action truly completes.
    */
   requireAction?: boolean;
 }
 
-/** Employee/plain-member arc: land on the dashboard, take the first quest, join a team, spend coins. */
+/** Employee/plain-member arc: land on the dashboard, take the first assignment, join a team, spend coins. */
 export const EMPLOYEE_TOUR_STEPS: TourStep[] = [
   {
-    key: "quest",
+    key: "assignment",
     route: "/app",
-    target: "quest-card",
+    target: "assignment-card",
     message: "Let's start with today's skill quiz — tap it to open it up.",
   },
   {
-    key: "quest-complete",
+    key: "assignment-complete",
     route: null,
     message: "Answer all 5 questions and hit submit, then hit Next whenever you're ready.",
   },
   {
-    key: "adventures",
-    route: "/adventures",
-    target: "nav-adventures",
-    message: "That was one quest — this is where you'll find all of them, past and pending.",
+    key: "assignments",
+    route: "/assignments",
+    target: "nav-assignments",
+    message: "That was one assignment — this is where you'll find all of them, past and pending.",
   },
   {
     key: "team",
     route: "/teams",
     target: "nav-teams",
-    message: "Nice. Every quest feeds your team's resources too — let's check out Teams next.",
+    message: "Nice. Every assignment feeds your team's resources too — let's check out Teams next.",
   },
   {
     key: "rewards",
@@ -79,7 +79,7 @@ export const EMPLOYEE_TOUR_STEPS: TourStep[] = [
  * stale/hidden element and dimming the (now-open) dialog itself. Instead
  * it's a plain floating message with no dimming at all, so the dialog stays
  * fully usable; it's a hard gate (requireAction — Next stays disabled until
- * the guild is actually created, not just when the dialog is opened).
+ * the team is actually created, not just when the dialog is opened).
  * Assigning a task genuinely needs a real teammate on the roster first, but
  * the tour doesn't block on that — it just explains the invite step and
  * lets the user move on with Next whenever they're ready.
@@ -104,14 +104,14 @@ export const LEAD_TOUR_STEPS: TourStep[] = [
       "Team's up! Open it and tap \"Copy invite link\", then send that link to a teammate. Once someone joins you'll be able to assign them work — hit Next to keep going.",
   },
   {
-    key: "adventures",
+    key: "assignments",
     route: "/teams",
-    target: "nav-adventures",
-    message: "Now let's head to Adventures — that's where you'll hand out work.",
+    target: "nav-assignments",
+    message: "Now let's head to Assignments — that's where you'll hand out work.",
   },
   {
     key: "assign-task",
-    route: "/adventures",
+    route: "/assignments",
     target: "assign-task-btn",
     message: "This is where you'll hand out real work once your team has a member — tap here to open it.",
   },

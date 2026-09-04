@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/card";
 
 const ROLE_OPTIONS: { value: SelfRegisterableRole; label: string; description: string; icon: typeof User }[] = [
-  { value: "EMPLOYEE", label: "Employee", description: "Complete adventures, earn XP", icon: User },
+  { value: "EMPLOYEE", label: "Employee", description: "Complete assignments, earn XP", icon: User },
   { value: "MANAGER", label: "Team Leader", description: "Also review & approve your team's tasks", icon: ShieldCheck },
 ];
 
@@ -78,8 +78,8 @@ function LoginPageInner() {
   useEffect(() => {
     if (!inviteCode) return;
     api
-      .get<{ guild: { name: string } }>(`/guilds/invite/${inviteCode}`)
-      .then((data) => setInviteTeamName(data.guild.name))
+      .get<{ team: { name: string } }>(`/teams/invite/${inviteCode}`)
+      .then((data) => setInviteTeamName(data.team.name))
       .catch(() => setInviteInvalid(true));
   }, [inviteCode]);
 

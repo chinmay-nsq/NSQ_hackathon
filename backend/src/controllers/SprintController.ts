@@ -6,7 +6,7 @@ import { ApiResponse } from "@/utils/apiResponse";
 import { HttpStatus } from "@/utils/httpStatus";
 
 const createSprintSchema = z.object({
-  guildId: z.string().min(1),
+  teamId: z.string().min(1),
   name: z.string().min(2).max(60),
   startDate: z.string(),
   endDate: z.string(),
@@ -25,7 +25,7 @@ export const SprintController = {
     if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
       return res.status(HttpStatus.BAD_REQUEST).json(new ApiResponse(HttpStatus.BAD_REQUEST, "Invalid dates", null));
     }
-    const sprint = await SprintService.create(req.employeeId!, parsed.guildId, parsed.name, startDate, endDate);
+    const sprint = await SprintService.create(req.employeeId!, parsed.teamId, parsed.name, startDate, endDate);
     return res.status(HttpStatus.CREATED).json(new ApiResponse(HttpStatus.CREATED, "Sprint created", { sprint }));
   },
 };

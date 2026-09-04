@@ -87,8 +87,8 @@ html {
   companion and the playful moments. Each accent has a `-soft` tint for
   fills and a `-foreground` step dark enough to read as text on white.
 
-  The landing page ("/") keeps its own dark cinematic identity via
-  landing.css and --font-anton, and is deliberately untouched by these
+  The marketing surfaces ("/", "/how-it-works", "/show-ppt") carry the same
+  identity, set on a bare ground in landing.css rather than through these
   tokens.
 */
 

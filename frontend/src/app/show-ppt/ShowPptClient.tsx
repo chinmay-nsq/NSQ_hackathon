@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Maximize, X, Swords, Users, ClipboardCheck, MessageCircle, Store, Crown, TrendingUp, Flame, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, Maximize, X, ClipboardList, Users, ClipboardCheck, MessageCircle, Store, Building2, TrendingUp, Flame, type LucideIcon } from "lucide-react";
 import "../landing.css";
 import { gsap, MorphSVGPlugin, SplitText } from "@/lib/gsap/registerPlugins";
 import { AmbientParticles } from "@/components/landing/AmbientParticles";
@@ -74,9 +74,9 @@ function GateScreen({ onEnter }: { onEnter: () => void }) {
   }, []);
 
   return (
-    <div ref={scope} className="landing-page deck-dark relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 text-center">
+    <div ref={scope} className="landing-page relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 text-center">
       <AmbientParticles />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_40%,rgba(255,90,54,0.14),transparent)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_40%,var(--brand-soft),transparent)]" />
 
       <div className="gate-orbit pointer-events-none absolute inset-0" aria-hidden>
         {PETS.map((pet, i) => {
@@ -93,17 +93,17 @@ function GateScreen({ onEnter }: { onEnter: () => void }) {
         })}
       </div>
 
-      <p className="relative font-mono text-sm uppercase tracking-[0.3em] text-white/40">Skibidi-Sprint — Live Presentation</p>
-      <h1 className="gate-title relative mt-4 font-display text-[clamp(2.8rem,8vw,6.5rem)] leading-[0.92] text-white">
+      <p className="relative font-mono text-sm uppercase tracking-[0.3em] text-(--smoke)">Skibidi-Sprint — Live Presentation</p>
+      <h1 className="gate-title relative mt-4 font-display text-[clamp(2.8rem,8vw,6.5rem)] leading-[0.92] text-(--ink)">
         THE PITCH DECK
       </h1>
-      <p className="gate-sub relative mt-6 max-w-lg text-xl text-white/50 opacity-0">
+      <p className="gate-sub relative mt-6 max-w-lg text-xl text-(--smoke) opacity-0">
         Full screen. Arrow keys, spacebar, or click to advance. Speaker notes on every slide.
       </p>
       <button
         type="button"
         onClick={onEnter}
-        className="gate-btn glow-primary relative mt-9 flex items-center gap-2.5 rounded-full bg-coral px-8 py-4 font-mono text-sm font-semibold uppercase tracking-widest text-white opacity-0 transition-transform hover:scale-105"
+        className="gate-btn glow-primary relative mt-9 flex items-center gap-2.5 rounded-full bg-brand px-8 py-4 font-mono text-sm font-semibold uppercase tracking-widest text-(--paper) opacity-0 transition-transform hover:scale-105"
       >
         <Maximize className="size-4" />
         Enter full screen
@@ -121,12 +121,12 @@ interface SlideDef {
 }
 
 const FEATURE_HIGHLIGHTS: { icon: LucideIcon; title: string; body: string }[] = [
-  { icon: Swords, title: "Adventures", body: "A fresh AI-written quest lands every single day — solo, or for the whole guild. Managers can hand-write and assign work too, to one person or the whole team at once." },
-  { icon: Users, title: "Guilds", body: "Every department becomes a guild with four shared resources — Knowledge, Gold, Influence, Materials — and a reputation score that climbs automatically as the team ships." },
-  { icon: ClipboardCheck, title: "Approvals", body: "Managers review submitted work in one queue — approve credits XP and coins instantly, reject sends it back with a note. AI-generated quests skip this entirely." },
+  { icon: ClipboardList, title: "Assignments", body: "A fresh AI-written assignment lands every single day — solo, or for the whole team. Managers can hand-write and assign work too, to one person or the whole team at once." },
+  { icon: Users, title: "Teams", body: "Every department becomes a team with four shared resources — Knowledge, Gold, Influence, Materials — and a reputation score that climbs automatically as the team ships." },
+  { icon: ClipboardCheck, title: "Approvals", body: "Managers review submitted work in one queue — approve credits XP and coins instantly, reject sends it back with a note. AI-generated assignments skip this entirely." },
   { icon: MessageCircle, title: "Companion Chat", body: "A real, persistent conversation with your companion. Ask it to create a task, assign work, or take you anywhere in the app — and it actually does it, live." },
   { icon: Store, title: "Rewards Marketplace", body: "Coins redeem for real perks — coffee, lunch, a day off — with a confirm-before-you-spend dialog and a full purchase history." },
-  { icon: Crown, title: "Kingdom", body: "Every guild's resources feed into shared, company-wide project goals — visible progress everyone can watch fill up together." },
+  { icon: Building2, title: "Company", body: "Every team's resources feed into shared, company-wide project goals — visible progress everyone can watch fill up together." },
 ];
 
 const SLIDES: SlideDef[] = [
@@ -136,14 +136,14 @@ const SLIDES: SlideDef[] = [
     notes: "Open with energy. This is the one-line pitch — say it, then pause. Let the tagline land before moving on.",
     render: () => (
       <div className="flex h-full flex-col items-start justify-center">
-        <p className="slide-eyebrow font-mono text-sm uppercase tracking-[0.3em] text-coral">Skibidi-Sprint</p>
-        <h2 className="slide-title mt-5 font-display text-[clamp(3.2rem,9vw,7.5rem)] leading-[0.88] text-white">
+        <p className="slide-eyebrow font-mono text-sm uppercase tracking-[0.3em] text-brand">Skibidi-Sprint</p>
+        <h2 className="slide-title mt-5 font-display text-[clamp(3.2rem,9vw,7.5rem)] leading-[0.88] text-(--ink)">
           WORK, AS AN
           <br />
-          <span className="text-coral">ADVENTURE.</span>
+          <span className="text-brand">ASSIGNMENT.</span>
         </h2>
-        <p className="slide-body mt-8 max-w-2xl text-2xl leading-snug text-white/60">
-          A workplace engagement platform that turns real tasks into quests, real teams into guilds, and gives every
+        <p className="slide-body mt-8 max-w-2xl text-2xl leading-snug text-(--ash)">
+          A workplace engagement platform that turns real tasks into assignments, real teams into teams, and gives every
           employee an AI companion that actually knows what&apos;s going on.
         </p>
       </div>
@@ -155,10 +155,10 @@ const SLIDES: SlideDef[] = [
     notes: "This is the setup — keep it brief, one breath: people disengage fast, and every gamification tool decays the same way. Walk the four lines quickly and land hard on \"Silence,\" then move.",
     render: () => (
       <div className="flex h-full flex-col justify-center">
-        <h2 className="slide-title font-display text-[clamp(2.4rem,5.5vw,4.4rem)] leading-[0.95] text-white">
+        <h2 className="slide-title font-display text-[clamp(2.4rem,5.5vw,4.4rem)] leading-[0.95] text-(--ink)">
           Engagement dies by week three.
         </h2>
-        <p className="slide-body mt-5 max-w-2xl text-xl text-white/50">
+        <p className="slide-body mt-5 max-w-2xl text-xl text-(--smoke)">
           Every gamification tool follows the same curve: a burst of interest, then a fade as it starts feeling like
           homework.
         </p>
@@ -169,8 +169,8 @@ const SLIDES: SlideDef[] = [
             ["Week 5", "A leaderboard only the top five check."],
             ["Week 8", "Silence."],
           ].map(([week, line]) => (
-            <p key={week} className="slide-row flex items-baseline gap-4 border-b border-white/10 pb-4 text-2xl text-white/70">
-              <span className="w-24 shrink-0 font-mono text-sm uppercase tracking-widest text-white/30">{week}</span>
+            <p key={week} className="slide-row flex items-baseline gap-4 border-b border-(--line) pb-4 text-2xl text-(--ash)">
+              <span className="w-24 shrink-0 font-mono text-sm uppercase tracking-widest text-(--faint)">{week}</span>
               {line}
             </p>
           ))}
@@ -184,13 +184,13 @@ const SLIDES: SlideDef[] = [
     notes: "This is the turn — the core idea of the whole product in one image. Let the shape actually morph before you keep talking; don't rush past it.",
     render: () => (
       <div className="flex h-full flex-col items-center justify-center text-center">
-        <h2 className="slide-title font-display text-[clamp(2.4rem,5.5vw,4.4rem)] leading-[0.95] text-white">
-          Tasks become <span className="text-coral">quests.</span>
+        <h2 className="slide-title font-display text-[clamp(2.4rem,5.5vw,4.4rem)] leading-[0.95] text-(--ink)">
+          Tasks become <span className="text-brand">assignments.</span>
         </h2>
         <svg viewBox="0 0 100 100" className="morph-stage mt-10 h-64 w-64 sm:h-80 sm:w-80">
-          <path id="morph-path-a" d={MORPH_SHAPES.checklist} fill="var(--coral)" />
+          <path id="morph-path-a" d={MORPH_SHAPES.checklist} fill="var(--brand)" />
         </svg>
-        <p className="slide-body mt-8 max-w-xl text-xl text-white/55">
+        <p className="slide-body mt-8 max-w-xl text-xl text-(--smoke)">
           A checklist. Watch it become a weapon. Every real task — a manager&apos;s request, a piece of onboarding, a
           daily skill check — gets the same treatment: framed, rewarded, and made to feel like it matters.
         </p>
@@ -203,15 +203,15 @@ const SLIDES: SlideDef[] = [
     notes: "Reassure the room this isn't a gimmick layered on top — it's the real org chart underneath. Point at the shape as it forms into a banner.",
     render: () => (
       <div className="flex h-full flex-col items-center justify-center text-center">
-        <h2 className="slide-title font-display text-[clamp(2.4rem,5.5vw,4.4rem)] leading-[0.95] text-white">
-          Departments become <span className="text-coral">guilds.</span>
+        <h2 className="slide-title font-display text-[clamp(2.4rem,5.5vw,4.4rem)] leading-[0.95] text-(--ink)">
+          Departments become <span className="text-brand">teams.</span>
         </h2>
         <svg viewBox="0 0 100 100" className="morph-stage mt-10 h-64 w-64 sm:h-80 sm:w-80">
           <path id="morph-path-b" d={MORPH_SHAPES_2.boxes} fill="var(--gold)" />
         </svg>
-        <p className="slide-body mt-8 max-w-xl text-xl text-white/55">
-          Same team, same manager, same reporting line. Just a shared identity to fight under — a guild banner, a
-          guardian that levels up with the whole team, and resources everyone contributes to together.
+        <p className="slide-body mt-8 max-w-xl text-xl text-(--smoke)">
+          Same team, same manager, same reporting line. Just a shared identity to fight under — a team banner, a
+          mascot that levels up with the whole team, and resources everyone contributes to together.
         </p>
       </div>
     ),
@@ -222,11 +222,11 @@ const SLIDES: SlideDef[] = [
     notes: "This is the differentiator slide — spend real time here. The key line to land is \"it actually acts,\" not just talks.",
     render: () => (
       <div className="flex h-full flex-col justify-center">
-        <h2 className="slide-title font-display text-[clamp(2.4rem,5.5vw,4.2rem)] leading-[0.95] text-white">
-          Not a mascot. <span className="text-coral">A real conversation.</span>
+        <h2 className="slide-title font-display text-[clamp(2.4rem,5.5vw,4.2rem)] leading-[0.95] text-(--ink)">
+          Not a chatbot. <span className="text-brand">A real conversation.</span>
         </h2>
-        <p className="slide-body mt-6 max-w-2xl text-xl leading-relaxed text-white/60">
-          Every employee gets one AI companion, grounded in their real level, coins, guild, and pending work.
+        <p className="slide-body mt-6 max-w-2xl text-xl leading-relaxed text-(--ash)">
+          Every employee gets one AI companion, grounded in their real level, coins, team, and pending work.
           It&apos;s a persistent chat, not a one-off popup — full history, live on every page.
         </p>
         <div className="slide-body mt-8 flex flex-col gap-3 max-w-2xl">
@@ -235,7 +235,7 @@ const SLIDES: SlideDef[] = [
             "Ask it to take you anywhere in the app — it actually navigates you there.",
             "Managers can say \"list my team\" or \"assign this to Sam\" — real names, real actions.",
           ].map((line) => (
-            <p key={line} className="slide-row text-xl text-white/70">
+            <p key={line} className="slide-row text-xl text-(--ash)">
               → {line}
             </p>
           ))}
@@ -249,17 +249,17 @@ const SLIDES: SlideDef[] = [
     notes: "This shipped just now — say so. The point: flat, generic stats become a real trend line, no invented numbers, ever.",
     render: () => (
       <div className="flex h-full flex-col items-center justify-center text-center">
-        <h2 className="slide-title font-display text-[clamp(2.4rem,5.5vw,4.4rem)] leading-[0.95] text-white">
-          Flat stats become <span className="text-coral">a real trend.</span>
+        <h2 className="slide-title font-display text-[clamp(2.4rem,5.5vw,4.4rem)] leading-[0.95] text-(--ink)">
+          Flat stats become <span className="text-brand">a real trend.</span>
         </h2>
         <svg viewBox="0 0 100 100" className="morph-stage mt-10 h-64 w-64 sm:h-80 sm:w-80">
-          <path id="morph-path-c" d={MORPH_SHAPES_3.flatBars} fill="var(--coral)" />
+          <path id="morph-path-c" d={MORPH_SHAPES_3.flatBars} fill="var(--brand)" />
         </svg>
-        <p className="slide-body mt-8 max-w-xl text-xl text-white/55">
+        <p className="slide-body mt-8 max-w-xl text-xl text-(--smoke)">
           Quiz accuracy, activity streaks, XP versus your own average — computed from what actually happened, never
           AI-invented. The AI only writes 2-3 sentences about numbers it&apos;s handed, nothing more.
         </p>
-        <p className="slide-body mt-6 max-w-xl font-mono text-lg text-coral/90">
+        <p className="slide-body mt-6 max-w-xl font-mono text-lg text-brand">
           1<sup>365</sup> = 1. But 1.01<sup>365</sup> = 37.
         </p>
       </div>
@@ -271,42 +271,42 @@ const SLIDES: SlideDef[] = [
     notes: "Walk through employee vs. manager separately — they see genuinely different things, not a relabeled copy of the same screen.",
     render: () => (
       <div className="flex h-full flex-col justify-center">
-        <h2 className="slide-title font-display text-[clamp(2.2rem,5vw,3.8rem)] leading-[0.95] text-white">
-          Everyone sees <span className="text-coral">their own trajectory.</span>
+        <h2 className="slide-title font-display text-[clamp(2.2rem,5vw,3.8rem)] leading-[0.95] text-(--ink)">
+          Everyone sees <span className="text-brand">their own trajectory.</span>
         </h2>
-        <p className="slide-body mt-4 max-w-2xl text-xl text-white/50">
+        <p className="slide-body mt-4 max-w-2xl text-xl text-(--smoke)">
           Not a leaderboard. Not compared to anyone else — this is about getting better than you were, not better than someone else.
         </p>
         <div className="feature-grid mt-7 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="feature-card flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-6">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-coral/30 bg-coral/10">
-              <TrendingUp className="size-5 text-coral" strokeWidth={1.5} />
+          <div className="feature-card flex flex-col gap-3 rounded-2xl border border-(--line) bg-(--wash) p-6">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-(--brand-soft) bg-brand-soft">
+              <TrendingUp className="size-5 text-brand" strokeWidth={1.5} />
             </span>
             <div>
-              <h4 className="font-display text-lg text-white">Employees</h4>
-              <p className="mt-1.5 text-sm leading-relaxed text-white/55">
+              <h4 className="font-display text-lg text-(--ink)">Employees</h4>
+              <p className="mt-1.5 text-sm leading-relaxed text-(--smoke)">
                 Skill, consistency, and output — toggle between all three, each tracked against their own recent average.
               </p>
             </div>
           </div>
-          <div className="feature-card flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-6">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-coral/30 bg-coral/10">
-              <Users className="size-5 text-coral" strokeWidth={1.5} />
+          <div className="feature-card flex flex-col gap-3 rounded-2xl border border-(--line) bg-(--wash) p-6">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-(--brand-soft) bg-brand-soft">
+              <Users className="size-5 text-brand" strokeWidth={1.5} />
             </span>
             <div>
-              <h4 className="font-display text-lg text-white">Team Growth</h4>
-              <p className="mt-1.5 text-sm leading-relaxed text-white/55">
+              <h4 className="font-display text-lg text-(--ink)">Team Growth</h4>
+              <p className="mt-1.5 text-sm leading-relaxed text-(--smoke)">
                 A manager&apos;s whole team&apos;s collective skill and consistency trend — aggregate only, never singles anyone out.
               </p>
             </div>
           </div>
-          <div className="feature-card flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-6">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-coral/30 bg-coral/10">
-              <Flame className="size-5 text-coral" strokeWidth={1.5} />
+          <div className="feature-card flex flex-col gap-3 rounded-2xl border border-(--line) bg-(--wash) p-6">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-(--brand-soft) bg-brand-soft">
+              <Flame className="size-5 text-brand" strokeWidth={1.5} />
             </span>
             <div>
-              <h4 className="font-display text-lg text-white">My Leadership</h4>
-              <p className="mt-1.5 text-sm leading-relaxed text-white/55">
+              <h4 className="font-display text-lg text-(--ink)">My Leadership</h4>
+              <p className="mt-1.5 text-sm leading-relaxed text-(--smoke)">
                 A manager&apos;s own review-turnaround speed and assignment volume — how effective they are as a lead, not their personal XP.
               </p>
             </div>
@@ -321,10 +321,10 @@ const SLIDES: SlideDef[] = [
     notes: "Name a couple of them out loud as they appear — pick two whose personality contrasts well (e.g. Charger vs Raven) to show the range.",
     render: () => (
       <div className="flex h-full flex-col justify-center">
-        <h2 className="slide-title font-display text-[clamp(2.4rem,5.5vw,4.2rem)] leading-[0.95] text-white">
-          Pick a voice that fits <span className="text-coral">how you work.</span>
+        <h2 className="slide-title font-display text-[clamp(2.4rem,5.5vw,4.2rem)] leading-[0.95] text-(--ink)">
+          Pick a voice that fits <span className="text-brand">how you work.</span>
         </h2>
-        <p className="slide-body mt-4 max-w-2xl text-xl text-white/50">
+        <p className="slide-body mt-4 max-w-2xl text-xl text-(--smoke)">
           Seven distinct companions, each with a real personality and a real specialty — not reskins of the same bot.
         </p>
         <div className="companion-grid mt-9 grid grid-cols-2 gap-5 sm:grid-cols-4">
@@ -341,12 +341,12 @@ const SLIDES: SlideDef[] = [
                 <Image src={pet.image} alt={pet.name} width={112} height={112} className="h-[80%] w-[80%] object-contain" />
               </div>
               <div>
-                <p className="font-display text-xl leading-tight text-white">{pet.name}</p>
+                <p className="font-display text-xl leading-tight text-(--ink)">{pet.name}</p>
                 <p className="mt-1 font-mono text-xs uppercase tracking-widest" style={{ color: pet.color }}>
                   {pet.ability}
                 </p>
               </div>
-              <p className="text-sm leading-snug text-white/50">{pet.specialty}</p>
+              <p className="text-sm leading-snug text-(--smoke)">{pet.specialty}</p>
             </div>
           ))}
         </div>
@@ -359,18 +359,18 @@ const SLIDES: SlideDef[] = [
     notes: "Pick two or three of these to expand on verbally based on the room — don't read all six, use them as prompts.",
     render: () => (
       <div className="flex h-full flex-col justify-center">
-        <h2 className="slide-title font-display text-[clamp(2.2rem,5vw,3.8rem)] leading-[0.95] text-white">
-          Fourteen real product areas. <span className="text-coral">Here are six.</span>
+        <h2 className="slide-title font-display text-[clamp(2.2rem,5vw,3.8rem)] leading-[0.95] text-(--ink)">
+          Fourteen real product areas. <span className="text-brand">Here are six.</span>
         </h2>
         <div className="feature-grid mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {FEATURE_HIGHLIGHTS.slice(0, 4).map((f) => (
-            <div key={f.title} className="feature-card flex items-start gap-4 rounded-2xl border border-white/10 bg-white/5 p-6">
-              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-coral/30 bg-coral/10">
-                <f.icon className="size-6 text-coral" strokeWidth={1.5} />
+            <div key={f.title} className="feature-card flex items-start gap-4 rounded-2xl border border-(--line) bg-(--wash) p-6">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-(--brand-soft) bg-brand-soft">
+                <f.icon className="size-6 text-brand" strokeWidth={1.5} />
               </span>
               <div>
-                <h4 className="font-display text-xl text-white">{f.title}</h4>
-                <p className="mt-1.5 text-base leading-relaxed text-white/55">{f.body}</p>
+                <h4 className="font-display text-xl text-(--ink)">{f.title}</h4>
+                <p className="mt-1.5 text-base leading-relaxed text-(--smoke)">{f.body}</p>
               </div>
             </div>
           ))}
@@ -384,30 +384,30 @@ const SLIDES: SlideDef[] = [
     notes: "This continues the previous slide — no need to re-explain the format, just keep the same energy.",
     render: () => (
       <div className="flex h-full flex-col justify-center">
-        <h2 className="slide-title font-display text-[clamp(2.2rem,5vw,3.8rem)] leading-[0.95] text-white">
-          Rewards that spend. <span className="text-coral">Goals everyone can watch.</span>
+        <h2 className="slide-title font-display text-[clamp(2.2rem,5vw,3.8rem)] leading-[0.95] text-(--ink)">
+          Rewards that spend. <span className="text-brand">Goals everyone can watch.</span>
         </h2>
         <div className="feature-grid mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {FEATURE_HIGHLIGHTS.slice(4, 6).map((f) => (
-            <div key={f.title} className="feature-card flex items-start gap-4 rounded-2xl border border-white/10 bg-white/5 p-6">
-              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-coral/30 bg-coral/10">
-                <f.icon className="size-6 text-coral" strokeWidth={1.5} />
+            <div key={f.title} className="feature-card flex items-start gap-4 rounded-2xl border border-(--line) bg-(--wash) p-6">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-(--brand-soft) bg-brand-soft">
+                <f.icon className="size-6 text-brand" strokeWidth={1.5} />
               </span>
               <div>
-                <h4 className="font-display text-xl text-white">{f.title}</h4>
-                <p className="mt-1.5 text-base leading-relaxed text-white/55">{f.body}</p>
+                <h4 className="font-display text-xl text-(--ink)">{f.title}</h4>
+                <p className="mt-1.5 text-base leading-relaxed text-(--smoke)">{f.body}</p>
               </div>
             </div>
           ))}
-          <div className="feature-card flex flex-col justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-6">
-            <h4 className="font-display text-xl text-white">Trading Post</h4>
-            <p className="text-base leading-relaxed text-white/55">
+          <div className="feature-card flex flex-col justify-center gap-2 rounded-2xl border border-(--line) bg-(--wash) p-6">
+            <h4 className="font-display text-xl text-(--ink)">Trading Post</h4>
+            <p className="text-base leading-relaxed text-(--smoke)">
               Resell anything you&apos;ve already redeemed — capped at what you originally paid, never a markup.
             </p>
           </div>
-          <div className="feature-card flex flex-col justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-6">
-            <h4 className="font-display text-xl text-white">Onboarding</h4>
-            <p className="text-base leading-relaxed text-white/55">
+          <div className="feature-card flex flex-col justify-center gap-2 rounded-2xl border border-(--line) bg-(--wash) p-6">
+            <h4 className="font-display text-xl text-(--ink)">Onboarding</h4>
+            <p className="text-base leading-relaxed text-(--smoke)">
               Pick a companion, name it, describe your role — AI suggests skills live as you type.
             </p>
           </div>
@@ -421,11 +421,11 @@ const SLIDES: SlideDef[] = [
     notes: "Emphasize \"even after you spend them\" — that's the surprising part, most reward systems are dead ends once you redeem.",
     render: () => (
       <div className="flex h-full flex-col justify-center">
-        <h2 className="slide-title font-display text-[clamp(2.4rem,5.5vw,4.2rem)] leading-[0.95] text-white">
-          Coins that move, <span className="text-coral">even after you spend them.</span>
+        <h2 className="slide-title font-display text-[clamp(2.4rem,5.5vw,4.2rem)] leading-[0.95] text-(--ink)">
+          Coins that move, <span className="text-brand">even after you spend them.</span>
         </h2>
-        <p className="slide-body mt-5 max-w-2xl text-xl text-white/55">
-          Earn from approved quests and quiz answers. Spend in the marketplace. Resell what you don&apos;t need on
+        <p className="slide-body mt-5 max-w-2xl text-xl text-(--smoke)">
+          Earn from approved assignments and quiz answers. Spend in the marketplace. Resell what you don&apos;t need on
           the Trading Post. Coins keep circulating — they don&apos;t just vanish into a leaderboard.
         </p>
         <div className="slide-body mt-8 grid grid-cols-2 gap-4 max-w-2xl sm:grid-cols-4">
@@ -435,9 +435,9 @@ const SLIDES: SlideDef[] = [
             ["Notifications", "Shipped"],
             ["Web3 Provenance", "Roadmap"],
           ].map(([name, status]) => (
-            <div key={name} className="slide-stat rounded-2xl border border-white/10 bg-white/5 p-5 text-base text-white/70">
-              <p className="font-display text-lg text-white">{name}</p>
-              <p className={`mt-1 font-mono text-xs uppercase tracking-widest ${status === "Shipped" ? "text-success" : "text-white/40"}`}>{status}</p>
+            <div key={name} className="slide-stat rounded-2xl border border-(--line) bg-(--wash) p-5 text-base text-(--ash)">
+              <p className="font-display text-lg text-(--ink)">{name}</p>
+              <p className={`mt-1 font-mono text-xs uppercase tracking-widest ${status === "Shipped" ? "text-success" : "text-(--smoke)"}`}>{status}</p>
             </div>
           ))}
         </div>
@@ -450,21 +450,21 @@ const SLIDES: SlideDef[] = [
     notes: "Let each number count up before speaking over it — the count-up itself holds attention, don't talk through it.",
     render: () => (
       <div className="flex h-full flex-col justify-center">
-        <h2 className="slide-title font-display text-[clamp(2.2rem,5vw,3.8rem)] leading-[0.95] text-white">
-          Small on paper. <span className="text-coral">Deep in practice.</span>
+        <h2 className="slide-title font-display text-[clamp(2.2rem,5vw,3.8rem)] leading-[0.95] text-(--ink)">
+          Small on paper. <span className="text-brand">Deep in practice.</span>
         </h2>
         <div className="stats-row mt-9 grid grid-cols-2 gap-8 sm:grid-cols-4">
           {[
             { value: 7, label: "AI companion species" },
             { value: 15, label: "product areas, shipped" },
-            { value: 4, label: "guild resource types" },
-            { value: 100, label: "% of adventures AI-generated" },
+            { value: 4, label: "team resource types" },
+            { value: 100, label: "% of assignments AI-generated" },
           ].map((s) => (
             <div key={s.label} className="flex flex-col gap-1">
-              <span className="stat-num font-display text-6xl text-coral sm:text-7xl" data-value={s.value}>
+              <span className="stat-num font-display text-6xl text-brand sm:text-7xl" data-value={s.value}>
                 0
               </span>
-              <span className="max-w-[18ch] text-base text-white/50">{s.label}</span>
+              <span className="max-w-[18ch] text-base text-(--smoke)">{s.label}</span>
             </div>
           ))}
         </div>
@@ -477,11 +477,11 @@ const SLIDES: SlideDef[] = [
     notes: "This is the thesis statement of the whole pitch. Slow down and say it plainly — it's the line people should remember.",
     render: () => (
       <div className="flex h-full flex-col justify-center">
-        <h2 className="slide-title max-w-3xl font-display text-[clamp(2.4rem,5.5vw,4rem)] leading-[0.95] text-white">
-          Gamification that serves <span className="text-coral">collaboration</span>, not competition.
+        <h2 className="slide-title max-w-3xl font-display text-[clamp(2.4rem,5.5vw,4rem)] leading-[0.95] text-(--ink)">
+          Gamification that serves <span className="text-brand">collaboration</span>, not competition.
         </h2>
-        <p className="slide-body mt-6 max-w-2xl text-xl leading-relaxed text-white/55">
-          No public leaderboards ranking people against each other. Guild resources are shared, not individually
+        <p className="slide-body mt-6 max-w-2xl text-xl leading-relaxed text-(--smoke)">
+          No public leaderboards ranking people against each other. Team resources are shared, not individually
           hoarded. The AI companion is structural to every feature, not a bolted-on chatbot. And managers see their
           team by companion identity first — recognition without the awkwardness of a name on every review.
         </p>
@@ -494,16 +494,13 @@ const SLIDES: SlideDef[] = [
     notes: "Closing line. Pause after this one, don't fill the silence — let it land, then take questions.",
     render: () => (
       <div className="flex h-full flex-col items-center justify-center text-center">
-        <h2 className="slide-title font-display text-[clamp(2.8rem,7vw,5.5rem)] leading-[0.95] text-white">
-          Let&apos;s make work <span className="text-coral">worth showing up for.</span>
+        <h2 className="slide-title font-display text-[clamp(2.8rem,7vw,5.5rem)] leading-[0.95] text-(--ink)">
+          Let&apos;s make work <span className="text-brand">worth showing up for.</span>
         </h2>
       </div>
     ),
   },
 ];
-
-/** Reserved for the deck's big "turn" moments so the effect stays special — everything else gets a simple fade+rise instead. */
-const GATHER_SLIDE_IDS = new Set(["cover", "problem", "morph-tasks", "morph-org", "morph-growth", "closer"]);
 
 function Deck({ onExit }: { onExit: () => void }) {
   const { isFullscreen, exit } = useFullscreen();
@@ -513,7 +510,6 @@ function Deck({ onExit }: { onExit: () => void }) {
   const burstRef = useRef<LightningBurstHandle>(null);
   const morphedRef = useRef({ tasks: false, org: false, growth: false });
   const transitioning = useRef(false);
-  const titleSplitRef = useRef<SplitText | null>(null);
 
   /**
    * The slide's single entrance animation — everything else in this
@@ -522,51 +518,14 @@ function Deck({ onExit }: { onExit: () => void }) {
    * the incoming slide, see below), so exactly one animation plays per
    * element, not two competing ones.
    *
-   * On the deck's big "turn" moments (GATHER_SLIDE_IDS), the title
-   * "gathers" into place: each character starts scattered at a random
-   * offset/rotation/opacity and converges to its real resting spot, like
-   * it's being assembled rather than just fading up. Every other slide's
-   * title gets a plain fade+rise instead, so the gather effect stays
-   * special rather than feeling like default chrome. Supporting copy
-   * (eyebrow/body/rows/stats) always gets the same simple fade+rise,
-   * staggered in right after.
+   * Every title gets the same fade+rise, and the supporting copy
+   * (eyebrow/body/rows/stats) follows with the same motion, staggered in
+   * right after — so moving through the deck reads as one consistent
+   * transition rather than some slides announcing themselves differently.
    */
   function playSlideIn(el: HTMLElement) {
-    titleSplitRef.current?.revert();
-    titleSplitRef.current = null;
-
-    const slideId = SLIDES[Number(el.dataset.slide)]?.id;
     const titleEl = el.querySelector<HTMLElement>(".slide-title");
-
-    if (titleEl && slideId && GATHER_SLIDE_IDS.has(slideId)) {
-      const split = SplitText.create(titleEl, { type: "chars", charsClass: "slide-title-char" });
-      titleSplitRef.current = split;
-      gsap.set(split.chars, { display: "inline-block" });
-      split.chars.forEach((char) => {
-        const angle = Math.random() * Math.PI * 2;
-        const dist = 60 + Math.random() * 120;
-        gsap.fromTo(
-          char,
-          {
-            opacity: 0,
-            x: Math.cos(angle) * dist,
-            y: Math.sin(angle) * dist,
-            rotation: (Math.random() - 0.5) * 200,
-            scale: 0.3,
-          },
-          {
-            opacity: 1,
-            x: 0,
-            y: 0,
-            rotation: 0,
-            scale: 1,
-            duration: 0.7,
-            delay: Math.random() * 0.15,
-            ease: "power3.out",
-          },
-        );
-      });
-    } else if (titleEl) {
+    if (titleEl) {
       gsap.fromTo(titleEl, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" });
     }
 
@@ -702,8 +661,15 @@ function Deck({ onExit }: { onExit: () => void }) {
   const currentNotes = SLIDES[index].notes;
 
   return (
-    <div className="landing-page deck-dark fixed inset-0 overflow-hidden bg-(--ink)">
-      <div className="pointer-events-none absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)", backgroundSize: "48px 48px" }} />
+    <div className="landing-page fixed inset-0 overflow-hidden bg-(--paper)">
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, var(--grid-line) 1px, transparent 1px), linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px)",
+          backgroundSize: "48px 48px",
+        }}
+      />
       <LightningBurst ref={burstRef} />
 
       <div ref={stageRef} className={`relative h-full w-full px-10 py-16 sm:px-20 sm:py-20 ${notesVisible ? "pb-28 sm:pb-32" : ""}`}>
@@ -715,7 +681,7 @@ function Deck({ onExit }: { onExit: () => void }) {
             style={{ pointerEvents: i === index ? "auto" : "none" }}
           >
             {slide.kicker && (
-              <p className="slide-eyebrow absolute top-8 left-10 font-mono text-sm uppercase tracking-[0.25em] text-white/35 sm:left-20">
+              <p className="slide-eyebrow absolute top-8 left-10 font-mono text-sm uppercase tracking-[0.25em] text-(--faint) sm:left-20">
                 {slide.kicker}
               </p>
             )}
@@ -728,9 +694,9 @@ function Deck({ onExit }: { onExit: () => void }) {
       <button aria-label="Next slide" onClick={() => handleClickZone(1)} className="absolute inset-y-0 right-0 z-20 w-3/4 cursor-e-resize" />
 
       {notesVisible && currentNotes && (
-        <div className="pointer-events-none absolute right-0 bottom-16 left-0 z-30 border-t border-white/10 bg-black/60 px-10 py-4 backdrop-blur-sm sm:px-20">
-          <p className="mx-auto flex max-w-4xl items-start gap-3 font-mono text-sm leading-relaxed text-white/55">
-            <span className="mt-0.5 shrink-0 rounded-full border border-coral/40 bg-coral/10 px-2 py-0.5 text-[10px] tracking-widest text-coral uppercase">Say</span>
+        <div className="pointer-events-none absolute right-0 bottom-16 left-0 z-30 border-t border-(--line) bg-(--scrim) px-10 py-4 backdrop-blur-sm sm:px-20">
+          <p className="mx-auto flex max-w-4xl items-start gap-3 font-mono text-sm leading-relaxed text-(--smoke)">
+            <span className="mt-0.5 shrink-0 rounded-full border border-(--brand-soft) bg-brand-soft px-2 py-0.5 text-[10px] tracking-widest text-brand uppercase">Say</span>
             {currentNotes}
           </p>
         </div>
@@ -739,10 +705,10 @@ function Deck({ onExit }: { onExit: () => void }) {
       <div className="pointer-events-none absolute right-8 bottom-6 left-8 z-30 flex items-center justify-between sm:right-16 sm:left-16">
         <div className="flex items-center gap-1.5">
           {SLIDES.map((s, i) => (
-            <span key={s.id} className="h-1.5 rounded-full transition-all duration-300" style={{ width: i === index ? 24 : 6, background: i === index ? "var(--coral)" : "rgba(255,255,255,0.2)" }} />
+            <span key={s.id} className="h-1.5 rounded-full transition-all duration-300" style={{ width: i === index ? 24 : 6, background: i === index ? "var(--brand)" : "var(--line-strong)" }} />
           ))}
         </div>
-        <span className="font-mono text-xs text-white/40">
+        <span className="font-mono text-xs text-(--smoke)">
           {String(index + 1).padStart(2, "0")} / {String(SLIDES.length).padStart(2, "0")}
         </span>
       </div>
@@ -751,7 +717,7 @@ function Deck({ onExit }: { onExit: () => void }) {
         <button
           type="button"
           onClick={() => setNotesVisible((v) => !v)}
-          className="flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-white/60 backdrop-blur-sm transition-colors hover:text-white"
+          className="flex items-center gap-2 rounded-full border border-(--line) bg-(--scrim) px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-(--ash) backdrop-blur-sm transition-colors hover:text-(--ink)"
         >
           {notesVisible ? "Hide notes" : "Show notes"}
         </button>
@@ -759,7 +725,7 @@ function Deck({ onExit }: { onExit: () => void }) {
           <button
             type="button"
             onClick={() => document.documentElement.requestFullscreen().catch(() => {})}
-            className="flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-white/60 backdrop-blur-sm transition-colors hover:text-white"
+            className="flex items-center gap-2 rounded-full border border-(--line) bg-(--scrim) px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-(--ash) backdrop-blur-sm transition-colors hover:text-(--ink)"
           >
             <Maximize className="size-3.5" />
             Full screen
@@ -772,13 +738,13 @@ function Deck({ onExit }: { onExit: () => void }) {
             onExit();
           }}
           aria-label="Exit presentation"
-          className="flex size-9 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/60 backdrop-blur-sm transition-colors hover:text-white"
+          className="flex size-9 items-center justify-center rounded-full border border-(--line) bg-(--scrim) text-(--ash) backdrop-blur-sm transition-colors hover:text-(--ink)"
         >
           <X className="size-4" />
         </button>
       </div>
 
-      <div className="pointer-events-none absolute top-8 left-1/2 z-30 hidden -translate-x-1/2 items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-white/30 sm:flex">
+      <div className="pointer-events-none absolute top-8 left-1/2 z-30 hidden -translate-x-1/2 items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-(--faint) sm:flex">
         <ArrowLeft className="size-3" />
         Click sides or arrow keys · N to toggle notes
         <ArrowRight className="size-3" />
@@ -806,7 +772,7 @@ export function ShowPptClient() {
       <div className="relative">
         <Link
           href="/"
-          className="fixed top-6 left-6 z-50 flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-4 py-2 font-mono text-xs uppercase tracking-widest text-white/70 backdrop-blur-sm transition-colors hover:border-white/30 hover:text-white sm:left-12"
+          className="fixed top-6 left-6 z-50 flex items-center gap-2 rounded-full border border-(--line) bg-(--scrim) px-4 py-2 font-mono text-xs uppercase tracking-widest text-(--ash) backdrop-blur-sm transition-colors hover:border-(--line-strong) hover:text-(--ink) sm:left-12"
         >
           <ArrowLeft className="size-3.5" />
           Back

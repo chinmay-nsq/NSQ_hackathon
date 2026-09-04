@@ -3,7 +3,7 @@ import { HowItWorksClient } from "./HowItWorksClient";
 
 const TITLE = "How It Works — Skibidi-Sprint";
 const DESCRIPTION =
-  "The full feature roadmap — every area of Skibidi-Sprint, from adventures and guilds to the AI companion, broken down for both employees and team leads.";
+  "The full feature roadmap — every area of Skibidi-Sprint, from assignments and teams to the AI companion, broken down for both employees and team leads.";
 
 export const metadata: Metadata = {
   title: TITLE,

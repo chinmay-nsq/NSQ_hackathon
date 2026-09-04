@@ -5,6 +5,8 @@ import { asyncHandler } from "@/middleware/asyncHandler";
 
 const router = Router();
 
-router.get("/", requireAuth, asyncHandler(StandupController.get));
+router.get("/rooms", requireAuth, asyncHandler(StandupController.rooms));
+router.get("/messages", requireAuth, asyncHandler(StandupController.messages));
+router.post("/messages", requireAuth, asyncHandler(StandupController.post));
 
 export default router;

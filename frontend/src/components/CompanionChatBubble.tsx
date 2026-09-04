@@ -132,7 +132,7 @@ export function CompanionChatBubble() {
             ) : messages.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
                 <p className="text-sm text-muted-foreground">
-                  Say hi to {employee.companion.name} — ask about your progress, your guild, anything.
+                  Say hi to {employee.companion.name} — ask about your progress, your team, anything.
                 </p>
                 <div className="flex flex-wrap justify-center gap-1.5">
                   {suggestions.map((s) => (

@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
 import { useOnboardingTourStore } from "@/store/onboardingTourStore";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -22,18 +21,6 @@ const PROFILE_ROUTE = "/onboarding/profile";
 const APP_HOME_ROUTE = "/app";
 const FULL_ONBOARDING_ROUTES = [ONBOARDING_ROUTE, PROFILE_ROUTE];
 
-/*
-  Routes that get the shell's full width instead of the centred reading
-  column. The task board is four columns of cards side by side — inside
-  max-w-6xl each column lands near 260px, which wraps almost every card
-  title and leaves a wide dead margin against the sidebar. Text-led pages
-  keep the narrower column, where a full-width line would be hard to read.
-
-  Only the max-width differs; the gutter itself is one value for every
-  route, so a page never sits closer to the sidebar than its neighbours.
-*/
-const WIDE_ROUTES = ["/adventures"];
-
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { status, employee, fetchMe } = useAuthStore();
   const tourActive = useOnboardingTourStore((s) => s.active);
@@ -41,7 +28,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
   const isOnboardingRoute = FULL_ONBOARDING_ROUTES.includes(pathname);
-  const isWideRoute = WIDE_ROUTES.includes(pathname);
 
   useEffect(() => {
     if (status === "idle") {
@@ -112,8 +98,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <NotificationBell />
           <ThemeToggle />
         </header>
+        {/* One container for every page — same gutter, same width. The task
+            board needs the room (four columns side by side), and a page that
+            matched its neighbours everywhere except here read as a bug. */}
         <main className="min-w-0 flex-1 px-7 pt-7 pb-6">
-          <div className={cn("w-full min-w-0", !isWideRoute && "mx-auto max-w-6xl")}>{children}</div>
+          <div className="w-full min-w-0">{children}</div>
         </main>
       </SidebarInset>
       {/* Managers have a hidden auto-provisioned companion (internal bookkeeping only, see CompanionService.autoProvisionHidden) — never shown as chat. */}

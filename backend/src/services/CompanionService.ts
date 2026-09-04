@@ -1,8 +1,8 @@
 import { Prisma } from "@prisma/client";
 import { CompanionRepository } from "@/repositories/CompanionRepository";
 import { EmployeeRepository } from "@/repositories/EmployeeRepository";
-import { AdventureRepository } from "@/repositories/AdventureRepository";
-import { GuildRepository } from "@/repositories/GuildRepository";
+import { AssignmentRepository } from "@/repositories/AssignmentRepository";
+import { TeamRepository } from "@/repositories/TeamRepository";
 import { ChatRepository } from "@/repositories/ChatRepository";
 import { CompanionFactory } from "@/factories/CompanionFactory";
 import { AIService, ChatContext, DialogueAction } from "./AIService";
@@ -43,7 +43,7 @@ class CompanionServiceImpl {
    */
   autoProvisionHidden(employeeId: string) {
     return prisma.companion.create({
-      data: CompanionFactory.build(employeeId, "barbarian", employeeId),
+      data: CompanionFactory.build(employeeId, "michael", employeeId),
     });
   }
 
@@ -93,16 +93,16 @@ class CompanionServiceImpl {
 
     const isLead = employee.role === "MANAGER" || employee.role === "ADMIN";
 
-    const pendingAdventures = await prisma.adventureProgress.count({
+    const pendingAssignments = await prisma.assignmentProgress.count({
       where: { employeeId, completed: false },
     });
 
-    // A freshly-generated daily quiz has no AdventureProgress row at all
+    // A freshly-generated daily quiz has no AssignmentProgress row at all
     // until it's completed, so the count above can't see it — check today's
-    // solo adventure directly. "not_generated" (no row yet) must be told to
+    // solo assignment directly. "not_generated" (no row yet) must be told to
     // the AI as a DISTINCT state from "completed" — otherwise a brand-new
     // account that has never taken the quiz gets told it's "already done".
-    const todaysSolo = await AdventureRepository.findTodaysSoloAdventure(employeeId, startOfToday());
+    const todaysSolo = await AssignmentRepository.findTodaysSoloAssignment(employeeId, startOfToday());
     const dailyQuizStatus: "not_generated" | "pending" | "completed" =
       !todaysSolo || todaysSolo.quiz === null
         ? "not_generated"
@@ -111,26 +111,26 @@ class CompanionServiceImpl {
           : "pending";
 
     // A genuinely brand-new account has nothing real for the AI to reference
-    // — no guild, no completed work, no memory — so asking it to write a
+    // — no team, no completed work, no memory — so asking it to write a
     // "grounded" greeting anyway just produces generic filler dressed up as
     // personalization. Skip the AI call entirely and say something honest
     // instead: this is their first day, here's what's next.
-    const hasCompletedAnything = await prisma.adventureProgress.count({
+    const hasCompletedAnything = await prisma.assignmentProgress.count({
       where: { employeeId, completed: true },
     });
-    if (hasCompletedAnything === 0 && !employee.guild && pendingAdventures === 0 && dailyQuizStatus === "not_generated") {
+    if (hasCompletedAnything === 0 && !employee.team && pendingAssignments === 0 && dailyQuizStatus === "not_generated") {
       await CompanionRepository.touchDialogueTimestamp(employee.companion.id);
       return {
-        text: `Hey ${employee.name}, I'm ${employee.companion.name} — glad you're here. We haven't done anything together yet, so let's fix that: your first daily quiz is one click away, and I'll help you find a guild to join.`,
-        action: { topic: "adventures", label: "Take today's quiz" },
+        text: `Hey ${employee.name}, I'm ${employee.companion.name} — glad you're here. We haven't done anything together yet, so let's fix that: your first daily quiz is one click away, and I'll help you find a team to join.`,
+        action: { topic: "assignments", label: "Take today's quiz" },
       };
     }
 
-    let guildResourceGap: string | undefined;
-    if (employee.guild) {
-      const guild = employee.guild;
-      const lowest = RESOURCE_TYPES.reduce((min, key) => (guild[key] < guild[min] ? key : min), RESOURCE_TYPES[0]);
-      guildResourceGap = `${guild.name} could use more ${lowest}`;
+    let teamResourceGap: string | undefined;
+    if (employee.team) {
+      const team = employee.team;
+      const lowest = RESOURCE_TYPES.reduce((min, key) => (team[key] < team[min] ? key : min), RESOURCE_TYPES[0]);
+      teamResourceGap = `${team.name} could use more ${lowest}`;
     }
 
     const latestMemory = await CompanionRepository.latestMemory(employee.companion.id);
@@ -158,10 +158,10 @@ class CompanionServiceImpl {
     let action: DialogueAction | undefined;
 
     if (isLead) {
-      const pendingReviewCount = await prisma.adventureProgress.count({
+      const pendingReviewCount = await prisma.assignmentProgress.count({
         where: {
           approval: "PENDING",
-          adventure: { assignedById: employeeId },
+          assignment: { assignedById: employeeId },
         },
       });
       if (pendingReviewCount > 0) {
@@ -186,9 +186,9 @@ class CompanionServiceImpl {
 
     if (!action) {
       if (dailyQuizStatus === "pending") {
-        action = { topic: "adventures", label: "Take today's quiz" };
-      } else if (pendingAdventures > 0) {
-        action = { topic: "adventures", label: pendingAdventures === 1 ? "View your quest" : "View your quests" };
+        action = { topic: "assignments", label: "Take today's quiz" };
+      } else if (pendingAssignments > 0) {
+        action = { topic: "assignments", label: pendingAssignments === 1 ? "View your assignment" : "View your assignments" };
       }
     }
 
@@ -196,9 +196,9 @@ class CompanionServiceImpl {
       companionName: employee.companion.name,
       species: employee.companion.species,
       employeeName: employee.name,
-      guildName: employee.guild?.name,
-      guildResourceGap,
-      pendingAdventures,
+      teamName: employee.team?.name,
+      teamResourceGap,
+      pendingAssignments,
       dailyQuizStatus,
       recentMemory: latestMemory?.summary,
       currentStreakDays,
@@ -210,12 +210,12 @@ class CompanionServiceImpl {
     return { text: dialogueText, action };
   }
 
-  async recordAdventureCompletion(companionId: string, employeeName: string, adventureTitle: string, bondXpGain: number) {
+  async recordAssignmentCompletion(companionId: string, employeeName: string, assignmentTitle: string, bondXpGain: number) {
     await CompanionRepository.addBondXp(companionId, bondXpGain);
     await CompanionRepository.addMemory(
       companionId,
-      "completed_adventure",
-      `${employeeName} completed "${adventureTitle}"`
+      "completed_assignment",
+      `${employeeName} completed "${assignmentTitle}"`
     );
   }
 
@@ -242,7 +242,7 @@ class CompanionServiceImpl {
   /**
    * Sends a real chat message and gets the companion's reply — both are
    * persisted. Grounded in the employee's actual current state (level, XP,
-   * coins, guild, pending adventures, quiz status) via the same lookups
+   * coins, team, pending assignments, quiz status) via the same lookups
    * getDialogue uses, so the companion can answer real questions instead of
    * only narrating at them. The model may request a tool (create/assign a
    * task, navigate) instead of replying directly — if so, the tool actually
@@ -259,16 +259,16 @@ class CompanionServiceImpl {
     if (!employee) throw new ApiError(HttpStatus.NOT_FOUND, "Employee not found", "Not Found");
     if (!employee.companion) throw new ApiError(HttpStatus.NOT_FOUND, "No companion yet", "Not Found");
 
-    const pendingAdventures = await AdventureRepository.findActiveForEmployee(
+    const pendingAssignments = await AssignmentRepository.findActiveForEmployee(
       employeeId,
-      employee.guildId,
+      employee.teamId,
       startOfToday()
     );
-    const pendingAdventureTitles = pendingAdventures
+    const pendingAssignmentTitles = pendingAssignments
       .filter((a) => !a.progress?.[0]?.completed)
       .map((a) => a.title);
 
-    const todaysSolo = await AdventureRepository.findTodaysSoloAdventure(employeeId, startOfToday());
+    const todaysSolo = await AssignmentRepository.findTodaysSoloAssignment(employeeId, startOfToday());
     const dailyQuizStatus: "not_generated" | "pending" | "completed" =
       !todaysSolo || todaysSolo.quiz === null
         ? "not_generated"
@@ -276,14 +276,14 @@ class CompanionServiceImpl {
           ? "completed"
           : "pending";
 
-    // A manager can lead a guild without being a member of it (guildName
+    // A manager can lead a team without being a member of it (teamName
     // above reflects membership only) — fetched separately so the
     // companion knows the difference and never tells a manager they have
     // no team just because they're not personally in the roster.
-    const managedGuildNames =
+    const managedTeamNames =
       employee.role === "EMPLOYEE"
         ? []
-        : (await GuildRepository.findNamesManagedBy(employeeId)).map((g) => g.name);
+        : (await TeamRepository.findNamesManagedBy(employeeId)).map((g) => g.name);
 
     const chatContext: ChatContext = {
       companionName: employee.companion.name,
@@ -293,9 +293,9 @@ class CompanionServiceImpl {
       level: employee.level,
       xp: employee.xp,
       coins: employee.coins,
-      guildName: employee.guild?.name,
-      managedGuildNames,
-      pendingAdventureTitles,
+      teamName: employee.team?.name,
+      managedTeamNames,
+      pendingAssignmentTitles,
       dailyQuizStatus,
     };
 

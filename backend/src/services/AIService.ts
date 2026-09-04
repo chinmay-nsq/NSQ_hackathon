@@ -1,5 +1,5 @@
 import { getAIProvider, ChatTurn, ToolDefinition, ToolCallRequest, ToolCallResult } from "@/factories/AIProviderFactory";
-import { GeneratedAdventureContent } from "@/factories/AdventureFactory";
+import { GeneratedAssignmentContent } from "@/factories/AssignmentFactory";
 import { encodeAnswer } from "@/utils/quizCipher";
 
 export interface QuizQuestionContent {
@@ -15,7 +15,7 @@ export interface ProfileSuggestion {
 }
 
 /** A closed set of destinations an observation can point at — chosen BY the AI from this fixed enum (never a free-text URL), the same discipline as the companion chat's navigate tool. */
-export type GrowthObservationTopic = "adventures" | "teams" | "approvals" | "growth";
+export type GrowthObservationTopic = "assignments" | "teams" | "approvals" | "growth";
 
 export interface GrowthObservation {
   text: string;
@@ -35,7 +35,7 @@ export interface GrowthInsight {
  * asking the AI to pick one. The AI only ever sees the resulting text; it
  * never chooses or produces a route itself.
  */
-export type DialogueActionTopic = "adventures" | "approvals" | "teams";
+export type DialogueActionTopic = "assignments" | "approvals" | "teams";
 
 export interface DialogueAction {
   topic: DialogueActionTopic;
@@ -50,11 +50,11 @@ export interface ChatContext {
   level: number;
   xp: number;
   coins: number;
-  /** The guild this employee is a MEMBER of — separate from managedGuildNames below, since a manager can lead a guild without also being a member of it. */
-  guildName?: string;
-  /** Manager/admin only: guild(s) this employee LEADS. A manager who created a guild is its leader via this, not necessarily a member of it. */
-  managedGuildNames: string[];
-  pendingAdventureTitles: string[];
+  /** The team this employee is a MEMBER of — separate from managedTeamNames below, since a manager can lead a team without also being a member of it. */
+  teamName?: string;
+  /** Manager/admin only: team(s) this employee LEADS. A manager who created a team is its leader via this, not necessarily a member of it. */
+  managedTeamNames: string[];
+  pendingAssignmentTitles: string[];
   dailyQuizStatus: "not_generated" | "pending" | "completed";
 }
 
@@ -110,7 +110,7 @@ const FALLBACK_QUIZ_QUESTIONS: RawQuizQuestion[] = [
   },
 ];
 
-const FALLBACK_SOLO: GeneratedAdventureContent[] = [
+const FALLBACK_SOLO: GeneratedAssignmentContent[] = [
   {
     title: "Morning Reflection",
     description: "Write two sentences about what you want to accomplish today.",
@@ -142,12 +142,12 @@ const FALLBACK_PROFILE_SUGGESTION: ProfileSuggestion = {
 // regardless, this only covers the AI-phrased headline/observations.
 const FALLBACK_GROWTH_INSIGHT: GrowthInsight = {
   headline: "Keep going — your trend is still building.",
-  observations: [{ text: "Complete a few more quests this week to unlock a clearer trend.", topic: "adventures" }],
+  observations: [{ text: "Complete a few more assignments this week to unlock a clearer trend.", topic: "assignments" }],
 };
 
-const FALLBACK_WELCOME_QUEST: GeneratedAdventureContent = {
+const FALLBACK_WELCOME_QUEST: GeneratedAssignmentContent = {
   title: "Say Hello",
-  description: "Introduce yourself to your guild — share your role and one thing you're excited to work on.",
+  description: "Introduce yourself to your team — share your role and one thing you're excited to work on.",
   xpReward: 20,
   coinReward: 15,
   resourceType: "influence",
@@ -155,16 +155,16 @@ const FALLBACK_WELCOME_QUEST: GeneratedAdventureContent = {
 };
 
 class AIServiceImpl {
-  async generateSoloAdventure(context: {
+  async generateSoloAssignment(context: {
     employeeName: string;
     department: string;
     recentActivity: string;
     jobRole?: string | null;
     seniority?: string | null;
     skills?: string[];
-  }): Promise<GeneratedAdventureContent> {
-    const system = `You are the AI Dungeon Master for Skibidi-Sprint, a workplace gamification app.
-Generate ONE short solo adventure (a small daily task) for an employee, tailored to their role, seniority, and skills when given.
+  }): Promise<GeneratedAssignmentContent> {
+    const system = `You are the AI assignment writer for Skibidi-Sprint, a workplace gamification app.
+Generate ONE short solo assignment (a small daily task) for an employee, tailored to their role, seniority, and skills when given.
 Respond ONLY with JSON matching: { "title": string, "description": string, "xpReward": number (10-40), "coinReward": number (5-25), "resourceType": "knowledge"|"gold"|"influence"|"materials", "resourceAmount": number (3-15) }
 Keep it realistic for a workplace: a small task that actually uses their skills, plus learning, reflection, wellness, or peer appreciation as variety. No fantasy jargon in the description itself, just the framing.`;
 
@@ -172,17 +172,17 @@ Keep it realistic for a workplace: a small task that actually uses their skills,
       ? `Role: ${context.jobRole}${context.seniority ? ` (${context.seniority})` : ""}. Skills: ${(context.skills ?? []).join(", ") || "none listed"}.`
       : "No work profile on file yet — keep it generic.";
 
-    const user = `Employee: ${context.employeeName}, Department: ${context.department}. ${profileLine} Recent activity: ${context.recentActivity || "none yet"}. Generate today's solo adventure.`;
+    const user = `Employee: ${context.employeeName}, Department: ${context.department}. ${profileLine} Recent activity: ${context.recentActivity || "none yet"}. Generate today's solo assignment.`;
 
     try {
-      return await getAIProvider().completeJSON<GeneratedAdventureContent>(system, user);
+      return await getAIProvider().completeJSON<GeneratedAssignmentContent>(system, user);
     } catch {
       return FALLBACK_SOLO[Math.floor(Math.random() * FALLBACK_SOLO.length)];
     }
   }
 
   /**
-   * The self-serve daily solo quest — a 5-question multiple-choice skill
+   * The self-serve daily solo assignment — a 5-question multiple-choice skill
    * quiz tailored to the employee's role/seniority/skills, instead of a
    * plain text task. Each correct option is obfuscated via `encodeAnswer`
    * before being returned, so the raw content never contains a
@@ -227,40 +227,40 @@ Do NOT write generic workplace-behavior, soft-skill, or "best practice" question
    * or any other personally-identifying detail. Matches the anonymity model
    * used everywhere else a manager views their team.
    */
-  async generateSoloAdventureForProfile(context: {
+  async generateSoloAssignmentForProfile(context: {
     jobRole: string;
     seniority: string;
     skills: string[];
-  }): Promise<GeneratedAdventureContent> {
-    const system = `You are the AI Dungeon Master for Skibidi-Sprint, a workplace gamification app.
-Generate ONE short solo adventure (a small daily task) for an employee, based only on their role, seniority, and skills — you are never told their name or any other identifying detail, and must not invent one.
+  }): Promise<GeneratedAssignmentContent> {
+    const system = `You are the AI assignment writer for Skibidi-Sprint, a workplace gamification app.
+Generate ONE short solo assignment (a small daily task) for an employee, based only on their role, seniority, and skills — you are never told their name or any other identifying detail, and must not invent one.
 Respond ONLY with JSON matching: { "title": string, "description": string, "xpReward": number (10-40), "coinReward": number (5-25), "resourceType": "knowledge"|"gold"|"influence"|"materials", "resourceAmount": number (3-15) }
 Keep it realistic for a workplace: a small task that actually uses their listed skills at their seniority level.`;
 
     const user = `Role: ${context.jobRole} (${context.seniority}). Skills: ${context.skills.join(", ")}. Generate a task for this person.`;
 
     try {
-      return await getAIProvider().completeJSON<GeneratedAdventureContent>(system, user);
+      return await getAIProvider().completeJSON<GeneratedAssignmentContent>(system, user);
     } catch {
       return FALLBACK_SOLO[Math.floor(Math.random() * FALLBACK_SOLO.length)];
     }
   }
 
-  async generateGuildAdventure(context: {
-    guildName: string;
+  async generateTeamAssignment(context: {
+    teamName: string;
     department: string;
-  }): Promise<GeneratedAdventureContent> {
-    const system = `You are the AI Dungeon Master for Skibidi-Sprint. Generate ONE short guild (team) adventure — a small collaborative task for a whole department team.
+  }): Promise<GeneratedAssignmentContent> {
+    const system = `You are the AI assignment writer for Skibidi-Sprint. Generate ONE short team assignment — a small collaborative task for a whole department team.
 Respond ONLY with JSON matching: { "title": string, "description": string, "xpReward": number (20-50), "coinReward": number (10-30), "resourceType": "knowledge"|"gold"|"influence"|"materials", "resourceAmount": number (10-30) }`;
 
-    const user = `Guild: ${context.guildName}, Department: ${context.department}. Generate today's guild adventure relevant to this department's real work.`;
+    const user = `Team: ${context.teamName}, Department: ${context.department}. Generate today's team assignment relevant to this department's real work.`;
 
     try {
-      return await getAIProvider().completeJSON<GeneratedAdventureContent>(system, user);
+      return await getAIProvider().completeJSON<GeneratedAssignmentContent>(system, user);
     } catch {
       return {
         title: `${context.department} Knowledge Share`,
-        description: `Share one best practice from ${context.department} with the rest of the guild.`,
+        description: `Share one best practice from ${context.department} with the rest of the team.`,
         xpReward: 30,
         coinReward: 20,
         resourceType: "knowledge",
@@ -287,9 +287,9 @@ Respond ONLY with JSON matching: { "title": string, "description": string, "xpRe
   }): Promise<GrowthInsight> {
     const system = `You are a growth-insight writer for Skibidi-Sprint, a workplace gamification app.
 You are given ALREADY-COMPUTED real numbers about one employee's own trend over recent weeks. Do not invent, estimate, or recompute any numbers — only reference the numbers given.
-Respond ONLY with JSON matching: { "headline": string (max 90 chars, one punchy factual sentence), "observations": [{ "text": string (max 140 chars, grounded in a specific number from the input), "topic": "adventures" | "growth" | omit }] (2-3 items) }
-"topic" tags what the observation is ABOUT so the UI can offer a "go there" button — use "adventures" for anything about quiz accuracy, streaks, or XP/quest output (since that's where quests and the daily quiz live), "growth" for a meta-observation about the trend itself with no single obvious destination, or omit "topic" entirely if the observation isn't actionable (e.g. "not enough data yet"). Never invent a topic outside this list.
-Tone: encouraging but concrete and specific — never generic praise ("great job!") without a number attached. Never mention "kingdom", fantasy framing, or invented narrative — this is a real stats summary, not a story.
+Respond ONLY with JSON matching: { "headline": string (max 90 chars, one punchy factual sentence), "observations": [{ "text": string (max 140 chars, grounded in a specific number from the input), "topic": "assignments" | "growth" | omit }] (2-3 items) }
+"topic" tags what the observation is ABOUT so the UI can offer a "go there" button — use "assignments" for anything about quiz accuracy, streaks, or XP/assignment output (since that's where assignments and the daily quiz live), "growth" for a meta-observation about the trend itself with no single obvious destination, or omit "topic" entirely if the observation isn't actionable (e.g. "not enough data yet"). Never invent a topic outside this list.
+Tone: encouraging but concrete and specific — never generic praise ("great job!") without a number attached. Never mention "company", fantasy framing, or invented narrative — this is a real stats summary, not a story.
 If a number is null (not enough data yet), do not fabricate a value for it — write around it or omit that dimension from the observations.`;
 
     const user = `Employee: ${context.employeeName}.
@@ -316,8 +316,8 @@ Write their growth insight.`;
     const system = `You are a growth-insight writer for Skibidi-Sprint, a workplace gamification app.
 You are given ALREADY-COMPUTED real numbers about a manager's TEAM'S collective trend (not any one individual). Do not invent, estimate, or recompute any numbers, and never name or imply a specific team member — this is aggregate-only, anonymized by design.
 Respond ONLY with JSON matching: { "headline": string (max 90 chars), "observations": [{ "text": string (max 140 chars, grounded in a specific number from the input), "topic": "teams" | "growth" | omit }] (2-3 items) }
-"topic" tags what the observation is ABOUT so the UI can offer a "go there" button — use "teams" for anything about the team/guild, "growth" for a meta-observation with no single obvious destination, or omit "topic" if the observation isn't actionable. Never invent a topic outside this list.
-Tone: factual and useful to a manager deciding where to focus — never generic. Never mention "kingdom", "guild" narrative, or fantasy framing.`;
+"topic" tags what the observation is ABOUT so the UI can offer a "go there" button — use "teams" for anything about the team/team, "growth" for a meta-observation with no single obvious destination, or omit "topic" if the observation isn't actionable. Never invent a topic outside this list.
+Tone: factual and useful to a manager deciding where to focus — never generic. Never mention "company", "team" narrative, or fantasy framing.`;
 
     const user = `Team size: ${context.memberCount} member(s).
 Team's average quiz accuracy this week: ${context.skillCurrentPct ?? "not enough data"}%. Change vs earlier in the window: ${context.skillDeltaPct ?? "not enough data"} percentage points.
@@ -341,12 +341,12 @@ Write the team's growth insight.`;
     approvedThisWeek: number;
   }): Promise<GrowthInsight> {
     const system = `You are a growth-insight writer for Skibidi-Sprint, a workplace gamification app.
-You are given ALREADY-COMPUTED real numbers about a manager's OWN effectiveness as a reviewer/lead — review turnaround speed and assignment/approval volume. This is NOT about their personal XP or quests completed as an individual contributor. Do not invent, estimate, or recompute any numbers.
+You are given ALREADY-COMPUTED real numbers about a manager's OWN effectiveness as a reviewer/lead — review turnaround speed and assignment/approval volume. This is NOT about their personal XP or assignments completed as an individual contributor. Do not invent, estimate, or recompute any numbers.
 Respond ONLY with JSON matching: { "headline": string (max 90 chars), "observations": [{ "text": string (max 140 chars, grounded in a specific number from the input), "topic": "approvals" | "growth" | omit }] (2-3 items) }
 "topic" tags what the observation is ABOUT so the UI can offer a "go there" button — use "approvals" for anything about turnaround speed, assigning, or approving work, "growth" for a meta-observation with no single obvious destination, or omit "topic" if the observation isn't actionable. Never invent a topic outside this list.
 IMPORTANT on direction: a LOWER turnaround-hours number, or a NEGATIVE turnaroundDeltaPct, means they are reviewing FASTER (an improvement) — do not describe a negative delta as "declining" or "slower".
 If turnaroundSampleSize is very small (fewer than 3), explicitly caveat that the trend is based on limited data rather than stating it with confidence.
-Tone: factual, useful for self-reflection on leadership effectiveness. Never mention "kingdom" or fantasy framing.`;
+Tone: factual, useful for self-reflection on leadership effectiveness. Never mention "company" or fantasy framing.`;
 
     const user = `Average review turnaround time this week: ${context.currentAvgTurnaroundHours ?? "not enough data"} hours, based on ${context.turnaroundSampleSize} reviewed submission(s) in the window.
 Change vs earlier in the window: ${context.turnaroundDeltaPct ?? "not enough data"}% (negative = faster).
@@ -380,7 +380,7 @@ Write their leadership growth insight.`;
     const system = `You are a growth-insight writer for Skibidi-Sprint, a workplace gamification app, helping a manager understand ONE team member's real DELEGATED/SELF-CREATED task activity for a specific period. The employee's personal daily skill quiz is deliberately excluded from this — it's private practice, not work a manager reviews — so never mention or speculate about quiz-taking here.
 You are given ALREADY-COMPUTED real numbers AND the real list of tasks behind them. Explain the pattern using ONLY what's in that task list — e.g. a specific rejected task, or simply no completed activity that period. NEVER invent a cause not visible in the data (never guess at workload, mood, meetings, quizzes, or anything not given to you).
 If there are no tasks at all for the period, say so plainly rather than speculating why.
-Respond with a SHORT plain-text explanation, 2-3 sentences, no markdown, no JSON. Factual and specific — reference an actual task title or number from the input at least once. Never mention "kingdom" or fantasy framing.`;
+Respond with a SHORT plain-text explanation, 2-3 sentences, no markdown, no JSON. Factual and specific — reference an actual task title or number from the input at least once. Never mention "company" or fantasy framing.`;
 
     const taskLines =
       context.tasks.length > 0
@@ -409,9 +409,9 @@ Explain why this period looks the way it does.`;
     companionName: string;
     species: string;
     employeeName: string;
-    guildName?: string;
-    guildResourceGap?: string;
-    pendingAdventures: number;
+    teamName?: string;
+    teamResourceGap?: string;
+    pendingAssignments: number;
     dailyQuizStatus: "not_generated" | "pending" | "completed";
     recentMemory?: string;
     /** From GrowthService — real trend signal so a returning user's greeting can reference something specific, not just generic praise. Omitted (not null) when there's not enough history yet. */
@@ -420,10 +420,10 @@ Explain why this period looks the way it does.`;
   }): Promise<string> {
     const system = `You are ${context.companionName}, a ${context.species} AI companion in Skibidi-Sprint, a workplace gamification app.
 You are warm, encouraging, and a little playful — like a coach and friend. Speak in first person, 1-3 sentences, no markdown.
-You know about the employee's guild progress, pending adventures, and (when given) their real activity streak and week-over-week XP trend. Reference concrete numbers naturally, the way these examples do:
-"Good morning! Your guild is only 120 Knowledge away from upgrading the Forge. Completing today's learning adventure will help everyone."
+You know about the employee's team progress, pending assignments, and (when given) their real activity streak and week-over-week XP trend. Reference concrete numbers naturally, the way these examples do:
+"Good morning! Your team is only 120 Knowledge away from hitting its quarterly goal. Completing today's learning assignment will help everyone."
 "You're on a 4-day streak — keep it going! Your XP is up 30% from your usual week too."
-Never claim they completed something they haven't — only say a quiz/adventure is "done" if you are explicitly told it is. Never invent a streak or XP trend number not given to you.
+Never claim they completed something they haven't — only say a quiz/assignment is "done" if you are explicitly told it is. Never invent a streak or XP trend number not given to you.
 If told their daily skill quiz is still unanswered, you MUST nudge them to go take it — that's the single most important thing to mention.`;
 
     const quizLine =
@@ -442,7 +442,7 @@ If told their daily skill quiz is still unanswered, you MUST nudge them to go ta
         ? ` Their XP this week is ${context.outputDeltaPct >= 0 ? "up" : "down"} ${Math.abs(context.outputDeltaPct)}% vs their recent average.`
         : "";
 
-    const user = `Employee: ${context.employeeName}. Guild: ${context.guildName ?? "no guild yet"}. Resource gap: ${context.guildResourceGap ?? "none"}. Pending adventures: ${context.pendingAdventures}. ${quizLine}${streakLine}${trendLine} Recent memory: ${context.recentMemory ?? "none"}. Generate today's greeting.`;
+    const user = `Employee: ${context.employeeName}. Team: ${context.teamName ?? "no team yet"}. Resource gap: ${context.teamResourceGap ?? "none"}. Pending assignments: ${context.pendingAssignments}. ${quizLine}${streakLine}${trendLine} Recent memory: ${context.recentMemory ?? "none"}. Generate today's greeting.`;
 
     try {
       return await getAIProvider().completeText(system, user);
@@ -450,7 +450,7 @@ If told their daily skill quiz is still unanswered, you MUST nudge them to go ta
       if (context.dailyQuizStatus === "pending") {
         return `Hey ${context.employeeName}! Your daily skill quiz is ready and waiting — 5 questions, 5 coins each. Let's knock it out!`;
       }
-      return `Good morning, ${context.employeeName}! You have ${context.pendingAdventures} adventure(s) waiting. Let's make today count!`;
+      return `Good morning, ${context.employeeName}! You have ${context.pendingAssignments} assignment(s) waiting. Let's make today count!`;
     }
   }
 
@@ -481,52 +481,52 @@ Guess a reasonable default seniority (MID if genuinely ambiguous) and 5-8 concre
 
   /**
    * Onboarding: the companion's first message to a brand-new teammate,
-   * introducing their guild using real roster/resource data — never
+   * introducing their team using real roster/resource data — never
    * invented details. Distinct from generateCompanionDialogue (the
    * recurring dashboard greeting) — this fires exactly once, right after
    * profile completion.
    */
-  async generateGuildWelcome(context: {
+  async generateTeamWelcome(context: {
     companionName: string;
     species: string;
     employeeName: string;
-    guildName: string;
+    teamName: string;
     memberHighlight?: string;
-    guildResourceGap?: string;
+    teamResourceGap?: string;
   }): Promise<string> {
     const system = `You are ${context.companionName}, a ${context.species} AI companion in Skibidi-Sprint, a workplace gamification app.
-This is the very first thing you ever say to a brand-new teammate who just joined a guild (team). Be warm and welcoming, 2-4 sentences, first person, no markdown.
-Introduce their guild using ONLY the real facts given — never invent teammate names, stats, or events not mentioned.`;
+This is the very first thing you ever say to a brand-new teammate who just joined a team (team). Be warm and welcoming, 2-4 sentences, first person, no markdown.
+Introduce their team using ONLY the real facts given — never invent teammate names, stats, or events not mentioned.`;
 
-    const user = `New teammate: ${context.employeeName}. Guild: ${context.guildName}. ${context.memberHighlight ?? "No specific teammate activity to mention."} ${context.guildResourceGap ?? ""} Write their welcome message.`;
+    const user = `New teammate: ${context.employeeName}. Team: ${context.teamName}. ${context.memberHighlight ?? "No specific teammate activity to mention."} ${context.teamResourceGap ?? ""} Write their welcome message.`;
 
     try {
       return await getAIProvider().completeText(system, user);
     } catch {
-      return `Welcome to ${context.guildName}, ${context.employeeName}! I'm ${context.companionName} — I'll help you track quests, level up, and see how the guild's doing. Glad you're here.`;
+      return `Welcome to ${context.teamName}, ${context.employeeName}! I'm ${context.companionName} — I'll help you track assignments, level up, and see how the team's doing. Glad you're here.`;
     }
   }
 
   /**
-   * Onboarding: a one-time "welcome quest" generated alongside (not instead
+   * Onboarding: a one-time "welcome assignment" generated alongside (not instead
    * of) a brand-new employee's first daily quiz — a small, low-stakes first
    * task that makes them visible to their new team, rather than the same
    * generic skill quiz everyone gets every day.
    */
   async generateWelcomeQuest(context: {
     employeeName: string;
-    guildName?: string;
+    teamName?: string;
     jobRole?: string | null;
-  }): Promise<GeneratedAdventureContent> {
-    const system = `You are the AI Dungeon Master for Skibidi-Sprint, a workplace gamification app.
-Generate ONE short "welcome quest" — a brand-new employee's very first task, on their first day. It should help them make a small, visible first contribution to their new team (e.g. introducing themselves to the team, sharing something about their background, asking their manager or teammates a question) — NOT a generic skill quiz or solo learning task.
+  }): Promise<GeneratedAssignmentContent> {
+    const system = `You are the AI assignment writer for Skibidi-Sprint, a workplace gamification app.
+Generate ONE short "welcome assignment" — a brand-new employee's very first task, on their first day. It should help them make a small, visible first contribution to their new team (e.g. introducing themselves to the team, sharing something about their background, asking their manager or teammates a question) — NOT a generic skill quiz or solo learning task.
 This app has no chat/channel feature — NEVER invent or name a specific channel (e.g. "#some-channel"), Slack, Teams, or any other messaging tool. Phrase the task generically instead, like "introduce yourself to your team" or "share this with your manager" — leave HOW/WHERE up to the employee's own workplace.
 Respond ONLY with JSON matching: { "title": string, "description": string, "xpReward": number (15-30), "coinReward": number (10-20), "resourceType": "knowledge"|"gold"|"influence"|"materials", "resourceAmount": number (5-15) }`;
 
-    const user = `New employee: ${context.employeeName}. Guild: ${context.guildName ?? "no guild yet"}. Role: ${context.jobRole ?? "unspecified"}. Generate their day-one welcome quest.`;
+    const user = `New employee: ${context.employeeName}. Team: ${context.teamName ?? "no team yet"}. Role: ${context.jobRole ?? "unspecified"}. Generate their day-one welcome assignment.`;
 
     try {
-      return await getAIProvider().completeJSON<GeneratedAdventureContent>(system, user);
+      return await getAIProvider().completeJSON<GeneratedAssignmentContent>(system, user);
     } catch {
       return FALLBACK_WELCOME_QUEST;
     }
@@ -547,17 +547,17 @@ FORMATTING — this is rendered by a strict markdown parser, follow it exactly o
 Here is ${context.employeeName}'s real current state — use it to answer questions accurately, and NEVER invent numbers or facts not given here:
 - Role: ${context.employeeRole}.
 - Level ${context.level}, ${context.xp} total XP, ${context.coins} coins.
-- Guild membership: ${context.guildName ?? "not a member of any guild"}.
-- Guild(s) they LEAD as manager: ${context.managedGuildNames.length > 0 ? context.managedGuildNames.join(", ") : "none"}. IMPORTANT: a manager can lead a guild without being a member of it — "not a member of any guild" does NOT mean they have no team. If they lead a guild, they DO have teammates (see the list_team_members tool) — never tell them otherwise.
-- Pending adventures: ${context.pendingAdventureTitles.length > 0 ? context.pendingAdventureTitles.join(", ") : "none"}.
+- Team membership: ${context.teamName ?? "not a member of any team"}.
+- Team(s) they LEAD as manager: ${context.managedTeamNames.length > 0 ? context.managedTeamNames.join(", ") : "none"}. IMPORTANT: a manager can lead a team without being a member of it — "not a member of any team" does NOT mean they have no team. If they lead a team, they DO have teammates (see the list_team_members tool) — never tell them otherwise.
+- Pending assignments: ${context.pendingAssignmentTitles.length > 0 ? context.pendingAssignmentTitles.join(", ") : "none"}.
 - Daily skill quiz: ${context.dailyQuizStatus === "pending" ? "generated, not yet answered" : context.dailyQuizStatus === "completed" ? "already completed today" : "not generated yet today"}.
 
 If asked what Skibidi-Sprint is, what you (the companion) can help with, or anything enumerating features/capabilities, answer using ONLY real features, formatted as a real markdown list per the FORMATTING rule above — for example:
 "Here's what I can help with:
-- **Adventures** — your daily AI skill quiz plus solo/team tasks that earn XP and coins
+- **Assignments** — your daily AI skill quiz plus solo/team tasks that earn XP and coins
 - **Rewards** — spend coins on real perks
 - **Trading Post** — resell redeemed rewards to teammates
-- **Teams** — your guild's shared progress and resources
+- **Teams** — your team's shared progress and resources
 I can also create tasks or jump you to any page, right from this chat."
 (Managers/admins also get Approvals — reviewing submitted tasks — and assigning tasks to teammates, as additional list items.) Never write this kind of answer as a single paragraph.
 
@@ -608,7 +608,7 @@ If asked about anything outside this app (unrelated general knowledge, code help
   }
 }
 
-const GROWTH_OBSERVATION_TOPICS: GrowthObservationTopic[] = ["adventures", "teams", "approvals", "growth"];
+const GROWTH_OBSERVATION_TOPICS: GrowthObservationTopic[] = ["assignments", "teams", "approvals", "growth"];
 
 function isValidGrowthInsight(v: unknown): v is GrowthInsight {
   return (

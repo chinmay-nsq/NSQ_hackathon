@@ -1,9 +1,9 @@
 import { Role, Seniority } from "@prisma/client";
 import { prisma } from "@/config/db";
 import { EmployeeRepository } from "@/repositories/EmployeeRepository";
-import { GuildRepository } from "@/repositories/GuildRepository";
-import { AdventureRepository } from "@/repositories/AdventureRepository";
-import { AdventureFactory } from "@/factories/AdventureFactory";
+import { TeamRepository } from "@/repositories/TeamRepository";
+import { AssignmentRepository } from "@/repositories/AssignmentRepository";
+import { AssignmentFactory } from "@/factories/AssignmentFactory";
 import { AIService } from "./AIService";
 import { RESOURCE_TYPES } from "@/config/constants";
 import { ApiError } from "@/utils/apiError";
@@ -28,9 +28,9 @@ class EmployeeServiceImpl {
   /**
    * Completes the mandatory post-onboarding work profile (job role,
    * seniority, skills). Feeds AI task generation for this employee, both
-   * their own daily solo adventures and a manager's "generate with AI".
+   * their own daily solo assignments and a manager's "generate with AI".
    * Also kicks off the two other one-time onboarding moments: the
-   * companion's guild-welcome message and a day-one welcome quest —
+   * companion's team-welcome message and a day-one welcome assignment —
    * best-effort, so a hiccup in either never blocks profile completion
    * itself (the employee's own request is waiting on this response).
    */
@@ -45,7 +45,7 @@ class EmployeeServiceImpl {
       profileCompletedAt: new Date(),
     });
 
-    // Managers/admins don't get the "Say hello" welcome quest — commented
+    // Managers/admins don't get the "Say hello" welcome assignment — commented
     // out rather than deleted so it's a one-line revert if that changes.
     if (employee.role === Role.EMPLOYEE) {
       await this.generateWelcomeQuestOnce(employeeId, jobRole).catch(() => {});
@@ -55,46 +55,46 @@ class EmployeeServiceImpl {
   }
 
   /**
-   * The companion's first-ever message, introducing the employee's guild —
+   * The companion's first-ever message, introducing the employee's team —
    * built from real roster/resource data, never invented. No-ops quietly
-   * for an employee with no guild or no companion yet (both legitimate
+   * for an employee with no team or no companion yet (both legitimate
    * states right after signup).
    */
-  async guildWelcomeMessage(employeeId: string): Promise<string | null> {
+  async teamWelcomeMessage(employeeId: string): Promise<string | null> {
     const employee = await EmployeeRepository.findByIdWithRelations(employeeId);
     // Managers have a hidden auto-provisioned companion (bookkeeping only —
     // see CompanionService.autoProvisionHidden) and never see a companion
     // welcome message.
     if (employee?.role !== Role.EMPLOYEE) return null;
-    if (!employee?.guild || !employee.companion) return null;
+    if (!employee?.team || !employee.companion) return null;
 
-    const guild = await GuildRepository.findByIdWithMembers(employee.guild.id);
-    if (!guild) return null;
+    const team = await TeamRepository.findByIdWithMembers(employee.team.id);
+    if (!team) return null;
 
-    const others = guild.members.filter((m) => m.id !== employeeId);
+    const others = team.members.filter((m) => m.id !== employeeId);
     const memberHighlight =
       others.length > 0
-        ? `Teammates already in this guild: ${others.map((m) => `${m.name} (Level ${m.level})`).join(", ")}.`
+        ? `Teammates already in this team: ${others.map((m) => `${m.name} (Level ${m.level})`).join(", ")}.`
         : undefined;
 
     const lowest = RESOURCE_TYPES.reduce(
-      (min, key) => (guild[key] < guild[min] ? key : min),
+      (min, key) => (team[key] < team[min] ? key : min),
       RESOURCE_TYPES[0]
     );
-    const guildResourceGap = `The guild could use more ${lowest}.`;
+    const teamResourceGap = `The team could use more ${lowest}.`;
 
-    return AIService.generateGuildWelcome({
+    return AIService.generateTeamWelcome({
       companionName: employee.companion.name,
       species: employee.companion.species,
       employeeName: employee.name,
-      guildName: guild.name,
+      teamName: team.name,
       memberHighlight,
-      guildResourceGap,
+      teamResourceGap,
     });
   }
 
   /**
-   * Generates the one-time day-one welcome quest, guarded by
+   * Generates the one-time day-one welcome assignment, guarded by
    * welcomeQuestGeneratedAt so it can never be created twice even if this
    * gets called again (e.g. a retried request). Runs alongside the normal
    * daily quiz, not instead of it.
@@ -105,17 +105,17 @@ class EmployeeServiceImpl {
 
     const content = await AIService.generateWelcomeQuest({
       employeeName: employee.name,
-      guildName: employee.guild?.name,
+      teamName: employee.team?.name,
       jobRole,
     });
 
     await prisma.$transaction([
-      AdventureRepository.create(AdventureFactory.buildSolo(content, employeeId, employee.guildId)),
+      AssignmentRepository.create(AssignmentFactory.buildSolo(content, employeeId, employee.teamId)),
       EmployeeRepository.update(employeeId, { welcomeQuestGeneratedAt: new Date() }),
     ]);
   }
 
-  /** All employees with basic guild/role info — admin only. */
+  /** All employees with basic team/role info — admin only. */
   listAll() {
     return prisma.employee.findMany({
       select: {
@@ -127,8 +127,8 @@ class EmployeeServiceImpl {
         level: true,
         xp: true,
         coins: true,
-        guildId: true,
-        guild: { select: { id: true, name: true } },
+        teamId: true,
+        team: { select: { id: true, name: true } },
       },
       orderBy: { name: "asc" },
     });
@@ -143,16 +143,16 @@ class EmployeeServiceImpl {
 
   /** Company-wide snapshot for the admin dashboard. */
   async companyOverview() {
-    const [employeeCount, guildCount, pendingApprovals, totalXp] = await Promise.all([
+    const [employeeCount, teamCount, pendingApprovals, totalXp] = await Promise.all([
       prisma.employee.count(),
-      prisma.guild.count(),
-      prisma.adventureProgress.count({ where: { approval: "PENDING" } }),
+      prisma.team.count(),
+      prisma.assignmentProgress.count({ where: { approval: "PENDING" } }),
       prisma.employee.aggregate({ _sum: { xp: true } }),
     ]);
 
     return {
       employeeCount,
-      guildCount,
+      teamCount,
       pendingApprovals,
       totalXp: totalXp._sum.xp ?? 0,
     };

@@ -6,7 +6,7 @@ import { gsap, ScrollTrigger } from "@/lib/gsap/registerPlugins";
 
 const STATS = [
   { value: 5, suffix: "", label: "AI companion species" },
-  { value: 100, suffix: "%", label: "of adventures AI-generated" },
+  { value: 100, suffix: "%", label: "of assignments AI-generated" },
   { value: 4, suffix: "", label: "resource types teams grow" },
   { value: 1, suffix: "", label: "shared world per company" },
 ];

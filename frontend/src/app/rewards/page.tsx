@@ -102,7 +102,7 @@ export default function RewardsPage() {
     <PageIn>
       <PageHeader
         title="Rewards"
-        description="Spend coins earned from adventures on real rewards."
+        description="Spend coins earned from assignments on real rewards."
         action={
           employee && (
             <div
@@ -136,7 +136,7 @@ export default function RewardsPage() {
               <PackageOpen className="size-8 text-muted-foreground" strokeWidth={1.5} />
               <p className="font-medium">No rewards available yet</p>
               <p className="max-w-sm text-sm text-muted-foreground">
-                Check back soon — your kingdom is still stocking the vault.
+                Check back soon — your company is still stocking the vault.
               </p>
             </div>
           ) : (

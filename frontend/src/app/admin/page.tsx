@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { PageIn } from "@/components/motion/PageIn";
 import { StaggerGrid } from "@/components/motion/StaggerGrid";
 import { CountUp } from "@/components/motion/CountUp";
-import { CreateGuildDialog } from "@/components/guilds/CreateGuildDialog";
+import { CreateTeamDialog } from "@/components/teams/CreateTeamDialog";
 
 interface AdminEmployeeRow {
   id: string;
@@ -30,8 +30,8 @@ interface AdminEmployeeRow {
   level: number;
   xp: number;
   coins: number;
-  guildId: string | null;
-  guild: { id: string; name: string } | null;
+  teamId: string | null;
+  team: { id: string; name: string } | null;
 }
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -103,7 +103,7 @@ export default function AdminPage() {
       <PageHeader
         title="Admin"
         description="Company-wide oversight — roles, teams, and pending approvals."
-        action={<CreateGuildDialog onCreated={load} />}
+        action={<CreateTeamDialog onCreated={load} />}
       />
 
       {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
@@ -113,7 +113,7 @@ export default function AdminPage() {
       ) : (
         <div className="mb-10 grid divide-y divide-border/60 border border-border/60 rounded-xl sm:grid-cols-4 sm:divide-x sm:divide-y-0">
           <OverviewTile icon={Users} label="Employees" value={overview.employeeCount} />
-          <OverviewTile icon={Shield} label="Teams" value={overview.guildCount} />
+          <OverviewTile icon={Shield} label="Teams" value={overview.teamCount} />
           <OverviewTile icon={Clock} label="Pending Approvals" value={overview.pendingApprovals} />
           <OverviewTile icon={Star} label="Total XP Earned" value={overview.totalXp} />
         </div>
@@ -134,7 +134,7 @@ export default function AdminPage() {
                 <p className="truncate font-medium">{emp.name}</p>
                 <p className="truncate text-xs text-muted-foreground">{emp.email}</p>
               </div>
-              <span className="shrink-0 text-xs text-muted-foreground">{emp.guild?.name ?? "No team"}</span>
+              <span className="shrink-0 text-xs text-muted-foreground">{emp.team?.name ?? "No team"}</span>
               <Badge variant="secondary" className="shrink-0 font-mono text-[10px] tracking-wide uppercase">
                 Lvl {emp.level}
               </Badge>

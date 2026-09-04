@@ -1,7 +1,7 @@
 import { ToolDefinition } from "@/factories/AIProviderFactory";
-import { AdventureService } from "./AdventureService";
-import { GuildRepository } from "@/repositories/GuildRepository";
-import { MANUAL_ADVENTURE_XP, MANUAL_ADVENTURE_COINS } from "@/factories/AdventureFactory";
+import { AssignmentService } from "./AssignmentService";
+import { TeamRepository } from "@/repositories/TeamRepository";
+import { MANUAL_ASSIGNMENT_XP, MANUAL_ASSIGNMENT_COINS } from "@/factories/AssignmentFactory";
 import { Role } from "@prisma/client";
 
 /**
@@ -12,7 +12,7 @@ import { Role } from "@prisma/client";
  */
 export const NAVIGABLE_ROUTES: Record<string, string> = {
   dashboard: "/app",
-  adventures: "/adventures",
+  assignments: "/assignments",
   teams: "/teams",
   rewards: "/rewards",
   trading: "/trading",
@@ -85,17 +85,17 @@ export async function executeCompanionTool(
         const title = String(args.title ?? "").trim();
         const description = String(args.description ?? "").trim();
         if (!title || !description) return { content: "Missing a title or description — ask the employee for more detail." };
-        const adventure = await AdventureService.createManualSolo(ctx.employeeId, title, description);
-        return { content: `Created task "${adventure.title}" (id ${adventure.id}). It needs manager approval once completed, same as any manually-created task.` };
+        const assignment = await AssignmentService.createManualSolo(ctx.employeeId, title, description);
+        return { content: `Created task "${assignment.title}" (id ${assignment.id}). It needs manager approval once completed, same as any manually-created task.` };
       }
 
       case "list_team_members": {
         if (ctx.employeeRole === "EMPLOYEE") {
           return { content: "This employee isn't a manager — they have no team to list." };
         }
-        const guilds = await GuildRepository.findManagedByWithMembers(ctx.employeeId);
-        const names = guilds.flatMap((g) => g.members.map((m) => m.name));
-        if (names.length === 0) return { content: "They don't manage any guild with members yet." };
+        const teams = await TeamRepository.findManagedByWithMembers(ctx.employeeId);
+        const names = teams.flatMap((g) => g.members.map((m) => m.name));
+        if (names.length === 0) return { content: "They don't manage any team with members yet." };
         // Pre-formatted as real markdown bullets, one per line — passed
         // through to the model as the tool result, so its reply just needs
         // to present this list rather than invent formatting for a
@@ -118,21 +118,21 @@ export async function executeCompanionTool(
           return { content: "Missing the teammate's name, a title, or a description — ask for what's missing." };
         }
 
-        const guilds = await GuildRepository.findManagedByWithMembers(ctx.employeeId);
-        const allMembers = guilds.flatMap((g) => g.members);
+        const teams = await TeamRepository.findManagedByWithMembers(ctx.employeeId);
+        const allMembers = teams.flatMap((g) => g.members);
         const match = allMembers.find((m) => m.name.toLowerCase() === assigneeName.toLowerCase());
         if (!match) {
           const names = allMembers.map((m) => m.name).join(", ") || "nobody yet";
           return { content: `No exact match for "${assigneeName}" on their team. Team members are: ${names}. Ask them to confirm the name.` };
         }
 
-        await AdventureService.assignSolo(
+        await AssignmentService.assignSolo(
           ctx.employeeId,
           [match.id],
           title,
           description,
-          MANUAL_ADVENTURE_XP,
-          MANUAL_ADVENTURE_COINS
+          MANUAL_ASSIGNMENT_XP,
+          MANUAL_ASSIGNMENT_COINS
         );
         return { content: `Assigned "${title}" to ${match.name}.` };
       }

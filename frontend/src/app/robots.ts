@@ -12,7 +12,7 @@ export default function robots(): MetadataRoute.Robots {
         // shouldn't be crawled — keep search engines out of them entirely.
         disallow: [
           "/app",
-          "/adventures",
+          "/assignments",
           "/teams",
           "/rewards",
           "/trading",

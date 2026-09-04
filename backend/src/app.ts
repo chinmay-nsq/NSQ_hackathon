@@ -11,9 +11,9 @@ import { HttpStatus } from "@/utils/httpStatus";
 
 import authRouter from "@/routes/auth";
 import companionRouter from "@/routes/companion";
-import adventureRouter from "@/routes/adventures";
-import guildRouter from "@/routes/guilds";
-import kingdomRouter from "@/routes/kingdom";
+import assignmentRouter from "@/routes/assignments";
+import teamRouter from "@/routes/teams";
+import companyRouter from "@/routes/company";
 import marketplaceRouter from "@/routes/marketplace";
 import employeeRouter from "@/routes/employees";
 import tradingRouter from "@/routes/trading";
@@ -39,9 +39,9 @@ app.get("/health", (_req, res) => {
 
 app.use("/auth", authRouter);
 app.use("/companion", companionRouter);
-app.use("/adventures", adventureRouter);
-app.use("/guilds", guildRouter);
-app.use("/kingdom", kingdomRouter);
+app.use("/assignments", assignmentRouter);
+app.use("/teams", teamRouter);
+app.use("/company", companyRouter);
 app.use("/marketplace", marketplaceRouter);
 app.use("/employees", employeeRouter);
 app.use("/trading", tradingRouter);

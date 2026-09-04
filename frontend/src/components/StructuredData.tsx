@@ -10,7 +10,7 @@ export function StructuredData() {
     operatingSystem: "Web",
     url: SITE_URL,
     description:
-      "Every task becomes a quest. Every team, a party. Every company, a world worth showing up for — powered by an AI that actually pays attention.",
+      "Every task becomes an assignment. Every team, a crew. Every company, a world worth showing up for — powered by an AI that actually pays attention.",
     image: `${SITE_URL}/image.png`,
     offers: {
       "@type": "Offer",
