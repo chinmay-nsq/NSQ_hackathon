@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useGSAP } from "@gsap/react";
 import { gsap } from "@/lib/gsap/registerPlugins";
 import { MagneticButton } from "./MagneticButton";
-import { HeroCrystal } from "./HeroCrystal";
+import { HeroCompanion } from "./HeroCompanion";
 import { LightningBurst, type LightningBurstHandle } from "./LightningBurst";
 import { THUNDERBOLT_ENABLED } from "@/lib/featureFlags";
 
@@ -140,7 +140,7 @@ export function HeroSection({ onEnter }: { onEnter: () => void }) {
           </div>
         </div>
 
-        <HeroCrystal sectionRef={scope} />
+        <HeroCompanion />
       </div>
 
       <LightningBurst ref={burstRef} />
