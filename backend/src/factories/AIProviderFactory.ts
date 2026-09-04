@@ -1,4 +1,5 @@
 import { withGroqRetry, GROQ_MODEL } from "@/config/groqClient";
+import { withOpenAIRetry, OPENAI_MODEL } from "@/config/openaiClient";
 
 export interface ChatTurn {
   role: "user" | "assistant";
@@ -181,6 +182,120 @@ class GroqProvider implements AIProvider {
   }
 }
 
+class OpenAIProvider implements AIProvider {
+  async completeJSON<T>(system: string, user: string): Promise<T> {
+    const completion = await withOpenAIRetry((client) =>
+      client.chat.completions.create({
+        model: OPENAI_MODEL,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.9,
+      })
+    );
+    const raw = completion.choices[0]?.message?.content ?? "{}";
+    return JSON.parse(raw) as T;
+  }
+
+  async completeText(system: string, user: string): Promise<string> {
+    const completion = await withOpenAIRetry((client) =>
+      client.chat.completions.create({
+        model: OPENAI_MODEL,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+        temperature: 0.8,
+      })
+    );
+    return completion.choices[0]?.message?.content ?? "";
+  }
+
+  async completeChat(system: string, history: ChatTurn[]): Promise<string> {
+    const completion = await withOpenAIRetry((client) =>
+      client.chat.completions.create({
+        model: OPENAI_MODEL,
+        messages: [{ role: "system", content: system }, ...history],
+        temperature: 0.85,
+      })
+    );
+    return completion.choices[0]?.message?.content ?? "";
+  }
+
+  async completeChatWithTools(
+    system: string,
+    history: ChatTurn[],
+    tools: ToolDefinition[]
+  ): Promise<ChatWithToolsResult> {
+    const completion = await withOpenAIRetry((client) =>
+      client.chat.completions.create({
+        model: OPENAI_MODEL,
+        messages: [{ role: "system", content: system }, ...history],
+        temperature: 0.7,
+        tools: tools.map((t) => ({
+          type: "function" as const,
+          function: { name: t.name, description: t.description, parameters: t.parameters },
+        })),
+      })
+    );
+
+    const message = completion.choices[0]?.message;
+    // Every tool we ever define is type: "function" (see the map above), so
+    // the SDK's "custom" tool-call variant never actually occurs here — the
+    // filter is just what narrows the union for TypeScript.
+    const functionCalls = (message?.tool_calls ?? []).filter((c) => c.type === "function");
+    if (functionCalls.length > 0) {
+      return {
+        kind: "tool_calls",
+        calls: functionCalls.map((c) => ({
+          id: c.id,
+          name: c.function.name,
+          // Model-generated JSON — malformed args fail closed as {} rather
+          // than crashing the whole chat turn.
+          arguments: safeParseJSON(c.function.arguments),
+        })),
+      };
+    }
+
+    return { kind: "reply", text: message?.content ?? "" };
+  }
+
+  async completeChatToolReply(
+    system: string,
+    history: ChatTurn[],
+    calls: ToolCallRequest[],
+    results: ToolCallResult[]
+  ): Promise<string> {
+    const completion = await withOpenAIRetry((client) =>
+      client.chat.completions.create({
+        model: OPENAI_MODEL,
+        messages: [
+          { role: "system", content: system },
+          ...history,
+          {
+            role: "assistant",
+            content: null,
+            tool_calls: calls.map((c) => ({
+              id: c.id,
+              type: "function" as const,
+              function: { name: c.name, arguments: JSON.stringify(c.arguments) },
+            })),
+          },
+          ...results.map((r) => ({
+            role: "tool" as const,
+            tool_call_id: r.toolCallId,
+            content: r.content,
+          })),
+        ],
+        temperature: 0.8,
+      })
+    );
+    return completion.choices[0]?.message?.content ?? "";
+  }
+}
+
 function safeParseJSON(raw: string): Record<string, unknown> {
   try {
     const parsed = JSON.parse(raw);
@@ -239,12 +354,13 @@ function stripLeakedToolCallSyntax(text: string): string {
 let cachedProvider: AIProvider | null = null;
 
 /**
- * Returns the active AI provider. Swapping providers (e.g. to OpenAI/Claude)
- * only requires a new class here — callers depend on the AIProvider interface only.
+ * Returns the active AI provider. Swapping providers (e.g. back to Groq)
+ * only requires changing this one instantiation — callers depend on the
+ * AIProvider interface only.
  */
 export function getAIProvider(): AIProvider {
   if (!cachedProvider) {
-    cachedProvider = new GroqProvider();
+    cachedProvider = new OpenAIProvider();
   }
   return cachedProvider;
 }
