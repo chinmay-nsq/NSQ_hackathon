@@ -502,9 +502,6 @@ const SLIDES: SlideDef[] = [
   },
 ];
 
-/** Reserved for the deck's big "turn" moments so the effect stays special — everything else gets a simple fade+rise instead. */
-const GATHER_SLIDE_IDS = new Set(["cover", "problem", "morph-tasks", "morph-org", "morph-growth", "closer"]);
-
 function Deck({ onExit }: { onExit: () => void }) {
   const { isFullscreen, exit } = useFullscreen();
   const [index, setIndex] = useState(0);
@@ -513,7 +510,6 @@ function Deck({ onExit }: { onExit: () => void }) {
   const burstRef = useRef<LightningBurstHandle>(null);
   const morphedRef = useRef({ tasks: false, org: false, growth: false });
   const transitioning = useRef(false);
-  const titleSplitRef = useRef<SplitText | null>(null);
 
   /**
    * The slide's single entrance animation — everything else in this
@@ -522,51 +518,14 @@ function Deck({ onExit }: { onExit: () => void }) {
    * the incoming slide, see below), so exactly one animation plays per
    * element, not two competing ones.
    *
-   * On the deck's big "turn" moments (GATHER_SLIDE_IDS), the title
-   * "gathers" into place: each character starts scattered at a random
-   * offset/rotation/opacity and converges to its real resting spot, like
-   * it's being assembled rather than just fading up. Every other slide's
-   * title gets a plain fade+rise instead, so the gather effect stays
-   * special rather than feeling like default chrome. Supporting copy
-   * (eyebrow/body/rows/stats) always gets the same simple fade+rise,
-   * staggered in right after.
+   * Every title gets the same fade+rise, and the supporting copy
+   * (eyebrow/body/rows/stats) follows with the same motion, staggered in
+   * right after — so moving through the deck reads as one consistent
+   * transition rather than some slides announcing themselves differently.
    */
   function playSlideIn(el: HTMLElement) {
-    titleSplitRef.current?.revert();
-    titleSplitRef.current = null;
-
-    const slideId = SLIDES[Number(el.dataset.slide)]?.id;
     const titleEl = el.querySelector<HTMLElement>(".slide-title");
-
-    if (titleEl && slideId && GATHER_SLIDE_IDS.has(slideId)) {
-      const split = SplitText.create(titleEl, { type: "chars", charsClass: "slide-title-char" });
-      titleSplitRef.current = split;
-      gsap.set(split.chars, { display: "inline-block" });
-      split.chars.forEach((char) => {
-        const angle = Math.random() * Math.PI * 2;
-        const dist = 60 + Math.random() * 120;
-        gsap.fromTo(
-          char,
-          {
-            opacity: 0,
-            x: Math.cos(angle) * dist,
-            y: Math.sin(angle) * dist,
-            rotation: (Math.random() - 0.5) * 200,
-            scale: 0.3,
-          },
-          {
-            opacity: 1,
-            x: 0,
-            y: 0,
-            rotation: 0,
-            scale: 1,
-            duration: 0.7,
-            delay: Math.random() * 0.15,
-            ease: "power3.out",
-          },
-        );
-      });
-    } else if (titleEl) {
+    if (titleEl) {
       gsap.fromTo(titleEl, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" });
     }
 
