@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PageIn } from "@/components/motion/PageIn";
 import { flyCoinsToBalance } from "@/lib/gsap/coinFly";
 import { REWARD_ICONS } from "@/lib/rewardIcons";
@@ -253,6 +255,8 @@ function TaskSubmissionsSection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<PendingApproval | null>(null);
+  const [rejectNote, setRejectNote] = useState("");
   const rowRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const load = useCallback(() => {
@@ -297,14 +301,16 @@ function TaskSubmissionsSection() {
     }
   }
 
-  async function handleReject(item: PendingApproval) {
+  async function handleReject() {
+    if (!rejectTarget || !rejectNote.trim()) return;
+    const item = rejectTarget;
     setActingId(item.id);
     try {
-      await api.post(`/adventures/${item.adventureId}/reject/${item.employeeId}`, {
-        note: "Not approved — try again with more detail.",
-      });
+      await api.post(`/adventures/${item.adventureId}/reject/${item.employeeId}`, { note: rejectNote.trim() });
       toast.success(`Rejected ${item.adventure.title}`);
       setPending((prev) => prev.filter((p) => p.id !== item.id));
+      setRejectTarget(null);
+      setRejectNote("");
     } catch (err) {
       toast.error(err instanceof ApiRequestError ? err.message : "Could not reject this submission.");
     } finally {
@@ -313,6 +319,7 @@ function TaskSubmissionsSection() {
   }
 
   return (
+    <>
     <Tabs defaultValue="assigned">
       <TabsList className="mb-6">
         <TabsTrigger value="assigned">Assigned ({assigned.length})</TabsTrigger>
@@ -405,7 +412,7 @@ function TaskSubmissionsSection() {
                         </span>
                       </TableCell>
                       <TableCell className="max-w-xs text-sm whitespace-normal text-muted-foreground">
-                        {item.submission ?? "—"}
+                        {item.submission ?? "-"}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -414,7 +421,7 @@ function TaskSubmissionsSection() {
                             variant="outline"
                             className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                             disabled={actingId === item.id}
-                            onClick={() => handleReject(item)}
+                            onClick={() => setRejectTarget(item)}
                           >
                             <X />
                           </Button>
@@ -484,6 +491,52 @@ function TaskSubmissionsSection() {
         </>
       )}
     </Tabs>
+
+    <Dialog
+      open={rejectTarget !== null}
+      onOpenChange={(open) => {
+        if (!open) {
+          setRejectTarget(null);
+          setRejectNote("");
+        }
+      }}
+    >
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="font-display text-lg tracking-wide uppercase">Reject submission</DialogTitle>
+          <DialogDescription>
+            {rejectTarget &&
+              `Let ${rejectTarget.employee.name} know what needs to change before resubmitting "${rejectTarget.adventure.title}".`}
+          </DialogDescription>
+        </DialogHeader>
+        <Textarea
+          value={rejectNote}
+          onChange={(e) => setRejectNote(e.target.value)}
+          placeholder="What needs to change?"
+          rows={3}
+          autoFocus
+        />
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setRejectTarget(null);
+              setRejectNote("");
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            disabled={!rejectNote.trim() || actingId === rejectTarget?.id}
+            onClick={handleReject}
+          >
+            {actingId === rejectTarget?.id ? "Rejecting…" : "Confirm reject"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 

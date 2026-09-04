@@ -33,7 +33,7 @@ const assignSchema = z.object({
 });
 
 const rejectSchema = z.object({
-  note: z.string().max(500).optional(),
+  note: z.string().trim().min(1, "A note explaining the rejection is required").max(500),
 });
 
 const addCommentSchema = z.object({

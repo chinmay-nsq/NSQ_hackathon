@@ -91,6 +91,8 @@ export function TaskDetailDialog({
   const [submission, setSubmission] = useState("");
   const [acting, setActing] = useState(false);
   const [movingSprint, setMovingSprint] = useState(false);
+  const [showRejectForm, setShowRejectForm] = useState(false);
+  const [rejectNote, setRejectNote] = useState("");
 
   const isManager = employee?.role === "MANAGER" || employee?.role === "ADMIN";
   const loading = taskId !== null && detailTaskId !== taskId;
@@ -190,11 +192,13 @@ export function TaskDetailDialog({
   }
 
   async function handleReject() {
-    if (!taskId || !detail?.adventure.assignee) return;
+    if (!taskId || !detail?.adventure.assignee || !rejectNote.trim()) return;
     setActing(true);
     try {
-      await api.post(`/adventures/${taskId}/reject/${detail.adventure.assignee.id}`);
+      await api.post(`/adventures/${taskId}/reject/${detail.adventure.assignee.id}`, { note: rejectNote.trim() });
       toast.success("Rejected — sent back for rework");
+      setShowRejectForm(false);
+      setRejectNote("");
       load();
       onChanged();
     } catch (err) {
@@ -288,21 +292,56 @@ export function TaskDetailDialog({
               </div>
             )}
             {adventure.column === "in_review" && isManager && (
-              <div className="flex gap-2">
-                <Button size="sm" disabled={acting} onClick={handleApprove} className="glow-primary">
-                  <Check />
-                  Approve
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={acting}
-                  onClick={handleReject}
-                  className="text-destructive hover:bg-destructive/10"
-                >
-                  <X />
-                  Reject
-                </Button>
+              <div className="space-y-2">
+                {!showRejectForm ? (
+                  <div className="flex gap-2">
+                    <Button size="sm" disabled={acting} onClick={handleApprove} className="glow-primary">
+                      <Check />
+                      Approve
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={acting}
+                      onClick={() => setShowRejectForm(true)}
+                      className="text-destructive hover:bg-destructive/10"
+                    >
+                      <X />
+                      Reject
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3.5">
+                    <Textarea
+                      value={rejectNote}
+                      onChange={(e) => setRejectNote(e.target.value)}
+                      placeholder="What needs to change before this can be approved?"
+                      rows={2}
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={acting || !rejectNote.trim()}
+                        onClick={handleReject}
+                      >
+                        {acting ? "Rejecting…" : "Confirm reject"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={acting}
+                        onClick={() => {
+                          setShowRejectForm(false);
+                          setRejectNote("");
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
