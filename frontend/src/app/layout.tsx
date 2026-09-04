@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Anton, Bricolage_Grotesque, Inter, JetBrains_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Inter, JetBrains_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
@@ -8,13 +8,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { StructuredData } from "@/components/StructuredData";
-
-// Landing page ("/") only — a distinct, always-dark visual world.
-const anton = Anton({
-  variable: "--font-anton",
-  subsets: ["latin"],
-  weight: "400",
-});
 
 // Body copy across the whole authenticated app.
 const inter = Inter({
@@ -75,7 +68,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${bricolage.variable} ${jetbrainsMono.variable} ${anton.variable} antialiased`}
+      className={`${inter.variable} ${bricolage.variable} ${jetbrainsMono.variable} antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-screen">

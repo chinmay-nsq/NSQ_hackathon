@@ -1,5 +1,5 @@
 /*
-  Skibidi-Sprint marketing surfaces ("/" and "/how-it-works").
+  Skibidi-Sprint marketing surfaces: "/", "/how-it-works" and "/show-ppt".
 
   These used to be a dark cinematic world of their own. They now carry the
   same identity as the authenticated app: white ground, near-black neutral
@@ -9,8 +9,7 @@
   crossing from the landing page into the product sees one product.
 
   Still scoped under .landing-page because these pages set colour on a bare
-  ground rather than through the app's --background/--foreground tokens, and
-  because the pitch deck opts back out (see .deck-dark at the bottom).
+  ground rather than through the app's --background/--foreground tokens.
 */
 
 .landing-page {
@@ -62,7 +61,6 @@
 
 .landing-page .font-display {
   font-family: var(--font-bricolage), system-ui, sans-serif;
-  letter-spacing: -0.02em;
 }
 
 .landing-page .font-mono {
@@ -172,13 +170,12 @@ html.has-custom-cursor .landing-page * {
 }
 
 /*
-  Dust is decoration on a dark stage but noise on a white page, so the light
-  ground keeps it at roughly a third of the presence and drops the glow —
-  a glow reads as light in a dark room, and as a smudge on white. The glow
-  is set inline per particle (it scales with size), so only !important
-  outranks it.
+  Dust is decoration on a dark stage but noise on a white page, so it runs
+  at roughly a third of the presence and drops the glow — a glow reads as
+  light in a dark room, and as a smudge on white. The glow is set inline per
+  particle (it scales with size), so only !important outranks it.
 */
-.landing-page:not(.deck-dark) .ambient-particle {
+.landing-page .ambient-particle {
   box-shadow: none !important;
   animation-name: ambient-drift-light;
 }
@@ -198,45 +195,6 @@ html.has-custom-cursor .landing-page * {
     transform: translate(var(--drift), -110vh);
     opacity: 0;
   }
-}
-
-/*
-  ---------- The pitch deck ----------
-
-  /show-ppt is projected, where a white ground blows out the room, so it
-  stays in the original dark world. It only shares the purely visual pieces
-  (ambient dust, the lightning burst) with the landing page, so restoring
-  the old token values here is enough to restore the old look — no component
-  in the deck reads the text/line steps above.
-
-  Drop `deck-dark` from that page's wrappers to bring it onto the new
-  identity along with everything else.
-*/
-.landing-page.deck-dark {
-  --paper: #f3efe9;
-  --ink: #0a0908;
-  --line: #232120;
-  --line-strong: #232120;
-  --brand: #ff5a36;
-  --brand-deep: #b23a1f;
-  --smoke: #8a8580;
-  --gold: #d4a537;
-  --gold-ink: #d4a537;
-  --particle-1: #ff5a36;
-  --particle-2: #ffcdb8;
-  --particle-3: #ffe9a8;
-
-  background: var(--ink);
-  color: var(--paper);
-}
-
-.landing-page.deck-dark .font-display {
-  font-family: var(--font-anton), sans-serif;
-  letter-spacing: normal;
-}
-
-.landing-page.deck-dark .text-gold {
-  color: var(--gold);
 }
 
 @media (prefers-reduced-motion: reduce) {
