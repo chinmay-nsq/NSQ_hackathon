@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Maximize, X, ClipboardList, Users, ClipboardCheck, MessageCircle, Store, Building2, TrendingUp, Flame, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, Maximize, X, ClipboardList, Users, ClipboardCheck, MessageCircle, Store, Building2, TrendingUp, Flame, UserPlus, MessagesSquare, GraduationCap, type LucideIcon } from "lucide-react";
 import "../landing.css";
 import { gsap, MorphSVGPlugin, SplitText } from "@/lib/gsap/registerPlugins";
 import { AmbientParticles } from "@/components/landing/AmbientParticles";
@@ -129,23 +129,45 @@ const FEATURE_HIGHLIGHTS: { icon: LucideIcon; title: string; body: string }[] = 
   { icon: Building2, title: "Company", body: "Every team's resources feed into shared, company-wide project goals — visible progress everyone can watch fill up together." },
 ];
 
+const USE_CASES: { icon: LucideIcon; title: string; body: string }[] = [
+  { icon: UserPlus, title: "Day one for a new hire", body: "Onboarding picks their companion, names it, and reads their skills off their own description of the role. The first assignments land the same morning — nobody waits a week for a buddy and a login." },
+  { icon: ClipboardCheck, title: "A manager's Monday", body: "Write and hand out the week's work in one pass — to one person or the whole team — then clear every submission from a single approvals queue. Approving pays out XP and coins on the spot." },
+  { icon: MessagesSquare, title: "A team that never shares a room", body: "Each team gets a standup room where every real task movement posts itself as an event, in line with the conversation. Progress stays visible without a meeting to attend it." },
+  { icon: GraduationCap, title: "Skills that quietly go stale", body: "A fresh AI-written skill check every day, and a growth trend measured against that person's own recent average — improvement you can see long before a review cycle forces the question." },
+];
+
 const SLIDES: SlideDef[] = [
   {
     id: "cover",
     kicker: "00",
-    notes: "Open with energy. This is the one-line pitch — say it, then pause. Let the tagline land before moving on.",
+    notes: "Open with energy. Say the headline, then pause — let it land before you touch the three numbers underneath.",
     render: () => (
       <div className="flex h-full flex-col items-start justify-center">
         <p className="slide-eyebrow font-mono text-sm uppercase tracking-[0.3em] text-brand">Skibidi-Sprint</p>
-        <h2 className="slide-title mt-5 font-display text-[clamp(3.2rem,9vw,7.5rem)] leading-[0.88] text-(--ink)">
-          WORK, AS AN
+        <h2 className="slide-title mt-5 font-display text-[clamp(2.8rem,7.4vw,6.2rem)] leading-[0.88] text-(--ink)">
+          WORK FEELS LIKE
           <br />
-          <span className="text-brand">ASSIGNMENT.</span>
+          <span className="text-brand">A GAME YOU</span>
+          <br />
+          <span className="text-brand">WANT TO PLAY.</span>
         </h2>
         <p className="slide-body mt-8 max-w-2xl text-2xl leading-snug text-(--ash)">
-          A workplace engagement platform that turns real tasks into assignments, real teams into teams, and gives every
-          employee an AI companion that actually knows what&apos;s going on.
+          Not a new process to adopt — the work already happening, with a loop wrapped around it. Real tasks become
+          assignments, departments become teams, and every employee gets an AI companion that knows exactly
+          what&apos;s on their plate.
         </p>
+        <div className="mt-10 flex flex-wrap items-center gap-x-10 gap-y-4">
+          {[
+            ["15", "product areas, shipped"],
+            ["7", "AI companions"],
+            ["0", "public leaderboards"],
+          ].map(([value, label]) => (
+            <p key={label} className="slide-row flex items-baseline gap-3">
+              <span className="font-display text-4xl text-brand">{value}</span>
+              <span className="font-mono text-xs uppercase tracking-widest text-(--smoke)">{label}</span>
+            </p>
+          ))}
+        </div>
       </div>
     ),
   },
@@ -416,8 +438,36 @@ const SLIDES: SlideDef[] = [
     ),
   },
   {
+    id: "use-cases",
+    kicker: "10 — Where It Fits",
+    notes: "Pick the scenario closest to the room you're in and tell that one as a story. The other three are on the slide so nobody has to ask whether this works for their team.",
+    render: () => (
+      <div className="flex h-full flex-col justify-center">
+        <h2 className="slide-title font-display text-[clamp(2.2rem,5vw,3.8rem)] leading-[0.95] text-(--ink)">
+          Four ordinary weeks, <span className="text-brand">run differently.</span>
+        </h2>
+        <p className="slide-body mt-4 max-w-2xl text-xl text-(--smoke)">
+          None of these ask anyone to change how they work. They&apos;re the same week, with the loop running underneath it.
+        </p>
+        <div className="feature-grid mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {USE_CASES.map((u) => (
+            <div key={u.title} className="feature-card flex items-start gap-4 rounded-2xl border border-(--line) bg-(--wash) p-6">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-(--brand-soft) bg-brand-soft">
+                <u.icon className="size-6 text-brand" strokeWidth={1.5} />
+              </span>
+              <div>
+                <h4 className="font-display text-xl text-(--ink)">{u.title}</h4>
+                <p className="mt-1.5 text-base leading-relaxed text-(--smoke)">{u.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ),
+  },
+  {
     id: "economy",
-    kicker: "10 — A Real Economy",
+    kicker: "11 — A Real Economy",
     notes: "Emphasize \"even after you spend them\" — that's the surprising part, most reward systems are dead ends once you redeem.",
     render: () => (
       <div className="flex h-full flex-col justify-center">
@@ -446,7 +496,7 @@ const SLIDES: SlideDef[] = [
   },
   {
     id: "stats",
-    kicker: "11 — By The Numbers",
+    kicker: "12 — By The Numbers",
     notes: "Let each number count up before speaking over it — the count-up itself holds attention, don't talk through it.",
     render: () => (
       <div className="flex h-full flex-col justify-center">
@@ -473,7 +523,7 @@ const SLIDES: SlideDef[] = [
   },
   {
     id: "why",
-    kicker: "12 — Why This Stands Out",
+    kicker: "13 — Why This Stands Out",
     notes: "This is the thesis statement of the whole pitch. Slow down and say it plainly — it's the line people should remember.",
     render: () => (
       <div className="flex h-full flex-col justify-center">
